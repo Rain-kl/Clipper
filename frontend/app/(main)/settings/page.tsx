@@ -2,8 +2,7 @@
 
 import Link from "next/link"
 import {Card, CardContent, CardDescription, CardTitle} from "@/components/ui/card"
-import {Bell, Key, Loader2, Palette, Shield, UserRound} from "lucide-react"
-import {useAuth} from "@/components/providers/auth-provider"
+import {Bell, Key, Palette, UserRound} from "lucide-react"
 
 /* 设置项 */
 const settingsItems = [
@@ -29,13 +28,6 @@ const settingsItems = [
     category: "账户设置",
   },
   {
-    title: "安全设置",
-    description: "管理您的账户安全",
-    icon: Shield,
-    href: "/settings/security",
-    category: "账户设置",
-  },
-  {
     title: "外观设置",
     description: "自定义界面主题 and 显示",
     icon: Palette,
@@ -45,25 +37,7 @@ const settingsItems = [
 ]
 
 export default function SettingsPage() {
-  const { user, loading } = useAuth()
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[200px]">
-        <Loader2 className="size-6 animate-spin text-indigo-500" />
-      </div>
-    )
-  }
-
-  // 非管理员过滤掉安全设置
-  const filteredItems = settingsItems.filter((item) => {
-    if (item.href === "/settings/security") {
-      return !!user?.is_admin
-    }
-    return true
-  })
-
-  const groupedSettings = filteredItems.reduce((acc, item) => {
+  const groupedSettings = settingsItems.reduce((acc, item) => {
     if (!acc[item.category]) {
       acc[item.category] = []
     }

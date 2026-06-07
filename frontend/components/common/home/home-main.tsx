@@ -1,24 +1,11 @@
 "use client"
 
 import * as React from "react"
-import { motion } from "motion/react"
-import { useUser } from "@/contexts/user-context"
-import { formatDateTime } from "@/lib/utils"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Button } from "@/components/ui/button"
-import {
-  User,
-  Key,
-  ShieldCheck,
-  FileText,
-  Layers,
-  ArrowRight,
-  Shield,
-  HelpCircle,
-  Clock,
-  ExternalLink
-} from "lucide-react"
+import {motion} from "motion/react"
+import {useUser} from "@/contexts/user-context"
+import {Card, CardHeader, CardTitle} from "@/components/ui/card"
+import {Button} from "@/components/ui/button"
+import {ArrowRight, ExternalLink, FileText, HelpCircle, Layers, Shield, ShieldCheck, User} from "lucide-react"
 import Link from "next/link"
 
 export function HomeMain() {
@@ -57,6 +44,15 @@ export function HomeMain() {
   ]
 
   const adminLinks = [
+    {
+      title: "系统设置",
+      description: "管理登录注册开关与认证源安全策略",
+      icon: Shield,
+      url: "/admin/settings",
+      color: "text-amber-500",
+      bgColor: "bg-amber-500/10",
+      borderColor: "hover:border-amber-500/30",
+    },
     {
       title: "全局系统配置",
       description: "动态管理平台运行时核心配置参数",

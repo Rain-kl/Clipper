@@ -4,7 +4,7 @@ import {useCallback, useEffect, useState} from "react"
 import Link from "next/link"
 import {toast} from "sonner"
 import {format} from "date-fns"
-import {Activity, ChevronLeft, ChevronRight, Layers, RefreshCw, RotateCcw} from "lucide-react"
+import {Activity, ChevronLeft, ChevronRight, RefreshCw, RotateCcw} from "lucide-react"
 
 import {AdminService, TaskExecution, TaskExecutionStatus, TaskMeta} from "@/lib/services"
 import {ErrorInline} from "@/components/layout/error"
@@ -160,8 +160,7 @@ export function TaskExecutionsManager() {
         <div className="flex flex-wrap items-center gap-2">
           <Button variant="outline" size="sm" asChild>
             <Link href="/admin/tasks">
-              <Layers className="size-4" />
-              任务管理
+              返回
             </Link>
           </Button>
           <Select value={executionStatus} onValueChange={(value) => setExecutionStatus(value as TaskExecutionStatus | "all")}>

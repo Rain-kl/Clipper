@@ -67,10 +67,8 @@ const data = {
     { title: "首页", url: "/home", icon: Home },
     { title: "文件管理", url: "/settings/files", icon: FolderOpen },
   ],
-  systemSettings: [
-    { title: "系统设置", url: "/settings/security", icon: Settings },
-  ],
   admin: [
+    { title: "系统设置", url: "/admin/settings", icon: Settings },
     { title: "系统配置", url: "/admin/system", icon: ShieldCheck },
     { title: "用户管理", url: "/admin/users", icon: UserRound },
     { title: "任务管理", url: "/admin/tasks", icon: Layers },
@@ -286,32 +284,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           {user?.is_admin && (
             <SidebarGroup className="py-0 pt-4">
               <SidebarGroupLabel className="text-xs font-normal text-muted-foreground">
-                设置
-              </SidebarGroupLabel>
-              <SidebarGroupContent className="py-1">
-                <SidebarMenu className="gap-1">
-                  {data.systemSettings.map((item) => (
-                    <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton
-                        tooltip={item.title}
-                        isActive={pathname.startsWith(item.url)}
-                        asChild
-                      >
-                        <Link href={item.url} onClick={handleCloseSidebar}>
-                          {item.icon && <item.icon />}
-                          <span>{item.title}</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-          )}
-
-          {user?.is_admin && (
-            <SidebarGroup className="py-0 pt-4">
-              <SidebarGroupLabel className="text-xs font-normal text-muted-foreground">
                 管理
               </SidebarGroupLabel>
               <SidebarGroupContent className="py-1">
@@ -320,7 +292,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     <SidebarMenuItem key={item.title}>
                       <SidebarMenuButton
                         tooltip={item.title}
-                        isActive={pathname === item.url}
+                        isActive={pathname === item.url || pathname.startsWith(`${item.url}/`)}
                         asChild
                       >
                         <Link href={item.url} onClick={handleCloseSidebar}>

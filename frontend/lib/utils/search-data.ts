@@ -98,16 +98,15 @@ export const searchData: SearchItem[] = [
     category: 'setting',
     keywords: ['appearance', '外观', '主题', 'theme', 'dark', 'light'],
   },
-  {
-    id: 'settings-security',
-    title: '安全设置',
-    description: '管理您的账户安全设置及安全密钥',
-    url: '/settings',
-    category: 'setting',
-    keywords: ['settings', '安全', 'security', 'privacy', 'keys'],
-  },
-
   // ==================== 管理员 ====================
+  {
+    id: 'admin-settings',
+    title: '系统设置',
+    description: '管理系统登录注册与认证源配置 (管理员专属)',
+    url: '/admin/settings',
+    category: 'admin',
+    keywords: ['admin', '管理员', '系统设置', '安全', 'security', 'oidc', 'login'],
+  },
   {
     id: 'admin-system',
     title: '系统配置',

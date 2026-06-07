@@ -2,7 +2,6 @@
 
 import {useCallback, useEffect, useState} from "react"
 import Link from "next/link"
-import {useRouter} from "next/navigation"
 import {toast} from "sonner"
 import {Button} from "@/components/ui/button"
 import {Input} from "@/components/ui/input"
@@ -130,7 +129,6 @@ function DatePickerWithTime({ date, setDate }: { date: Date | undefined, setDate
 }
 
 export function TaskManager() {
-  const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
   const [taskTypes, setTaskTypes] = useState<TaskMeta[]>([])
@@ -191,7 +189,6 @@ export function TaskManager() {
       setStartTime(undefined)
       setEndTime(undefined)
       setUserId("")
-      router.push("/admin/tasks/executions")
     } catch (err) {
       toast.error('任务下发失败', {
         description: err instanceof Error ? err.message : '未知错误'

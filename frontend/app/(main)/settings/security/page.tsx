@@ -1,5 +1,5 @@
-import { SecurityMain } from "@/components/common/settings/security"
+import {redirect} from "next/navigation"
 
 export default function SecurityPage() {
-  return <SecurityMain />
+  redirect("/admin/settings")
 }

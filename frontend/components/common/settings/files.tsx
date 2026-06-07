@@ -1,7 +1,6 @@
 "use client"
 
 import * as React from "react"
-import Link from "next/link"
 import {useMutation, useQuery, useQueryClient} from "@tanstack/react-query"
 import {AnimatePresence, motion} from "motion/react"
 import {
@@ -11,7 +10,6 @@ import {
   FileImage,
   FileText,
   FileVideo,
-  Folder,
   Loader2,
   Search,
   Trash2,
@@ -21,14 +19,6 @@ import {
 import {toast} from "sonner"
 
 import {Button} from "@/components/ui/button"
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb"
 import {Input} from "@/components/ui/input"
 import {Badge} from "@/components/ui/badge"
 import {
@@ -148,32 +138,13 @@ export function FilesMain() {
       transition={{ duration: 0.35, ease: "easeOut" }}
       className="py-6 space-y-6 max-w-6xl mx-auto"
     >
-      {/* Breadcrumb */}
-      <div className="font-semibold">
-        <Breadcrumb>
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink asChild>
-                <Link href="/settings" className="text-base text-primary">设置</Link>
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbPage className="text-base font-semibold">文件管理</BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
-      </div>
 
       {/* 头部 */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-5">
         <div className="flex items-center gap-4">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-500 to-indigo-600 text-white shadow-lg shadow-sky-500/20">
-            <Folder className="size-6" />
-          </div>
           <div>
             <h1 className="text-xl font-bold tracking-tight bg-gradient-to-r from-foreground via-foreground/90 to-muted-foreground bg-clip-text text-transparent">
-              我的文件
+              文件管理
             </h1>
             <p className="text-sm text-muted-foreground">
               管理您上传的所有文件，支持下载和批量操作
