@@ -38,6 +38,7 @@ type TaskMeta struct {
 	SupportsTime bool
 	MaxRetry     int
 	Queue        string
+	Retryable    bool // 是否支持手动重试
 }
 
 // DispatchableTasks 可下发的任务列表
@@ -50,6 +51,7 @@ var DispatchableTasks = []TaskMeta{
 		SupportsTime: false,
 		MaxRetry:     3,
 		Queue:        QueueDefault,
+		Retryable:    true,
 	},
 }
 

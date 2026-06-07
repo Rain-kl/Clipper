@@ -1,30 +1,27 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
-import { toast } from "sonner"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Spinner } from "@/components/ui/spinner"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Layers, Play, Clock, Info } from "lucide-react"
+import {useCallback, useEffect, useState} from "react"
+import Link from "next/link"
+import {useRouter} from "next/navigation"
+import {toast} from "sonner"
+import {Button} from "@/components/ui/button"
+import {Input} from "@/components/ui/input"
+import {Label} from "@/components/ui/label"
+import {Spinner} from "@/components/ui/spinner"
+import {Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle} from "@/components/ui/dialog"
+import {Calendar as CalendarIcon, Clock, FileText, Info, Layers, Play} from "lucide-react"
 
-import { TaskMeta, AdminService, DispatchTaskRequest } from "@/lib/services"
-import { ErrorInline } from "@/components/layout/error"
-import { LoadingStateWithBorder } from "@/components/layout/loading"
-import { EmptyStateWithBorder } from "@/components/layout/empty"
-import { Badge } from "@/components/ui/badge"
-import { cn } from "@/lib/utils"
+import {AdminService, DispatchTaskRequest, TaskMeta} from "@/lib/services"
+import {ErrorInline} from "@/components/layout/error"
+import {LoadingStateWithBorder} from "@/components/layout/loading"
+import {EmptyStateWithBorder} from "@/components/layout/empty"
+import {Badge} from "@/components/ui/badge"
+import {cn} from "@/lib/utils"
 
-import { format } from "date-fns"
-import { zhCN } from "date-fns/locale"
-import { Calendar as CalendarIcon } from "lucide-react"
-import { Calendar } from "@/components/ui/calendar"
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
+import {format} from "date-fns"
+import {zhCN} from "date-fns/locale"
+import {Calendar} from "@/components/ui/calendar"
+import {Popover, PopoverContent, PopoverTrigger,} from "@/components/ui/popover"
 
 const TASK_CONFIGS: Record<string, { icon: React.ComponentType<{ className?: string }>, color: string, gradient: string }> = {
   'order_sync': {
@@ -133,6 +130,7 @@ function DatePickerWithTime({ date, setDate }: { date: Date | undefined, setDate
 }
 
 export function TaskManager() {
+  const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
   const [taskTypes, setTaskTypes] = useState<TaskMeta[]>([])
@@ -183,16 +181,17 @@ export function TaskManager() {
         if (userId) params.user_id = userId
       }
 
-      await AdminService.dispatchTask(params)
+      const taskID = await AdminService.dispatchTask(params)
 
       toast.success('任务下发成功', {
-        description: `已成功将任务 ${ targetTask?.name || selectedTaskType } 加入队列`
+        description: `已成功将任务 ${ targetTask?.name || selectedTaskType } 加入队列：${ taskID }`
       })
       setDialogOpen(false)
 
       setStartTime(undefined)
       setEndTime(undefined)
       setUserId("")
+      router.push("/admin/tasks/executions")
     } catch (err) {
       toast.error('任务下发失败', {
         description: err instanceof Error ? err.message : '未知错误'
@@ -217,6 +216,12 @@ export function TaskManager() {
         <div className="flex flex-col gap-1">
           <div className="text-2xl font-semibold tracking-tight">任务管理</div>
         </div>
+        <Button variant="outline" size="sm" asChild>
+          <Link href="/admin/tasks/executions">
+            <FileText className="size-4" />
+            任务日志
+          </Link>
+        </Button>
       </div>
 
       <div className="space-y-6">

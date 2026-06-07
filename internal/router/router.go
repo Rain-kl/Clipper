@@ -164,6 +164,11 @@ func Serve() {
 				adminRouter.GET("/tasks/types", admin_task.ListTaskTypes)
 				adminRouter.POST("/tasks/dispatch", admin_task.DispatchTask)
 
+				// Task executions
+				adminRouter.GET("/tasks/executions", admin_task.ListTaskExecutions)
+				adminRouter.GET("/tasks/executions/:id", admin_task.GetTaskExecution)
+				adminRouter.POST("/tasks/executions/:id/retry", admin_task.RetryTask)
+
 				// Users
 				adminRouter.GET("/users", admin_user.ListUsers)
 				adminRouter.PUT("/users/:id/status", admin_user.UpdateUserStatus)

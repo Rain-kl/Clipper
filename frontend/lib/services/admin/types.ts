@@ -100,6 +100,52 @@ export interface DispatchTaskRequest {
   user_id?: string;
 }
 
+export type TaskExecutionStatus = 'pending' | 'running' | 'succeeded' | 'failed';
+
+/**
+ * 任务执行记录
+ */
+export interface TaskExecution {
+  id: string;
+  task_id: string;
+  task_type: string;
+  task_name: string;
+  status: TaskExecutionStatus;
+  retryable: boolean;
+  max_retry: number;
+  retry_count: number;
+  log: string;
+  error_message: string;
+  result: string;
+  started_at?: string | null;
+  finished_at?: string | null;
+  duration: number;
+  payload: string;
+  triggered_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * 查询任务执行记录请求参数
+ */
+export interface ListTaskExecutionsRequest {
+  status?: TaskExecutionStatus;
+  task_type?: string;
+  page?: number;
+  page_size?: number;
+}
+
+/**
+ * 查询任务执行记录响应
+ */
+export interface ListTaskExecutionsResponse {
+  items: TaskExecution[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
 // ==================== 用户管理 ====================
 
 /**

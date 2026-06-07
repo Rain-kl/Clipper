@@ -4,9 +4,12 @@ import type {
   AuthSourceRequest,
   CreateSystemConfigRequest,
   DispatchTaskRequest,
+  ListTaskExecutionsRequest,
+  ListTaskExecutionsResponse,
   ListUsersRequest,
   ListUsersResponse,
   SystemConfig,
+  TaskExecution,
   TaskMeta,
   TaskTypeResponse,
   ToggleAuthSourceRequest,
@@ -215,8 +218,34 @@ export class AdminService extends BaseService {
    * - user_gamification 需要 user_id 参数
    * - 其他任务无需额外参数
    */
-  static async dispatchTask(request: DispatchTaskRequest): Promise<void> {
-    return this.post<void>('/tasks/dispatch', request);
+  static async dispatchTask(request: DispatchTaskRequest): Promise<string> {
+    return this.post<string>('/tasks/dispatch', request);
+  }
+
+  /**
+   * 查询任务执行记录列表
+   */
+  static async listTaskExecutions(
+    request: ListTaskExecutionsRequest = {},
+  ): Promise<ListTaskExecutionsResponse> {
+    return this.get<ListTaskExecutionsResponse>(
+      '/tasks/executions',
+      request as unknown as Record<string, unknown>,
+    );
+  }
+
+  /**
+   * 查询任务执行详情
+   */
+  static async getTaskExecution(id: string): Promise<TaskExecution> {
+    return this.get<TaskExecution>(`/tasks/executions/${ id }`);
+  }
+
+  /**
+   * 重试失败任务
+   */
+  static async retryTaskExecution(id: string): Promise<string> {
+    return this.post<string>(`/tasks/executions/${ id }/retry`);
   }
 
   // ==================== 用户管理 ====================

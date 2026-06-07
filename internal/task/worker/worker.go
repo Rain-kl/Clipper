@@ -1,5 +1,5 @@
 /*
-Copyright 2025 linux.do
+Copyright 2025-2026 linux.do
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -25,6 +25,11 @@ import (
 	"github.com/linux-do/credit/internal/task"
 )
 
+func init() {
+	// 注册所有任务处理器
+	task.RegisterHandler(task.CleanupUnusedUploadsTask, &upload.CleanupUnusedUploadsHandler{})
+}
+
 // StartWorker 启动任务处理服务器
 func StartWorker() error {
 	asynqServer := asynq.NewServer(
@@ -37,10 +42,13 @@ func StartWorker() error {
 		},
 	)
 
-	// 注册任务处理器
+	// 注册 Asynq 任务路由
 	mux := asynq.NewServeMux()
 	mux.Use(taskLoggingMiddleware)
-	mux.HandleFunc(task.CleanupUnusedUploadsTask, upload.HandleCleanupUnusedUploads)
+
+	// 统一使用 task.ProcessTask 处理所有任务类型
+	// 框架内部自动分发到对应的 TaskHandler 实现
+	mux.HandleFunc(task.CleanupUnusedUploadsTask, task.ProcessTask)
 
 	// 启动服务器
 	return asynqServer.Run(mux)

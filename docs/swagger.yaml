@@ -104,6 +104,58 @@ definitions:
       value:
         type: string
     type: object
+  model.TaskExecution:
+    properties:
+      created_at:
+        type: string
+      duration:
+        type: integer
+      error_message:
+        type: string
+      finished_at:
+        type: string
+      id:
+        example: "0"
+        type: string
+      log:
+        type: string
+      max_retry:
+        type: integer
+      payload:
+        type: string
+      result:
+        type: string
+      retry_count:
+        type: integer
+      retryable:
+        type: boolean
+      started_at:
+        type: string
+      status:
+        $ref: '#/definitions/model.TaskExecutionStatus'
+      task_id:
+        type: string
+      task_name:
+        type: string
+      task_type:
+        type: string
+      triggered_by:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  model.TaskExecutionStatus:
+    enum:
+    - pending
+    - running
+    - succeeded
+    - failed
+    type: string
+    x-enum-varnames:
+    - TaskExecutionStatusPending
+    - TaskExecutionStatusRunning
+    - TaskExecutionStatusSucceeded
+    - TaskExecutionStatusFailed
   model.TrustLevel:
     enum:
     - 0
@@ -338,6 +390,9 @@ definitions:
         type: string
       queue:
         type: string
+      retryable:
+        description: 是否支持手动重试
+        type: boolean
       supportsTime:
         type: boolean
       type:
@@ -352,6 +407,19 @@ definitions:
         type: array
     required:
     - ids
+    type: object
+  upload.listMyFilesResponse:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/model.Upload'
+        type: array
+      page:
+        type: integer
+      page_size:
+        type: integer
+      total:
+        type: integer
     type: object
   user.createTokenRequest:
     properties:
@@ -923,6 +991,141 @@ paths:
       summary: 下发异步任务
       tags:
       - admin
+  /api/v1/admin/tasks/executions:
+    get:
+      description: 分页查询任务执行记录，支持按状态和任务类型筛选，需要管理员权限
+      parameters:
+      - description: 状态筛选 (pending/running/succeeded/failed)
+        in: query
+        name: status
+        type: string
+      - description: 任务类型筛选
+        in: query
+        name: task_type
+        type: string
+      - default: 1
+        description: 页码
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: 每页条数
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 任务执行记录列表
+          schema:
+            allOf:
+            - $ref: '#/definitions/util.ResponseAny'
+            - properties:
+                data:
+                  type: object
+              type: object
+        "401":
+          description: 未登录
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+        "403":
+          description: 无管理员权限
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      security:
+      - SessionCookie: []
+      summary: 查询任务执行记录
+      tags:
+      - admin
+  /api/v1/admin/tasks/executions/{id}:
+    get:
+      description: 根据 ID 查询任务执行记录详情，包含完整执行日志，需要管理员权限
+      parameters:
+      - description: 任务执行记录 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 任务执行详情
+          schema:
+            allOf:
+            - $ref: '#/definitions/util.ResponseAny'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.TaskExecution'
+              type: object
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+        "401":
+          description: 未登录
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+        "403":
+          description: 无管理员权限
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+        "404":
+          description: 记录不存在
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      security:
+      - SessionCookie: []
+      summary: 查询任务执行详情
+      tags:
+      - admin
+  /api/v1/admin/tasks/executions/{id}/retry:
+    post:
+      description: 重新下发一条失败的任务，创建新的执行记录，需要管理员权限
+      parameters:
+      - description: 任务执行记录 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 新任务的 TaskID
+          schema:
+            allOf:
+            - $ref: '#/definitions/util.ResponseAny'
+            - properties:
+                data:
+                  type: string
+              type: object
+        "400":
+          description: 任务不支持重试或参数错误
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+        "401":
+          description: 未登录
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+        "403":
+          description: 无管理员权限
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+        "404":
+          description: 记录不存在
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+        "500":
+          description: 重试失败
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      security:
+      - SessionCookie: []
+      summary: 重试失败任务
+      tags:
+      - admin
   /api/v1/admin/tasks/types:
     get:
       description: 返回系统支持的所有可调度任务类型列表，包括任务名称、描述、是否支持时间范围等元数据，需要管理员权限
@@ -1378,6 +1581,35 @@ paths:
       summary: 上传文件
       tags:
       - upload
+  /api/v1/upload/{id}:
+    delete:
+      description: 将文件状态置为 deleted（软删除），不会立即清理底层存储对象
+      parameters:
+      - description: 文件 ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 删除成功
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+        "403":
+          description: 无权操作
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+        "404":
+          description: 文件不存在
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      security:
+      - SessionCookie: []
+      summary: 删除文件
+      tags:
+      - upload
   /api/v1/upload/download/{id}:
     get:
       description: 根据文件 ID 获取文件，以附件形式 (Attachment) 强制开启客户端浏览器下载
@@ -1441,6 +1673,51 @@ paths:
       security:
       - SessionCookie: []
       summary: 批量打包下载
+      tags:
+      - upload
+  /api/v1/upload/my:
+    get:
+      description: 分页获取当前登录用户上传的文件，支持文件名关键词、业务类型、扩展名过滤
+      parameters:
+      - description: 页码（默认 1）
+        in: query
+        name: page
+        type: integer
+      - description: 每页数量（默认 20，最大 100）
+        in: query
+        name: page_size
+        type: integer
+      - description: 文件名关键词（模糊匹配）
+        in: query
+        name: keyword
+        type: string
+      - description: 业务分类过滤
+        in: query
+        name: type
+        type: string
+      - description: 扩展名过滤
+        in: query
+        name: extension
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 查询成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/util.ResponseAny'
+            - properties:
+                data:
+                  $ref: '#/definitions/upload.listMyFilesResponse'
+              type: object
+        "401":
+          description: 未登录
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      security:
+      - SessionCookie: []
+      summary: 获取我的文件列表
       tags:
       - upload
   /api/v1/user/access-tokens:

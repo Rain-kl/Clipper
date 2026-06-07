@@ -38,6 +38,7 @@ func Migrate() {
 		&model.SystemConfig{},
 		&model.Upload{},
 		&model.AccessToken{},
+		&model.TaskExecution{},
 	); err != nil {
 		log.Fatalf("[PostgreSQL] auto migrate failed: %v\n", err)
 	}

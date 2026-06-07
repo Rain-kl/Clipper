@@ -1,5 +1,5 @@
 /*
-Copyright 2025 linux.do
+Copyright 2025-2026 linux.do
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,33 +18,30 @@ package upload
 
 import (
 	"context"
+	"fmt"
 	"time"
 
-	"github.com/hibiken/asynq"
 	"github.com/linux-do/credit/internal/db"
-	"github.com/linux-do/credit/internal/logger"
 	"github.com/linux-do/credit/internal/model"
 	"github.com/linux-do/credit/internal/storage"
+	"github.com/linux-do/credit/internal/task"
 	"gorm.io/gorm"
 )
 
-// HandleCleanupUnusedUploads 处理清理未使用上传文件的定时任务
-func HandleCleanupUnusedUploads(ctx context.Context, t *asynq.Task) error {
-	logger.InfoF(ctx, "开始清理未使用的上传文件任务")
-	cleanupUnusedUploads(ctx)
-	logger.InfoF(ctx, "未使用上传文件清理任务完成")
-	return nil
-}
+// CleanupUnusedUploadsHandler 清理未使用上传文件的异步任务处理器
+type CleanupUnusedUploadsHandler struct{}
 
-// cleanupUnusedUploads 清理超过1小时未使用的上传文件
-func cleanupUnusedUploads(ctx context.Context) {
+// Execute 执行清理未使用上传文件的业务逻辑
+func (h *CleanupUnusedUploadsHandler) Execute(ctx context.Context, payload []byte) (*task.TaskResult, error) {
 	const batchSize = 100 // 每批处理100个文件
 	var lastID uint64 = 0
-	var totalProcessed int = 0
-	var totalDeleted int = 0
+	var totalProcessed int
+	var totalDeleted int
 
 	// 计算1小时前的时间
 	oneHourAgo := time.Now().Add(-1 * time.Hour)
+
+	task.AppendLog(ctx, "开始扫描未使用上传文件，阈值: %s", oneHourAgo.Format(time.RFC3339))
 
 	for {
 		// 使用游标分页查询未使用且超过1小时的上传记录
@@ -54,8 +51,8 @@ func cleanupUnusedUploads(ctx context.Context) {
 			Order("id ASC").
 			Limit(batchSize).
 			Find(&unusedUploads).Error; err != nil {
-			logger.ErrorF(ctx, "查询未使用的上传文件失败: %v", err)
-			return
+			task.AppendLog(ctx, "查询未使用的上传文件失败: %v", err)
+			return nil, fmt.Errorf("查询未使用的上传文件失败: %w", err)
 		}
 
 		// 没有更多数据，退出循环
@@ -63,7 +60,7 @@ func cleanupUnusedUploads(ctx context.Context) {
 			break
 		}
 
-		logger.InfoF(ctx, "本批次找到 %d 个需要清理的上传文件", len(unusedUploads))
+		task.AppendLog(ctx, "本批次找到 %d 个需要清理的上传文件", len(unusedUploads))
 
 		// 处理每个未使用的上传文件
 		for _, upload := range unusedUploads {
@@ -84,22 +81,17 @@ func cleanupUnusedUploads(ctx context.Context) {
 
 				return nil
 			}); err != nil {
-				logger.ErrorF(ctx, "清理上传文件失败 [ID:%d]: %v", upload.ID, err)
+				task.AppendLog(ctx, "清理上传文件失败 [ID:%d]: %v", upload.ID, err)
 				lastID = upload.ID
 				continue
 			}
 
 			totalDeleted++
-			logger.InfoF(ctx, "成功清理上传文件 [ID:%d, Path:%s, Size:%d bytes]", upload.ID, upload.FilePath, upload.FileSize)
-
-			// 更新游标
 			lastID = upload.ID
 		}
 	}
 
-	if totalDeleted > 0 {
-		logger.InfoF(ctx, "清理任务完成，共处理 %d 个文件，成功删除 %d 个", totalProcessed, totalDeleted)
-	} else {
-		logger.InfoF(ctx, "没有需要清理的上传文件")
-	}
+	msg := fmt.Sprintf("共处理 %d 个文件，成功删除 %d 个", totalProcessed, totalDeleted)
+	task.AppendLog(ctx, msg)
+	return &task.TaskResult{Message: msg}, nil
 }

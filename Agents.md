@@ -95,7 +95,8 @@ internal/
 │   ├── users.go                   # User 实体、OAuthUserInfo、查询/更新方法
 │   ├── auth_source.go             # AuthSource 实体（OAuth 接入源）
 │   ├── system_configs.go          # SystemConfig 实体（KV 系统配置）
-│   └── uploads.go                 # Upload 实体（上传文件记录）
+│   ├── uploads.go                 # Upload 实体（上传文件记录）
+│   └── task_execution.go          # TaskExecution 实体（异步任务执行记录 + CRUD）
 │
 ├── db/                            # 数据库连接与基础设施
 │   ├── postgres.go                # PostgreSQL 初始化、读写分离、GORM 配置
@@ -111,12 +112,14 @@ internal/
 │   └── errs.go                    # 存储层错误常量
 │
 ├── task/                          # 异步任务定义与调度
-│   ├── constants.go               # 任务类型名称常量（TaskType）、队列名
-│   ├── utils.go                   # 任务工具函数（RedisOpt 等）
+│   ├── constants.go               # 任务类型名称常量（TaskType）、队列名、TaskMeta（含 Retryable）
+│   ├── handler.go                 # TaskHandler 接口定义 + TaskResult 结构体
+│   ├── executor.go                # 核心运行机制：RegisterHandler / DispatchTask / ProcessTask / RetryTask / AppendLog
+│   ├── utils.go                   # 任务工具函数（RedisOpt、AsynqClient）
 │   ├── scheduler/                 # Asynq 定时任务调度器（Cron 注册）
 │   └── worker/                    # Asynq Worker 服务端（任务处理器注册）
 │       ├── worker.go              # StartWorker 入口，注册 Handler
-│       └── middlewares.go         # Worker 中间件（日志等）
+│       └── middlewares.go         # Worker 中间件
 │
 ├── service/                       # 复杂业务逻辑服务层（当前占位，待填充）
 │
@@ -234,6 +237,8 @@ components/common/
 ├── admin/                          # 管理员后台组件
 │   ├── tasks.tsx                   # TaskManager — 异步任务调度管理页面，展示所有可用任务类型，
 │   │                               #   支持通过弹窗配置参数后立即下发任务到后台队列执行
+│   ├── task-executions.tsx         # TaskExecutionsManager — 任务日志页面，展示异步任务执行记录，
+│   │                               #   支持状态/类型筛选、分页、详情抽屉查看完整日志与失败任务重试
 │   ├── system.tsx                  # SystemConfigs — 系统 KV 配置管理页面，以表格展示系统/业务两类
 │   │                               #   配置项，支持在线编辑（布尔类型自动渲染为 Switch）并保存/删除
 │   └── users.tsx                   # UsersManager — 用户管理页面，提供分页、搜索、筛选的用户列表表格，
@@ -435,12 +440,37 @@ apps/admin/<module>/
 以新增 **异步任务** 为例：
 
 ```
-1. 在 internal/task/constants.go 定义任务类型常量
-2. 在对应 apps/<module>/tasks.go 实现 Handle 函数
-3. 在 internal/task/worker/worker.go 注册 Handler
-4. 在 internal/task/scheduler/ 添加 Cron 调度（或 Admin API 手动触发）
-5. 在 config.example.yaml 的 scheduler 段添加 Cron 配置项
-6. 在 internal/config/model.go 添加配置字段
+1. 在 internal/task/constants.go 定义任务类型常量 + TaskMeta（含 Retryable）
+2. 在 apps/<module>/ 下创建 tasks.go，定义 struct 实现 TaskHandler 接口：
+   type MyTaskHandler struct{}
+   func (h *MyTaskHandler) Execute(ctx context.Context, payload []byte) (*task.TaskResult, error) {
+       task.AppendLog(ctx, "开始执行任务...")
+       // ... 业务逻辑 ...
+       return &task.TaskResult{Message: "执行完成"}, nil
+   }
+3. 在 internal/task/worker/worker.go 的 init() 中注册：
+   task.RegisterHandler(task.MyTask, &mymodule.MyTaskHandler{})
+   并在 StartWorker 的 mux 中添加路由：
+   mux.HandleFunc(task.MyTask, task.ProcessTask)
+4.（可选）在 internal/task/scheduler/ 添加 Cron 调度
+5.（可选）在 config.example.yaml 的 scheduler 段添加 Cron 配置项
+6.（可选）在 internal/config/model.go 添加配置字段
 ```
+
+> **框架运行机制**：开发者只需实现 `TaskHandler.Execute` 方法编写业务逻辑，通过 `task.AppendLog(ctx, ...)` 追加执行日志。任务的创建（`TaskExecution` 记录）、状态流转（pending → running → succeeded/failed）、日志写入、耗时统计、错误记录、重试计数全部由 `task.ProcessTask` 框架层透明处理。管理端可通过 API 查询执行记录、查看日志、手动重试失败任务。
+
+---
+
+## 八、前端任务管理页面
+
+任务管理 API 路由（Admin）：
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/api/v1/admin/tasks/types` | 获取可调度任务类型列表 |
+| POST | `/api/v1/admin/tasks/dispatch` | 手动下发任务 |
+| GET | `/api/v1/admin/tasks/executions` | 分页查询任务执行记录（支持 status / task_type 筛选） |
+| GET | `/api/v1/admin/tasks/executions/:id` | 查询单条任务执行详情（含完整 Log） |
+| POST | `/api/v1/admin/tasks/executions/:id/retry` | 重试失败任务（校验 Retryable && RetryCount < MaxRetry） |
 
 ---

@@ -24,8 +24,12 @@ import (
 // RedisOpt asynq Redis 连接配置（兼容 Standalone/Sentinel/Cluster）
 var RedisOpt asynq.RedisConnOpt
 
+// AsynqClient asynq 客户端，用于任务入队
+var AsynqClient *asynq.Client
+
 func init() {
 	RedisOpt = NewRedisConnOpt()
+	AsynqClient = asynq.NewClient(RedisOpt)
 }
 
 // NewRedisConnOpt 根据配置返回对应的 asynq Redis 连接选项

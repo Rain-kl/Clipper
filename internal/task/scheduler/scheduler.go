@@ -28,13 +28,17 @@ import (
 )
 
 var (
-	AsynqClient   *asynq.Client
 	scheduler     *asynq.Scheduler
 	schedulerOnce sync.Once
 )
 
 func init() {
-	AsynqClient = asynq.NewClient(task.RedisOpt)
+	// AsynqClient 已在 task 包中初始化
+}
+
+// GetAsynqClient 获取全局 AsynqClient
+func GetAsynqClient() *asynq.Client {
+	return task.AsynqClient
 }
 
 // StartScheduler 启动调度器
