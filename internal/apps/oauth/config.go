@@ -19,6 +19,7 @@ package oauth
 import (
 	"context"
 	"log"
+	"strings"
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/linux-do/credit/internal/config"
@@ -35,14 +36,19 @@ func init() {
 
 	if cfg.Issuer != "" {
 		ctx := context.Background()
-		provider, err := oidc.NewProvider(ctx, cfg.Issuer)
+		// Clean the issuer URL (trim /.well-known/openid-configuration if configured by mistake)
+		issuer := strings.TrimSuffix(strings.TrimSpace(cfg.Issuer), "/")
+		issuer = strings.TrimSuffix(issuer, "/.well-known/openid-configuration")
+		issuer = strings.TrimSuffix(issuer, "/.well-known/oauth-authorization-server")
+
+		provider, err := oidc.NewProvider(ctx, issuer)
 		if err != nil {
 			log.Printf("[OAuth] 初始化 OIDC Provider 失败: %v，将仅使用 OAuth2", err)
 		} else {
 			oidcVerifier = provider.Verifier(&oidc.Config{
 				ClientID: cfg.ClientID,
 			})
-			log.Printf("[OAuth] OIDC Provider 初始化成功: %s", cfg.Issuer)
+			log.Printf("[OAuth] OIDC Provider 初始化成功: %s", issuer)
 		}
 	}
 

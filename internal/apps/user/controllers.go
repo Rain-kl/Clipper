@@ -1,0 +1,219 @@
+package user
+
+import (
+	"context"
+	"strings"
+	"time"
+
+	"github.com/gin-contrib/sessions"
+	"github.com/gin-gonic/gin"
+	"github.com/linux-do/credit/internal/apps/oauth"
+	"github.com/linux-do/credit/internal/common"
+	"github.com/linux-do/credit/internal/common/bind"
+	"github.com/linux-do/credit/internal/common/response"
+	"github.com/linux-do/credit/internal/db"
+	"github.com/linux-do/credit/internal/model"
+	"github.com/linux-do/credit/internal/util"
+)
+
+type loginRequest struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
+type registerRequest struct {
+	Username    string `json:"username"`
+	Password    string `json:"password"`
+	Nickname    string `json:"nickname"`
+	DisplayName string `json:"display_name"`
+}
+
+func isPasswordLoginEnabled() bool {
+	enabled, err := model.GetBoolByKey(context.Background(), model.ConfigKeyPasswordLoginEnabled)
+	if err != nil {
+		return true
+	}
+	return enabled
+}
+
+func isPasswordRegisterEnabled() bool {
+	enabled, err := model.GetBoolByKey(context.Background(), model.ConfigKeyPasswordRegisterEnabled)
+	if err != nil {
+		return true
+	}
+	return enabled
+}
+
+func isRegistrationEnabled() bool {
+	enabled, err := model.GetBoolByKey(context.Background(), model.ConfigKeyRegistrationEnabled)
+	if err != nil {
+		return true
+	}
+	return enabled
+}
+
+func setLoginSession(c *gin.Context, user *model.User) error {
+	session := sessions.Default(c)
+	session.Set(oauth.UserIDKey, user.ID)
+	session.Set(oauth.UserNameKey, user.Username)
+	if err := session.Save(); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Login 用户密码登录
+// @Summary 用户密码登录
+// @Description 使用用户名和密码登录，登录成功后建立 Session。若管理员已关闭密码登录功能则返回错误。
+// @Tags user
+// @Accept json
+// @Produce json
+// @Param request body user.loginRequest true "登录请求参数"
+// @Success 200 {object} util.ResponseAny{data=oauth.BasicUserInfo} "登录成功，返回用户信息"
+// @Failure 400 {object} util.ResponseAny "用户名或密码错误、帐号已禁用等"
+// @Failure 500 {object} util.ResponseAny "服务内部错误"
+// @Router /api/v1/user/login [post]
+func Login(c *gin.Context) {
+	if !isPasswordLoginEnabled() {
+		response.RespondFailure(c, "管理员关闭了密码登录")
+		return
+	}
+	var req loginRequest
+	if !bind.JSON(c, &req) {
+		return
+	}
+	req.Username = strings.TrimSpace(req.Username)
+	if req.Username == "" || req.Password == "" {
+		response.RespondFailure(c, "无效的参数")
+		return
+	}
+
+	var user model.User
+	ctx := c.Request.Context()
+	if err := db.DB(ctx).Where("username = ?", req.Username).First(&user).Error; err != nil {
+		response.RespondFailure(c, "用户名或密码错误")
+		return
+	}
+	if !user.IsActive {
+		response.RespondFailure(c, common.BannedAccount)
+		return
+	}
+	if !user.CheckPassword(req.Password) {
+		response.RespondFailure(c, "用户名或密码错误")
+		return
+	}
+
+	user.LastLoginAt = time.Now()
+	if err := db.DB(ctx).Model(&user).Update("last_login_at", user.LastLoginAt).Error; err != nil {
+		response.RespondFailure(c, err.Error())
+		return
+	}
+	if err := setLoginSession(c, &user); err != nil {
+		response.RespondFailure(c, "无法保存会话信息，请重试")
+		return
+	}
+
+	response.RespondSuccess(c, oauth.BuildBasicUserInfo(&user))
+}
+
+// Register 用户注册
+// @Summary 用户注册
+// @Description 使用用户名和密码注册新账号，注册成功后自动登录并建立 Session。密码长度不能少于 8 位。
+// @Tags user
+// @Accept json
+// @Produce json
+// @Param request body user.registerRequest true "注册请求参数"
+// @Success 200 {object} util.ResponseAny{data=oauth.BasicUserInfo} "注册并登录成功，返回用户信息"
+// @Failure 400 {object} util.ResponseAny "参数错误、用户名已存在或注册已关闭"
+// @Failure 500 {object} util.ResponseAny "服务内部错误"
+// @Router /api/v1/user/register [post]
+func Register(c *gin.Context) {
+	if !isRegistrationEnabled() || !isPasswordRegisterEnabled() {
+		response.RespondFailure(c, "管理员关闭了注册")
+		return
+	}
+
+	var req registerRequest
+	if !bind.JSON(c, &req) {
+		return
+	}
+
+	req.Username = strings.TrimSpace(req.Username)
+	req.Password = strings.TrimSpace(req.Password)
+	req.Nickname = strings.TrimSpace(req.Nickname)
+	req.DisplayName = strings.TrimSpace(req.DisplayName)
+
+	if req.Username == "" || req.Password == "" {
+		response.RespondFailure(c, "无效的参数")
+		return
+	}
+	if len(req.Password) < 8 {
+		response.RespondFailure(c, "密码长度不能少于 8 位")
+		return
+	}
+
+	ctx := c.Request.Context()
+	var count int64
+	if err := db.DB(ctx).Model(&model.User{}).Where("username = ?", req.Username).Count(&count).Error; err != nil {
+		response.RespondFailure(c, err.Error())
+		return
+	}
+	if count > 0 {
+		response.RespondFailure(c, "用户名已存在")
+		return
+	}
+
+	user := model.User{
+		Username:    req.Username,
+		Nickname:    req.Nickname,
+		AvatarUrl:   "",
+		TrustLevel:  model.TrustLevelNewUser,
+		PayScore:    0,
+		SignKey:     util.GenerateUniqueIDSimple(),
+		IsActive:    true,
+		IsAdmin:     false,
+		LastLoginAt: time.Now(),
+	}
+	if user.Nickname == "" {
+		user.Nickname = req.DisplayName
+	}
+	if user.Nickname == "" {
+		user.Nickname = req.Username
+	}
+	if err := user.SetPassword(req.Password); err != nil {
+		response.RespondFailure(c, err.Error())
+		return
+	}
+
+	if err := db.DB(ctx).Create(&user).Error; err != nil {
+		response.RespondFailure(c, err.Error())
+		return
+	}
+
+	if err := setLoginSession(c, &user); err != nil {
+		response.RespondFailure(c, "无法保存会话信息，请重试")
+		return
+	}
+
+	response.RespondSuccess(c, oauth.BuildBasicUserInfo(&user))
+}
+
+// Logout 用户退出登录
+// @Summary 用户退出登录
+// @Description 清除用户登录 Session，完成退出
+// @Tags user
+// @Produce json
+// @Security SessionCookie
+// @Success 200 {object} util.ResponseAny{data=string} "退出成功"
+// @Failure 500 {object} util.ResponseAny "Session 清除失败"
+// @Router /api/v1/user/logout [get]
+func Logout(c *gin.Context) {
+	session := sessions.Default(c)
+	session.Options(util.GetSessionOptions(-1))
+	session.Clear()
+	if err := session.Save(); err != nil {
+		response.RespondFailure(c, err.Error())
+		return
+	}
+	response.RespondSuccessMessage(c, "")
+}

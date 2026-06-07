@@ -43,13 +43,15 @@ const (
 
 // OAuthUserInfo 用户信息结构（同时支持 OIDC ID Token claims 和 UserEndpoint 响应）
 type OAuthUserInfo struct {
-	Id         uint64     `json:"id"`
-	Sub        string     `json:"sub"`
-	Username   string     `json:"username"`
-	Name       string     `json:"name"`
-	Active     bool       `json:"active"`
-	AvatarUrl  string     `json:"avatar_url"`
-	TrustLevel TrustLevel `json:"trust_level"`
+	Id                uint64     `json:"id"`
+	Sub               string     `json:"sub"`
+	Username          string     `json:"username"`
+	PreferredUsername string     `json:"preferred_username"`
+	Email             string     `json:"email"`
+	Name              string     `json:"name"`
+	Active            bool       `json:"active"`
+	AvatarUrl         string     `json:"avatar_url"`
+	TrustLevel        TrustLevel `json:"trust_level"`
 }
 
 // GetID 获取用户 ID
@@ -88,6 +90,7 @@ type LeaderboardUser struct {
 type User struct {
 	ID               uint64          `json:"id" gorm:"primaryKey;index:idx_users_active_bal_id,priority:3"`
 	Username         string          `json:"username" gorm:"size:64;uniqueIndex"`
+	Password         string          `json:"password,omitempty" gorm:"size:255"`
 	Nickname         string          `json:"nickname" gorm:"size:255"`
 	AvatarUrl        string          `json:"avatar_url" gorm:"size:255"`
 	TrustLevel       TrustLevel      `json:"trust_level" gorm:"index"`
@@ -107,6 +110,26 @@ type User struct {
 	UpdatedAt        time.Time       `json:"updated_at" gorm:"autoUpdateTime;index"`
 }
 
+func (u *User) SetPassword(password string) error {
+	if password == "" {
+		u.Password = ""
+		return nil
+	}
+	hashed, err := util.HashPassword(password)
+	if err != nil {
+		return err
+	}
+	u.Password = hashed
+	return nil
+}
+
+func (u *User) CheckPassword(password string) bool {
+	if u.Password == "" || password == "" {
+		return false
+	}
+	return util.CheckPasswordHash(u.Password, password)
+}
+
 func (u *User) GetByID(tx *gorm.DB, id uint64) error {
 	if err := tx.Where("id = ?", id).First(u).Error; err != nil {
 		return err
@@ -122,8 +145,6 @@ func GetByIDs(tx *gorm.DB, ids []uint64) ([]User, error) {
 	}
 	return users, nil
 }
-
-
 
 func (u *User) GetUserGamificationScore(ctx context.Context) (*UserGamificationScoreResponse, error) {
 	if u.Username == "dev_user" {

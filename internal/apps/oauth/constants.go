@@ -17,6 +17,7 @@ limitations under the License.
 package oauth
 
 import (
+	"encoding/json"
 	"time"
 )
 
@@ -30,3 +31,29 @@ const (
 	OAuthStateCacheKeyFormat     = "oauth:state:%s"
 	OAuthStateCacheKeyExpiration = 10 * time.Minute
 )
+
+const (
+	OAuthPurposeLogin = "login"
+	OAuthPurposeBind  = "bind"
+)
+
+type oauthStatePayload struct {
+	SourceName string `json:"source_name"`
+	Purpose    string `json:"purpose"`
+}
+
+func encodeOAuthStatePayload(payload oauthStatePayload) (string, error) {
+	data, err := json.Marshal(payload)
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
+}
+
+func decodeOAuthStatePayload(value string) (oauthStatePayload, error) {
+	var payload oauthStatePayload
+	if err := json.Unmarshal([]byte(value), &payload); err != nil {
+		return oauthStatePayload{}, err
+	}
+	return payload, nil
+}

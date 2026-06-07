@@ -33,7 +33,10 @@ import (
 const (
 	ConfigKeyUploadAllowedExtensions = "upload_allowed_extensions" // 允许上传的文件扩展名，逗号分隔
 	ConfigKeySiteName                = "site_name"                 // 站点名称
+	ConfigKeyPasswordLoginEnabled    = "password_login_enabled"    // 是否允许密码登录
 	ConfigKeyRegistrationEnabled     = "registration_enabled"      // 是否允许注册
+	ConfigKeyPasswordRegisterEnabled = "password_register_enabled" // 是否允许密码注册
+	ConfigKeyOIDCLoginEnabled        = "oidc_login_enabled"        // 是否允许 OIDC 登录
 	ConfigKeyMaxAPIKeysPerUser       = "max_api_keys_per_user"     // 每个用户最大 API Key 数量
 )
 

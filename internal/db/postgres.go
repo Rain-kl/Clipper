@@ -175,3 +175,8 @@ func buildDSN(host string, port int, username, password string) string {
 func DB(ctx context.Context) *gorm.DB {
 	return db.WithContext(ctx)
 }
+
+// SetDB sets the package-level database instance for testing.
+func SetDB(d *gorm.DB) {
+	db = d
+}

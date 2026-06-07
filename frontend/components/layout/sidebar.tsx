@@ -2,24 +2,24 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { usePathname, useRouter } from "next/navigation"
+import {usePathname, useRouter} from "next/navigation"
 import packageJson from "../../package.json"
-import { toast } from "sonner"
-import { Button } from "@/components/ui/button"
-import { Spinner } from "@/components/ui/spinner"
-import { AnimateIcon } from "@/components/animate-ui/icons/icon"
-import { ChevronLeft } from "@/components/animate-ui/icons/chevron-left"
-import { ChevronRight } from "@/components/animate-ui/icons/chevron-right"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import {toast} from "sonner"
+import {Button} from "@/components/ui/button"
+import {Spinner} from "@/components/ui/spinner"
+import {AnimateIcon} from "@/components/animate-ui/icons/icon"
+import {ChevronLeft} from "@/components/animate-ui/icons/chevron-left"
+import {ChevronRight} from "@/components/animate-ui/icons/chevron-right"
+import {Avatar, AvatarFallback, AvatarImage} from "@/components/ui/avatar"
 import {
   DropdownMenu,
-  DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { getCurrentTheme } from "@/components/layout/avater-style/registry"
+import {getCurrentTheme} from "@/components/layout/avater-style/registry"
 import {
   Sidebar,
   SidebarContent,
@@ -44,27 +44,29 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import {
-  Home,
-  CreditCard,
-  Settings,
-  FileText,
-  LogOut,
-  ChevronDown,
-  UserRound,
-  FileQuestionMark,
-  ShieldCheck,
-  Layers,
-  Key,
-  Palette,
   ArrowUpRight,
+  ChevronDown,
+  CreditCard,
+  FileQuestionMark,
+  FileText,
+  Home,
+  Layers,
+  LogOut,
+  Palette,
+  Settings,
+  ShieldCheck,
+  UserRound,
 } from "lucide-react"
 
-import { useUser } from "@/contexts/user-context"
+import {useUser} from "@/contexts/user-context"
 
 /* 导航数据 */
 const data = {
   navMain: [
     { title: "首页", url: "/home", icon: Home },
+  ],
+  systemSettings: [
+    { title: "系统设置", url: "/settings/security", icon: Settings },
   ],
   admin: [
     { title: "系统配置", url: "/admin/system", icon: ShieldCheck },
@@ -278,6 +280,32 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
+
+          {user?.is_admin && (
+            <SidebarGroup className="py-0 pt-4">
+              <SidebarGroupLabel className="text-xs font-normal text-muted-foreground">
+                设置
+              </SidebarGroupLabel>
+              <SidebarGroupContent className="py-1">
+                <SidebarMenu className="gap-1">
+                  {data.systemSettings.map((item) => (
+                    <SidebarMenuItem key={item.title}>
+                      <SidebarMenuButton
+                        tooltip={item.title}
+                        isActive={pathname.startsWith(item.url)}
+                        asChild
+                      >
+                        <Link href={item.url} onClick={handleCloseSidebar}>
+                          {item.icon && <item.icon />}
+                          <span>{item.title}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          )}
 
           {user?.is_admin && (
             <SidebarGroup className="py-0 pt-4">

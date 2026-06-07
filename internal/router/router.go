@@ -28,11 +28,13 @@ import (
 	"time"
 
 	"github.com/linux-do/credit/internal/apps/admin"
+	admin_auth_source "github.com/linux-do/credit/internal/apps/admin/auth_source"
 	admin_task "github.com/linux-do/credit/internal/apps/admin/task"
 	admin_user "github.com/linux-do/credit/internal/apps/admin/user"
 	publicconfig "github.com/linux-do/credit/internal/apps/config"
 	"github.com/linux-do/credit/internal/apps/health"
 	"github.com/linux-do/credit/internal/apps/upload"
+	"github.com/linux-do/credit/internal/apps/user"
 	"github.com/linux-do/credit/internal/util"
 
 	"github.com/gin-contrib/sessions"
@@ -109,15 +111,22 @@ func Serve() {
 			apiV1Router.GET("/health", health.Health)
 
 			// OAuth
+			apiV1Router.GET("/oauth/sources", oauth.GetLoginSources)
 			apiV1Router.GET("/oauth/login", oauth.GetLoginURL)
+			apiV1Router.GET("/oauth/:source/authorize", oauth.Authorize)
 			apiV1Router.GET("/oauth/logout", oauth.Logout)
 			apiV1Router.POST("/oauth/callback", oauth.Callback)
 			apiV1Router.GET("/oauth/user-info", oauth.LoginRequired(), oauth.UserInfo)
+			apiV1Router.GET("/oauth/external-accounts", oauth.LoginRequired(), oauth.ListExternalAccounts)
+			apiV1Router.POST("/oauth/external-accounts/:id/delete", oauth.LoginRequired(), oauth.DeleteExternalAccount)
 
 			// User
 			userRouter := apiV1Router.Group("/user")
-			userRouter.Use(oauth.LoginRequired())
 			{
+				userRouter.POST("/login", user.Login)
+				userRouter.POST("/register", user.Register)
+				userRouter.GET("/logout", user.Logout)
+				userRouter.GET("/self", oauth.LoginRequired(), oauth.UserInfo)
 			}
 
 			// Upload
@@ -155,6 +164,13 @@ func Serve() {
 					systemConfigRouter.PUT("", system_config.UpdateSystemConfig)
 					systemConfigRouter.DELETE("", system_config.DeleteSystemConfig)
 				}
+
+				// Auth Sources
+				adminRouter.GET("/auth-sources", admin_auth_source.ListAuthSources)
+				adminRouter.POST("/auth-sources", admin_auth_source.CreateAuthSource)
+				adminRouter.PUT("/auth-sources/:id", admin_auth_source.UpdateAuthSource)
+				adminRouter.PUT("/auth-sources/:id/toggle", admin_auth_source.ToggleAuthSource)
+				adminRouter.DELETE("/auth-sources/:id", admin_auth_source.DeleteAuthSource)
 			}
 		}
 	}

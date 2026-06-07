@@ -1,0 +1,254 @@
+/*
+Copyright 2026 linux.do
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package user
+
+import (
+	"bytes"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+	"time"
+
+	"github.com/gin-gonic/gin"
+	"github.com/linux-do/credit/internal/apps/oauth"
+	"github.com/linux-do/credit/internal/model"
+	"github.com/linux-do/credit/internal/testhelper"
+	"github.com/linux-do/credit/internal/util"
+	"github.com/shopspring/decimal"
+)
+
+func setupTestRouter(authUser *model.User) *gin.Engine {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	adminGroup := r.Group("/api/v1/admin")
+
+	// Mock authentication middleware
+	adminGroup.Use(func(c *gin.Context) {
+		if authUser != nil {
+			util.SetToContext(c, oauth.UserObjKey, authUser)
+		}
+		c.Next()
+	})
+
+	adminGroup.GET("/users", ListUsers)
+	adminGroup.PUT("/users/:id/status", UpdateUserStatus)
+	return r
+}
+
+func TestListUsers(t *testing.T) {
+	dbConn, _, cleanup := testhelper.SetupTestEnvironment(t)
+	defer cleanup()
+
+	// Seed users
+	users := []model.User{
+		{
+			ID:               1001,
+			Username:         "alice",
+			Nickname:         "Alice Nickname",
+			IsActive:         true,
+			IsAdmin:          false,
+			AvailableBalance: decimal.NewFromFloat(100.0),
+			LastLoginAt:      time.Now(),
+			SignKey:          "alice_sign_key",
+		},
+		{
+			ID:               1002,
+			Username:         "bob",
+			Nickname:         "Bob Nickname",
+			IsActive:         true,
+			IsAdmin:          false,
+			AvailableBalance: decimal.NewFromFloat(50.0),
+			LastLoginAt:      time.Now(),
+			SignKey:          "bob_sign_key",
+		},
+		{
+			ID:               1003,
+			Username:         "charlie",
+			Nickname:         "Charlie Nickname",
+			IsActive:         false,
+			IsAdmin:          true,
+			AvailableBalance: decimal.NewFromFloat(9999.0),
+			LastLoginAt:      time.Now(),
+			SignKey:          "charlie_sign_key",
+		},
+	}
+
+	for _, u := range users {
+		if err := dbConn.Create(&u).Error; err != nil {
+			t.Fatalf("failed to seed user: %v", err)
+		}
+	}
+
+	adminUser := &model.User{ID: 1003, Username: "charlie", IsAdmin: true, SignKey: "charlie_sign_key"}
+	router := setupTestRouter(adminUser)
+
+	t.Run("basic pagination list", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/api/v1/admin/users?page=1&page_size=2", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Errorf("expected 200 OK, got %d. Body: %s", w.Code, w.Body.String())
+		}
+
+		var resp util.ResponseAny
+		if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+			t.Fatalf("failed to parse response: %v", err)
+		}
+
+		// Parse data map to our structure
+		dataBytes, _ := json.Marshal(resp.Data)
+		var listResp listUsersResponse
+		if err := json.Unmarshal(dataBytes, &listResp); err != nil {
+			t.Fatalf("failed to parse list response: %v", err)
+		}
+
+		if len(listResp.Users) != 2 {
+			t.Errorf("expected 2 users, got %d", len(listResp.Users))
+		}
+		if listResp.Total != 3 {
+			t.Errorf("expected total 3, got %d", listResp.Total)
+		}
+		// Ordered by ID DESC
+		if listResp.Users[0].ID != 1003 || listResp.Users[1].ID != 1002 {
+			t.Errorf("expected ordered DESC, got first ID %d, second ID %d", listResp.Users[0].ID, listResp.Users[1].ID)
+		}
+	})
+
+	t.Run("filter by user_id", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/api/v1/admin/users?page=1&page_size=10&user_id=1001", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		var resp util.ResponseAny
+		json.Unmarshal(w.Body.Bytes(), &resp)
+
+		dataBytes, _ := json.Marshal(resp.Data)
+		var listResp listUsersResponse
+		json.Unmarshal(dataBytes, &listResp)
+
+		if len(listResp.Users) != 1 || listResp.Users[0].ID != 1001 {
+			t.Errorf("expected 1 user with ID 1001, got total %d", len(listResp.Users))
+		}
+	})
+
+	t.Run("filter by username prefix", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/api/v1/admin/users?page=1&page_size=10&username=bo", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		var resp util.ResponseAny
+		json.Unmarshal(w.Body.Bytes(), &resp)
+
+		dataBytes, _ := json.Marshal(resp.Data)
+		var listResp listUsersResponse
+		json.Unmarshal(dataBytes, &listResp)
+
+		if len(listResp.Users) != 1 || listResp.Users[0].Username != "bob" {
+			t.Errorf("expected bob, got %v", listResp.Users)
+		}
+	})
+
+	t.Run("invalid pagination parameter", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/api/v1/admin/users?page=0&page_size=10", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusBadRequest {
+			t.Errorf("expected 400 Bad Request, got %d", w.Code)
+		}
+	})
+}
+
+func TestUpdateUserStatus(t *testing.T) {
+	dbConn, _, cleanup := testhelper.SetupTestEnvironment(t)
+	defer cleanup()
+
+	// Seed users
+	regularUser := model.User{
+		ID:       1001,
+		Username: "alice",
+		IsActive: true,
+		IsAdmin:  false,
+		SignKey:  "alice_sign_key",
+	}
+	adminUser := model.User{
+		ID:       1002,
+		Username: "bob",
+		IsActive: true,
+		IsAdmin:  true,
+		SignKey:  "bob_sign_key",
+	}
+
+	dbConn.Create(&regularUser)
+	dbConn.Create(&adminUser)
+
+	router := setupTestRouter(&adminUser)
+
+	t.Run("disable regular user successfully", func(t *testing.T) {
+		payload := updateUserStatusRequest{IsActive: false}
+		body, _ := json.Marshal(payload)
+		req, _ := http.NewRequest("PUT", "/api/v1/admin/users/1001/status", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Errorf("expected 200 OK, got %d. Body: %s", w.Code, w.Body.String())
+		}
+
+		// Verify DB status
+		var u model.User
+		dbConn.First(&u, 1001)
+		if u.IsActive {
+			t.Error("user should be deactivated in the database")
+		}
+	})
+
+	t.Run("cannot disable admin user", func(t *testing.T) {
+		payload := updateUserStatusRequest{IsActive: false}
+		body, _ := json.Marshal(payload)
+		req, _ := http.NewRequest("PUT", "/api/v1/admin/users/1002/status", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusForbidden {
+			t.Errorf("expected 403 Forbidden, got %d. Body: %s", w.Code, w.Body.String())
+		}
+
+		var resp util.ResponseAny
+		json.Unmarshal(w.Body.Bytes(), &resp)
+		if resp.ErrorMsg != cannotDisable {
+			t.Errorf("expected error message '%s', got '%s'", cannotDisable, resp.ErrorMsg)
+		}
+	})
+
+	t.Run("cannot enable/disable non-existent user", func(t *testing.T) {
+		payload := updateUserStatusRequest{IsActive: false}
+		body, _ := json.Marshal(payload)
+		req, _ := http.NewRequest("PUT", "/api/v1/admin/users/9999/status", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusNotFound {
+			t.Errorf("expected 404 Not Found, got %d. Body: %s", w.Code, w.Body.String())
+		}
+	})
+}

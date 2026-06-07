@@ -1,23 +1,22 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
-import { motion, AnimatePresence } from "motion/react"
-import { useRouter, useSearchParams } from "next/navigation"
-import { toast } from "sonner"
-import { Button } from "@/components/ui/button"
-import { Spinner } from "@/components/ui/spinner"
-import { LoginForm } from "@/components/auth/login-form"
-import { Check } from "lucide-react"
+import {useCallback, useEffect, useState} from "react"
+import {AnimatePresence, motion} from "motion/react"
+import {useRouter, useSearchParams} from "next/navigation"
+import {toast} from "sonner"
+import {Spinner} from "@/components/ui/spinner"
+import {LoginForm} from "@/components/auth/login-form"
+import {Check} from "lucide-react"
 
-import { AuroraBackground } from "@/components/ui/aurora-background"
+import {AuroraBackground} from "@/components/ui/aurora-background"
 import services from "@/lib/services"
-import type { ApiResponse } from "@/lib/services/core/types"
+import {useAuth} from "@/components/providers/auth-provider"
 
 
 /**
  * 登录页面组件
  * 显示登录表单和登录按钮
- * 
+ *
  * @example
  * ```tsx
  * <LoginPage />
@@ -27,6 +26,7 @@ import type { ApiResponse } from "@/lib/services/core/types"
 export function LoginPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { setUser } = useAuth()
 
   /* 处理OAuth回调 */
   const [isProcessingCallback, setIsProcessingCallback] = useState(() => {
@@ -74,13 +74,12 @@ export function LoginPage() {
         if (cancelled) return
 
         if (response.ok) {
-          await response.json() as ApiResponse
+          const payload = await response.json()
+          if (payload?.data) {
+            setUser(payload.data)
+          }
           router.replace(resolveRedirectTarget())
           return
-        }
-
-        if (response.status !== 401) {
-          console.error('Session probe failed:', response.status)
         }
       } catch (error) {
         if (!cancelled) {
@@ -98,7 +97,7 @@ export function LoginPage() {
     return () => {
       cancelled = true
     }
-  }, [router, searchParams, resolveRedirectTarget])
+  }, [router, searchParams, resolveRedirectTarget, setUser])
 
   /* 回调逻辑 */
   useEffect(() => {
@@ -109,9 +108,12 @@ export function LoginPage() {
       if (state && code) {
         setIsProcessingCallback(true)
         try {
-          await services.auth.handleCallback({ state, code })
+          const result = await services.auth.handleCallback({ state, code })
+          if (result.user) {
+            setUser(result.user)
+          }
           setLoginSuccess(true)
-          toast.success("登录成功")
+          toast.success(result.status === "bound" ? "绑定成功" : "登录成功")
 
           setTimeout(() => {
             router.replace(resolveRedirectTarget())
@@ -125,7 +127,7 @@ export function LoginPage() {
       }
     }
     handleOAuthCallback()
-  }, [searchParams, router, resolveRedirectTarget])
+  }, [searchParams, router, resolveRedirectTarget, setUser])
 
   return (
     <AuroraBackground>

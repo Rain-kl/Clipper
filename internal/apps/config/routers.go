@@ -28,7 +28,10 @@ import (
 type PublicConfigResponse struct {
 	UploadAllowedExtensions string `json:"upload_allowed_extensions"` // 允许上传的图片扩展名
 	SiteName                string `json:"site_name"`                 // 站点名称
+	PasswordLoginEnabled    bool   `json:"password_login_enabled"`    // 是否允许密码登录
 	RegistrationEnabled     bool   `json:"registration_enabled"`      // 是否允许注册
+	PasswordRegisterEnabled bool   `json:"password_register_enabled"` // 是否允许密码注册
+	OIDCLoginEnabled        bool   `json:"oidc_login_enabled"`        // 是否允许 OIDC 登录
 	MaxAPIKeysPerUser       int    `json:"max_api_keys_per_user"`     // 每个用户最大 API Key 数量
 }
 
@@ -62,6 +65,24 @@ func GetPublicConfig(c *gin.Context) {
 		registrationEnabled = val
 	}
 
+	// 3.1 password_login_enabled
+	var passwordLoginEnabled bool
+	if val, err := model.GetBoolByKey(ctx, model.ConfigKeyPasswordLoginEnabled); err == nil {
+		passwordLoginEnabled = val
+	}
+
+	// 3.2 password_register_enabled
+	var passwordRegisterEnabled bool
+	if val, err := model.GetBoolByKey(ctx, model.ConfigKeyPasswordRegisterEnabled); err == nil {
+		passwordRegisterEnabled = val
+	}
+
+	// 3.3 oidc_login_enabled
+	var oidcLoginEnabled bool
+	if val, err := model.GetBoolByKey(ctx, model.ConfigKeyOIDCLoginEnabled); err == nil {
+		oidcLoginEnabled = val
+	}
+
 	// 4. max_api_keys_per_user
 	var maxAPIKeys int
 	if val, err := model.GetIntByKey(ctx, model.ConfigKeyMaxAPIKeysPerUser); err == nil {
@@ -71,7 +92,10 @@ func GetPublicConfig(c *gin.Context) {
 	response := PublicConfigResponse{
 		UploadAllowedExtensions: uploadExtensions,
 		SiteName:                siteName,
+		PasswordLoginEnabled:    passwordLoginEnabled,
 		RegistrationEnabled:     registrationEnabled,
+		PasswordRegisterEnabled: passwordRegisterEnabled,
+		OIDCLoginEnabled:        oidcLoginEnabled,
 		MaxAPIKeysPerUser:       maxAPIKeys,
 	}
 

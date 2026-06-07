@@ -20,11 +20,11 @@
  * ```
  */
 
-import { AuthService } from './auth';
-import { AdminService } from './admin';
-import { UserService } from './user';
-import { ConfigService } from './config';
-import { UploadService } from './upload';
+import {AuthService} from './auth';
+import {AdminService} from './admin';
+import {UserService} from './user';
+import {ConfigService} from './config';
+import {UploadService} from './upload';
 
 /**
  * 服务对象
@@ -82,7 +82,7 @@ export type {
 
 // 认证服务
 export { AuthService, TrustLevel } from './auth';
-export type { User, OAuthLoginUrlResponse, OAuthCallbackRequest } from './auth';
+export type { User, OAuthLoginUrlResponse, OAuthCallbackRequest, AuthSource, ExternalAccountBinding } from './auth';
 
 // 配置服务
 export { ConfigService } from './config';

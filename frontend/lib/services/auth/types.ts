@@ -81,3 +81,44 @@ export interface OAuthCallbackRequest {
   /** 授权码 */
   code: string;
 }
+
+export interface LoginRequest {
+  username: string;
+  password: string;
+}
+
+export interface RegisterRequest {
+  username: string;
+  password: string;
+  nickname?: string;
+}
+
+export interface OAuthAuthorizeResponse {
+  authorize_url: string;
+}
+
+export interface OAuthCallbackResult {
+  status: 'logged_in' | 'bound';
+  user?: User;
+}
+
+export interface AuthSource {
+  id: string;
+  name: string;
+  type: 'oidc';
+  display_name: string;
+  is_active: boolean;
+  icon_url: string;
+  client_secret_configured: boolean;
+}
+
+export interface ExternalAccountBinding {
+  id: string;
+  auth_source_id: string;
+  auth_source_name: string;
+  auth_source_type: string;
+  auth_source_label: string;
+  external_username: string;
+  email: string;
+  created_at: string;
+}

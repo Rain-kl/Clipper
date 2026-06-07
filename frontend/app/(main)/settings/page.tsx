@@ -1,7 +1,9 @@
-import Link from "next/link"
-import { Card, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
-import { UserRound, Bell, Shield, Palette } from "lucide-react"
+"use client"
 
+import Link from "next/link"
+import {Card, CardContent, CardDescription, CardTitle} from "@/components/ui/card"
+import {Bell, Loader2, Palette, Shield, UserRound} from "lucide-react"
+import {useAuth} from "@/components/providers/auth-provider"
 
 /* 设置项 */
 const settingsItems = [
@@ -28,7 +30,7 @@ const settingsItems = [
   },
   {
     title: "外观设置",
-    description: "自定义界面主题和显示",
+    description: "自定义界面主题 and 显示",
     icon: Palette,
     href: "/settings/appearance",
     category: "个人设置",
@@ -36,7 +38,25 @@ const settingsItems = [
 ]
 
 export default function SettingsPage() {
-  const groupedSettings = settingsItems.reduce((acc, item) => {
+  const { user, loading } = useAuth()
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[200px]">
+        <Loader2 className="size-6 animate-spin text-indigo-500" />
+      </div>
+    )
+  }
+
+  // 非管理员过滤掉安全设置
+  const filteredItems = settingsItems.filter((item) => {
+    if (item.href === "/settings/security") {
+      return !!user?.is_admin
+    }
+    return true
+  })
+
+  const groupedSettings = filteredItems.reduce((acc, item) => {
     if (!acc[item.category]) {
       acc[item.category] = []
     }
@@ -46,7 +66,7 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-6 py-6">
-      <div className="font-semibold">设置</div>
+      <div className="font-semibold text-lg">设置</div>
 
       {Object.entries(groupedSettings).map(([category, items]) => (
         <div key={category} className="space-y-4">

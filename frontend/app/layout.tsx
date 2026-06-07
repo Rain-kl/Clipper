@@ -1,9 +1,11 @@
-import type { Metadata } from "next";
-import { Toaster } from "@/components/ui/sonner";
-import { ThemeProvider } from "@/components/layout/theme-provider";
-import { CustomThemeProvider } from "@/lib/theme";
-import { BellRingProvider } from "@/contexts/bell-ring-context";
-import { NotificationSettingsProvider } from "@/contexts/notification-settings-context";
+import type {Metadata} from "next";
+import {Toaster} from "@/components/ui/sonner";
+import {ThemeProvider} from "@/components/layout/theme-provider";
+import {CustomThemeProvider} from "@/lib/theme";
+import {BellRingProvider} from "@/contexts/bell-ring-context";
+import {NotificationSettingsProvider} from "@/contexts/notification-settings-context";
+import {UserProvider} from "@/contexts/user-context";
+import {AppQueryProvider} from "@/components/providers/query-provider";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -32,12 +34,16 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <CustomThemeProvider>
-            <NotificationSettingsProvider>
-              <BellRingProvider>
-                {children}
-                <Toaster position="top-center" />
-              </BellRingProvider>
-            </NotificationSettingsProvider>
+            <AppQueryProvider>
+              <UserProvider>
+                <NotificationSettingsProvider>
+                  <BellRingProvider>
+                    {children}
+                    <Toaster position="top-center" />
+                  </BellRingProvider>
+                </NotificationSettingsProvider>
+              </UserProvider>
+            </AppQueryProvider>
           </CustomThemeProvider>
         </ThemeProvider>
       </body>

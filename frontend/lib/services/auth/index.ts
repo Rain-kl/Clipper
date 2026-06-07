@@ -31,5 +31,10 @@ export type {
   User,
   OAuthLoginUrlResponse,
   OAuthCallbackRequest,
+  LoginRequest,
+  RegisterRequest,
+  OAuthAuthorizeResponse,
+  OAuthCallbackResult,
+  AuthSource,
+  ExternalAccountBinding,
 } from './types';
-

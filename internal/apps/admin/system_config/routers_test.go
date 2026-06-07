@@ -1,0 +1,302 @@
+/*
+Copyright 2026 linux.do
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package system_config
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
+	"github.com/gin-gonic/gin"
+	"github.com/linux-do/credit/internal/apps/oauth"
+	"github.com/linux-do/credit/internal/db"
+	"github.com/linux-do/credit/internal/model"
+	"github.com/linux-do/credit/internal/testhelper"
+	"github.com/linux-do/credit/internal/util"
+)
+
+func setupTestRouter(authUser *model.User) *gin.Engine {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	adminGroup := r.Group("/api/v1/admin")
+
+	// Mock authentication middleware
+	adminGroup.Use(func(c *gin.Context) {
+		if authUser != nil {
+			util.SetToContext(c, oauth.UserObjKey, authUser)
+		}
+		c.Next()
+	})
+
+	adminGroup.POST("/system-configs", CreateSystemConfig)
+	adminGroup.GET("/system-configs", ListSystemConfigs)
+
+	systemConfigRouter := adminGroup.Group("/system-configs/:key")
+	{
+		systemConfigRouter.GET("", GetSystemConfig)
+		systemConfigRouter.PUT("", UpdateSystemConfig)
+		systemConfigRouter.DELETE("", DeleteSystemConfig)
+	}
+
+	return r
+}
+
+func TestCreateSystemConfig(t *testing.T) {
+	dbConn, _, cleanup := testhelper.SetupTestEnvironment(t)
+	defer cleanup()
+
+	adminUser := &model.User{ID: 1001, Username: "admin", IsAdmin: true, SignKey: "admin_key"}
+	router := setupTestRouter(adminUser)
+
+	t.Run("create successfully", func(t *testing.T) {
+		payload := CreateSystemConfigRequest{
+			Key:         "custom_key",
+			Value:       "custom_value",
+			Type:        "system",
+			Description: "desc",
+		}
+		body, _ := json.Marshal(payload)
+		req, _ := http.NewRequest("POST", "/api/v1/admin/system-configs", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("expected 200 OK, got %d. Body: %s", w.Code, w.Body.String())
+		}
+
+		// Verify database
+		var cfg model.SystemConfig
+		err := dbConn.Where("key = ?", "custom_key").First(&cfg).Error
+		if err != nil {
+			t.Fatalf("failed to find system config in DB: %v", err)
+		}
+
+		// Verify Redis Cache
+		var redisConfig model.SystemConfig
+		err = db.HGetJSON(context.Background(), model.SystemConfigRedisHashKey, "custom_key", &redisConfig)
+		if err != nil {
+			t.Fatalf("failed to find system config in Redis: %v", err)
+		}
+		if redisConfig.Value != "custom_value" {
+			t.Errorf("expected value 'custom_value', got '%s'", redisConfig.Value)
+		}
+	})
+
+	t.Run("create duplicate key error", func(t *testing.T) {
+		// Key "custom_key" already exists from previous test
+		payload := CreateSystemConfigRequest{
+			Key:         "custom_key",
+			Value:       "another_value",
+			Type:        "system",
+			Description: "desc",
+		}
+		body, _ := json.Marshal(payload)
+		req, _ := http.NewRequest("POST", "/api/v1/admin/system-configs", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusBadRequest {
+			t.Errorf("expected 400 Bad Request on duplicate key, got %d", w.Code)
+		}
+	})
+}
+
+func TestListSystemConfigs(t *testing.T) {
+	_, _, cleanup := testhelper.SetupTestEnvironment(t)
+	defer cleanup()
+
+	adminUser := &model.User{ID: 1001, Username: "admin", IsAdmin: true, SignKey: "admin_key"}
+	router := setupTestRouter(adminUser)
+
+	t.Run("list all seeded configurations", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/api/v1/admin/system-configs", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("expected 200 OK, got %d", w.Code)
+		}
+
+		var resp util.ResponseAny
+		json.Unmarshal(w.Body.Bytes(), &resp)
+
+		dataBytes, _ := json.Marshal(resp.Data)
+		var configs []model.SystemConfig
+		json.Unmarshal(dataBytes, &configs)
+
+		// Defaults seed 7 configurations
+		if len(configs) != 7 {
+			t.Errorf("expected 7 default configs, got %d", len(configs))
+		}
+	})
+
+	t.Run("filter by type business", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/api/v1/admin/system-configs?type=business", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		var resp util.ResponseAny
+		json.Unmarshal(w.Body.Bytes(), &resp)
+
+		dataBytes, _ := json.Marshal(resp.Data)
+		var configs []model.SystemConfig
+		json.Unmarshal(dataBytes, &configs)
+
+		if len(configs) != 1 || configs[0].Key != model.ConfigKeyMaxAPIKeysPerUser {
+			t.Errorf("expected 1 business config (max_api_keys_per_user), got %d: %v", len(configs), configs)
+		}
+	})
+}
+
+func TestGetSystemConfig(t *testing.T) {
+	_, _, cleanup := testhelper.SetupTestEnvironment(t)
+	defer cleanup()
+
+	adminUser := &model.User{ID: 1001, Username: "admin", IsAdmin: true, SignKey: "admin_key"}
+	router := setupTestRouter(adminUser)
+
+	t.Run("get existing configuration", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/api/v1/admin/system-configs/"+model.ConfigKeySiteName, nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Errorf("expected 200 OK, got %d", w.Code)
+		}
+
+		var resp util.ResponseAny
+		json.Unmarshal(w.Body.Bytes(), &resp)
+
+		dataBytes, _ := json.Marshal(resp.Data)
+		var cfg model.SystemConfig
+		json.Unmarshal(dataBytes, &cfg)
+
+		if cfg.Value != "Antigravity Project" {
+			t.Errorf("expected 'Antigravity Project', got '%s'", cfg.Value)
+		}
+	})
+
+	t.Run("get non-existent config", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/api/v1/admin/system-configs/non_existent_key", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusNotFound {
+			t.Errorf("expected 404 Not Found, got %d", w.Code)
+		}
+	})
+}
+
+func TestUpdateSystemConfig(t *testing.T) {
+	dbConn, _, cleanup := testhelper.SetupTestEnvironment(t)
+	defer cleanup()
+
+	adminUser := &model.User{ID: 1001, Username: "admin", IsAdmin: true, SignKey: "admin_key"}
+	router := setupTestRouter(adminUser)
+
+	t.Run("update successfully", func(t *testing.T) {
+		payload := UpdateSystemConfigRequest{
+			Value:       "Super Site Name",
+			Description: "Updated Description",
+		}
+		body, _ := json.Marshal(payload)
+		req, _ := http.NewRequest("PUT", "/api/v1/admin/system-configs/"+model.ConfigKeySiteName, bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("expected 200 OK, got %d. Body: %s", w.Code, w.Body.String())
+		}
+
+		// Verify database
+		var cfg model.SystemConfig
+		dbConn.Where("key = ?", model.ConfigKeySiteName).First(&cfg)
+		if cfg.Value != "Super Site Name" || cfg.Description != "Updated Description" {
+			t.Errorf("database values not updated: %+v", cfg)
+		}
+
+		// Verify Redis
+		var redisConfig model.SystemConfig
+		db.HGetJSON(context.Background(), model.SystemConfigRedisHashKey, model.ConfigKeySiteName, &redisConfig)
+		if redisConfig.Value != "Super Site Name" {
+			t.Errorf("redis cache value not updated, got '%s'", redisConfig.Value)
+		}
+	})
+
+	t.Run("update non-existent config", func(t *testing.T) {
+		payload := UpdateSystemConfigRequest{
+			Value: "New Value",
+		}
+		body, _ := json.Marshal(payload)
+		req, _ := http.NewRequest("PUT", "/api/v1/admin/system-configs/invalid_key", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusNotFound {
+			t.Errorf("expected 404 Not Found, got %d", w.Code)
+		}
+	})
+}
+
+func TestDeleteSystemConfig(t *testing.T) {
+	dbConn, _, cleanup := testhelper.SetupTestEnvironment(t)
+	defer cleanup()
+
+	adminUser := &model.User{ID: 1001, Username: "admin", IsAdmin: true, SignKey: "admin_key"}
+	router := setupTestRouter(adminUser)
+
+	t.Run("delete successfully", func(t *testing.T) {
+		req, _ := http.NewRequest("DELETE", "/api/v1/admin/system-configs/"+model.ConfigKeySiteName, nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("expected 200 OK, got %d. Body: %s", w.Code, w.Body.String())
+		}
+
+		// Verify database
+		var count int64
+		dbConn.Model(&model.SystemConfig{}).Where("key = ?", model.ConfigKeySiteName).Count(&count)
+		if count != 0 {
+			t.Error("config still exists in DB")
+		}
+
+		// Verify Redis Cache removal
+		var redisConfig model.SystemConfig
+		err := db.HGetJSON(context.Background(), model.SystemConfigRedisHashKey, model.ConfigKeySiteName, &redisConfig)
+		if err == nil {
+			t.Error("config should have been deleted from Redis cache")
+		}
+	})
+
+	t.Run("delete non-existent config", func(t *testing.T) {
+		req, _ := http.NewRequest("DELETE", "/api/v1/admin/system-configs/invalid_key", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusNotFound {
+			t.Errorf("expected 404 Not Found, got %d", w.Code)
+		}
+	})
+}

@@ -68,8 +68,13 @@ type listUsersResponse struct {
 // @Description 分页返回用户列表，支持按用户 ID 和用户名筛选，需要管理员权限
 // @Tags admin
 // @Produce json
+// @Security SessionCookie
 // @Param request query listUsersRequest true "查询参数"
-// @Success 200 {object} util.ResponseAny
+// @Success 200 {object} util.ResponseAny{data=user.listUsersResponse} "用户列表"
+// @Failure 400 {object} util.ResponseAny "参数错误"
+// @Failure 401 {object} util.ResponseAny "未登录"
+// @Failure 403 {object} util.ResponseAny "无管理员权限"
+// @Failure 500 {object} util.ResponseAny "内部错误"
 // @Router /api/v1/admin/users [get]
 func ListUsers(c *gin.Context) {
 	var req listUsersRequest
@@ -129,9 +134,15 @@ type updateUserStatusRequest struct {
 // @Tags admin
 // @Accept json
 // @Produce json
-// @Param id path int true "用户ID"
+// @Security SessionCookie
+// @Param id path int true "用户 ID"
 // @Param request body updateUserStatusRequest true "状态参数"
-// @Success 200 {object} util.ResponseAny
+// @Success 200 {object} util.ResponseAny{data=string} "更新成功"
+// @Failure 400 {object} util.ResponseAny "参数错误"
+// @Failure 401 {object} util.ResponseAny "未登录"
+// @Failure 403 {object} util.ResponseAny "无管理员权限或尝试禁用管理员"
+// @Failure 404 {object} util.ResponseAny "用户不存在"
+// @Failure 500 {object} util.ResponseAny "内部错误"
 // @Router /api/v1/admin/users/{id}/status [put]
 func UpdateUserStatus(c *gin.Context) {
 	var req updateUserStatusRequest

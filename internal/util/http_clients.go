@@ -47,6 +47,10 @@ var httpClient = &http.Client{
 	}),
 }
 
+func SetHTTPClient(c *http.Client) {
+	httpClient = c
+}
+
 func Request(ctx context.Context, method, url string, body io.Reader, headers, cookies map[string]string) (*http.Response, error) {
 	req, err := http.NewRequestWithContext(ctx, method, url, body)
 	if err != nil {

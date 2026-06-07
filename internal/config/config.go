@@ -18,19 +18,50 @@ package config
 
 import (
 	"encoding/json"
+	"flag"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/spf13/viper"
 )
 
 var Config *configModel
 
+// findConfigPath searches upward for the config file to handle tests running in subdirectories.
+func findConfigPath(configPath string) string {
+	if _, err := os.Stat(configPath); err == nil {
+		return configPath
+	}
+	dir := "."
+	for i := 0; i < 5; i++ {
+		dir = dir + "/.."
+		path := dir + "/" + configPath
+		if _, err := os.Stat(path); err == nil {
+			return path
+		}
+	}
+	return configPath
+}
+
+// isTest checks if the current execution context is within 'go test'.
+func isTest() bool {
+	if flag.Lookup("test.v") != nil {
+		return true
+	}
+	for _, arg := range os.Args {
+		if strings.HasPrefix(arg, "-test.") || strings.HasSuffix(arg, ".test") {
+			return true
+		}
+	}
+	return false
+}
+
 func init() {
 	// 加载配置文件路径
 	configPath := os.Getenv("CONFIG_PATH")
 	if configPath == "" {
-		configPath = "config.yaml"
+		configPath = findConfigPath("config.yaml")
 	}
 
 	// 设置配置文件
@@ -46,6 +77,13 @@ func init() {
 	var c configModel
 	if err := viper.Unmarshal(&c); err != nil {
 		log.Fatalf("[Config] parse config failed: %v\n", err)
+	}
+
+	// Disable standard DB/Redis initializations during tests to prevent connection attempts.
+	if isTest() {
+		c.Database.Enabled = false
+		c.Redis.Enabled = false
+		c.ClickHouse.Enabled = false
 	}
 
 	// 设置全局配置

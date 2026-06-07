@@ -1,9 +1,9 @@
 "use client"
 
-import { createContext, useContext, useState, useEffect, useRef, useCallback, ReactNode } from 'react'
+import {createContext, ReactNode, useCallback, useContext, useEffect, useRef, useState} from 'react'
 
 import services from '@/lib/services'
-import { User, TrustLevel, PayLevel } from '@/lib/services/auth/types'
+import {PayLevel, TrustLevel, User} from '@/lib/services/auth/types'
 
 
 /** 用户状态接口 */
@@ -15,6 +15,7 @@ interface UserState {
 
 /** 用户上下文接口 */
 interface UserContextValue extends UserState {
+  setUser: (user: User) => void
   refetch: () => Promise<void>
   getTrustLevelLabel: (trustLevel: TrustLevel) => string
   getPayLevelLabel: (payLevel: PayLevel) => string
@@ -43,7 +44,7 @@ const UserContext = createContext<UserContextValue | undefined>(undefined)
 
 /**
  * 用户Provider组件
- * 
+ *
  * @param {React.ReactNode} children - 用户 Provider 的子元素
  * @returns {React.ReactNode} 用户 Provider 组件
  * @example
@@ -99,6 +100,11 @@ export function UserProvider({ children }: { children: ReactNode }) {
     await fetchUser()
   }, [fetchUser])
 
+  /** 直接设置用户信息（登录/注册后免二次请求） */
+  const setUser = useCallback((user: User) => {
+    setState({ user, loading: false, error: null })
+  }, [])
+
   /** 用户登出 */
   const logout = useCallback(async () => {
     try {
@@ -136,6 +142,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     <UserContext.Provider
       value={{
         ...state,
+        setUser,
         refetch,
         getTrustLevelLabel,
         getPayLevelLabel,
@@ -149,7 +156,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
 /**
  * 使用用户上下文的Hook
- * 
+ *
  * @returns {UserContextValue} 用户上下文值
  * @example
  * ```tsx

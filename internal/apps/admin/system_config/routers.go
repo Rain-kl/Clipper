@@ -47,8 +47,13 @@ type UpdateSystemConfigRequest struct {
 // @Tags admin
 // @Accept json
 // @Produce json
-// @Param request body CreateSystemConfigRequest true "创建请求参数"
-// @Success 200 {object} util.ResponseAny
+// @Security SessionCookie
+// @Param request body system_config.CreateSystemConfigRequest true "创建请求参数"
+// @Success 200 {object} util.ResponseAny{data=string} "创建成功"
+// @Failure 400 {object} util.ResponseAny "参数错误或配置键已存在"
+// @Failure 401 {object} util.ResponseAny "未登录"
+// @Failure 403 {object} util.ResponseAny "无管理员权限"
+// @Failure 500 {object} util.ResponseAny "内部错误"
 // @Router /api/v1/admin/system-configs [post]
 func CreateSystemConfig(c *gin.Context) {
 	var req CreateSystemConfigRequest
@@ -98,8 +103,12 @@ func CreateSystemConfig(c *gin.Context) {
 // @Description 返回所有系统配置列表，支持按配置类型（system/business）过滤，需要管理员权限
 // @Tags admin
 // @Produce json
+// @Security SessionCookie
 // @Param type query string false "配置类型（system/business）"
-// @Success 200 {object} util.ResponseAny
+// @Success 200 {object} util.ResponseAny{data=[]model.SystemConfig} "系统配置列表"
+// @Failure 401 {object} util.ResponseAny "未登录"
+// @Failure 403 {object} util.ResponseAny "无管理员权限"
+// @Failure 500 {object} util.ResponseAny "内部错误"
 // @Router /api/v1/admin/system-configs [get]
 func ListSystemConfigs(c *gin.Context) {
 	configType := c.Query("type")
@@ -122,8 +131,13 @@ func ListSystemConfigs(c *gin.Context) {
 // @Description 根据配置键获取对应的系统配置详情，需要管理员权限
 // @Tags admin
 // @Produce json
+// @Security SessionCookie
 // @Param key path string true "配置键"
-// @Success 200 {object} util.ResponseAny
+// @Success 200 {object} util.ResponseAny{data=model.SystemConfig} "系统配置详情"
+// @Failure 401 {object} util.ResponseAny "未登录"
+// @Failure 403 {object} util.ResponseAny "无管理员权限"
+// @Failure 404 {object} util.ResponseAny "配置不存在"
+// @Failure 500 {object} util.ResponseAny "内部错误"
 // @Router /api/v1/admin/system-configs/{key} [get]
 func GetSystemConfig(c *gin.Context) {
 	var config model.SystemConfig
@@ -145,9 +159,15 @@ func GetSystemConfig(c *gin.Context) {
 // @Tags admin
 // @Accept json
 // @Produce json
+// @Security SessionCookie
 // @Param key path string true "配置键"
-// @Param request body UpdateSystemConfigRequest true "更新请求参数"
-// @Success 200 {object} util.ResponseAny
+// @Param request body system_config.UpdateSystemConfigRequest true "更新请求参数"
+// @Success 200 {object} util.ResponseAny{data=string} "更新成功"
+// @Failure 400 {object} util.ResponseAny "参数错误"
+// @Failure 401 {object} util.ResponseAny "未登录"
+// @Failure 403 {object} util.ResponseAny "无管理员权限"
+// @Failure 404 {object} util.ResponseAny "配置不存在"
+// @Failure 500 {object} util.ResponseAny "内部错误"
 // @Router /api/v1/admin/system-configs/{key} [put]
 func UpdateSystemConfig(c *gin.Context) {
 	var req UpdateSystemConfigRequest
@@ -197,8 +217,13 @@ func UpdateSystemConfig(c *gin.Context) {
 // @Description 根据配置键删除对应配置，同时从 Redis 中移除对应缓存，需要管理员权限
 // @Tags admin
 // @Produce json
+// @Security SessionCookie
 // @Param key path string true "配置键"
-// @Success 200 {object} util.ResponseAny
+// @Success 200 {object} util.ResponseAny{data=string} "删除成功"
+// @Failure 401 {object} util.ResponseAny "未登录"
+// @Failure 403 {object} util.ResponseAny "无管理员权限"
+// @Failure 404 {object} util.ResponseAny "配置不存在"
+// @Failure 500 {object} util.ResponseAny "内部错误"
 // @Router /api/v1/admin/system-configs/{key} [delete]
 func DeleteSystemConfig(c *gin.Context) {
 	key := c.Param("key")

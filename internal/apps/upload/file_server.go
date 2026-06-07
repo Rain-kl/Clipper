@@ -28,11 +28,16 @@ import (
 	"gorm.io/gorm"
 )
 
-// ServeFileByID serves an uploaded file by its ID
+// ServeFileByID 根据 ID 获取并提供已上传的文件
+// @Summary 获取已上传文件
+// @Description 根据文件 ID 获取并提供已上传的临时或正式文件，若配置了缓存则优先走本地缓存，否则从 S3 等后端存储读取并流式返回
 // @Tags upload
 // @Produce octet-stream
-// @Param id path string true "Upload ID"
-// @Success 200
+// @Param id path string true "文件 ID"
+// @Success 200 {file} file "成功获取文件内容"
+// @Failure 400 {object} util.ResponseAny "文件 ID 格式错误"
+// @Failure 404 {object} util.ResponseAny "文件未找到"
+// @Failure 500 {object} util.ResponseAny "服务内部错误"
 // @Router /f/{id} [get]
 func ServeFileByID(c *gin.Context) {
 	idStr := c.Param("id")

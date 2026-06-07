@@ -1,182 +1,268 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { toast } from "sonner"
-import { Spinner } from "@/components/ui/spinner"
-import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
-import { motion, useAnimation } from "motion/react"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion"
-import { SquareArrowUpRight } from 'lucide-react';
+import {useMemo, useState} from "react"
+import {useMutation, useQuery} from "@tanstack/react-query"
+import {useRouter, useSearchParams} from "next/navigation"
+import {KeyRound, ShieldCheck, UserPlus} from "lucide-react"
+import {toast} from "sonner"
 
-import { cn } from "@/lib/utils"
+import {useAuth} from "@/components/providers/auth-provider"
+import {Button} from "@/components/ui/button"
+import {Input} from "@/components/ui/input"
+import {Separator} from "@/components/ui/separator"
+import {Spinner} from "@/components/ui/spinner"
+import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs"
+import {Card, CardContent} from "@/components/ui/card"
 import services from "@/lib/services"
-import { termsSections } from "@/components/common/docs/terms"
-import { privacySections } from "@/components/common/docs/privacy"
 
+function getRedirectTarget(searchParams: ReturnType<typeof useSearchParams>) {
+  const callbackUrl = searchParams.get("callbackUrl")
+  const storedRedirect = sessionStorage.getItem("redirect_after_login")
+  const target = callbackUrl || storedRedirect || "/home"
 
-/**
- * 登录表单组件
- * 显示登录表单和登录按钮
- * 
- * @example
- * ```tsx
- * <LoginForm />
- * ```
- * @param {React.ComponentProps<"div">} props - 组件属性
- * @param {string} className - 组件类名
- * @returns {React.ReactNode} 登录表单组件
- */
-export function LoginForm({
-  className,
-  ...props
-}: React.ComponentProps<"div">) {
-  const [isLoading, setIsLoading] = useState(false)
-  const [hasAgreed, setHasAgreed] = useState(false)
-  const controls = useAnimation()
-
-
-  useEffect(() => {
-    const agreed = localStorage.getItem("loginPromptAgreed") === "true"
-    if (agreed) {
-      setHasAgreed(true)
-    }
-  }, [])
-
-  const handleAgreementChange = (checked: boolean | string) => {
-    const isChecked = checked === true
-    setHasAgreed(isChecked)
-    if (isChecked) {
-      localStorage.setItem("loginPromptAgreed", "true")
-    } else {
-      localStorage.removeItem("loginPromptAgreed")
-    }
+  if (storedRedirect) {
+    sessionStorage.removeItem("redirect_after_login")
   }
 
-  /* 处理登录 */
-  const handleLogin = async () => {
-    if (!hasAgreed) {
-      toast.error("请先阅读并勾选服务条款和隐私政策")
-      controls.start({
-        x: [0, -4, 4, -4, 4, 0],
-        color: ["#ef4444", "inherit"],
-        transition: { duration: 0.5 }
-      })
-      return
-    }
+  return target
+}
 
-    setIsLoading(true)
+function persistRedirectTarget(searchParams: ReturnType<typeof useSearchParams>) {
+  const callbackUrl = searchParams.get("callbackUrl")
+  if (callbackUrl) {
+    sessionStorage.setItem("redirect_after_login", callbackUrl)
+  }
+}
+
+export function LoginForm() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const { setUser } = useAuth()
+  const [mode, setMode] = useState<"login" | "register">("login")
+  const [username, setUsername] = useState("")
+  const [password, setPassword] = useState("")
+  const [nickname, setNickname] = useState("")
+  const [errorMessage, setErrorMessage] = useState("")
+
+  const publicConfigQuery = useQuery({
+    queryKey: ["public-config"],
+    queryFn: services.config.getPublicConfig,
+  })
+
+  const authSourcesQuery = useQuery({
+    queryKey: ["auth-sources"],
+    queryFn: services.auth.getAuthSources,
+    enabled: publicConfigQuery.data?.oidc_login_enabled ?? true,
+  })
+
+  const redirectTarget = useMemo(
+    () => getRedirectTarget(searchParams),
+    [searchParams],
+  )
+
+  const loginMutation = useMutation({
+    mutationFn: services.auth.login,
+    onSuccess: (user) => {
+      setUser(user)
+      router.replace(redirectTarget)
+    },
+    onError: (error: Error) => {
+      setErrorMessage(error.message || "登录失败，请重试")
+    },
+  })
+
+  const registerMutation = useMutation({
+    mutationFn: services.auth.register,
+    onSuccess: (user) => {
+      setUser(user)
+      router.replace(redirectTarget)
+    },
+    onError: (error: Error) => {
+      setErrorMessage(error.message || "注册失败，请重试")
+    },
+  })
+
+  const handlePasswordLogin = () => {
+    setErrorMessage("")
+    loginMutation.mutate({
+      username: username.trim(),
+      password,
+    })
+  }
+
+  const handleRegister = () => {
+    setErrorMessage("")
+    registerMutation.mutate({
+      username: username.trim(),
+      password,
+      nickname: nickname.trim() || undefined,
+    })
+  }
+
+  const handleOAuthLogin = async (sourceName: string) => {
     try {
-      await services.auth.initiateLogin()
+      setErrorMessage("")
+      persistRedirectTarget(searchParams)
+      const { authorize_url } = await services.auth.getAuthorizeUrl(sourceName)
+      window.location.href = authorize_url
     } catch (error) {
-      setIsLoading(false)
-      console.error('Login error:', error)
-      const message = error instanceof Error ? error.message : "登录失败，请重试"
-      toast.error(message, {
-        duration: 5000,
-        description: error instanceof Error && error.name === 'NetworkError'
-          ? '请确认后端服务已启动'
-          : undefined
-      })
+      toast.error(error instanceof Error ? error.message : "第三方登录失败")
     }
   }
+
+  const registrationEnabled =
+    (publicConfigQuery.data?.registration_enabled ?? true) &&
+    (publicConfigQuery.data?.password_register_enabled ?? true)
+
+  const passwordLoginEnabled = publicConfigQuery.data?.password_login_enabled ?? true
+
+  const authSources = authSourcesQuery.data ?? []
 
   return (
-    <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <div className="grid gap-4 mx-4">
-        <Button
-          variant="default"
-          type="button"
-          className="w-full h-9 rounded-full tracking-wide bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-bold shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all active:scale-95"
-          onClick={handleLogin}
-          disabled={isLoading}
-        >
-          {isLoading ? <Spinner className="mr-2" /> : <SquareArrowUpRight className="mr-2 h-4 w-4" />}
-          {isLoading ? "正在跳转..." : "使用 LINUX DO 登录"}
-        </Button>
-      </div>
+    <Card className="w-full border-border/60 bg-background/80 shadow-2xl backdrop-blur">
+      <CardContent className="space-y-5 p-5 sm:p-6">
+        <div className="space-y-2 text-center">
+          <h2 className="text-xl font-semibold tracking-tight text-foreground">
+            账号登录
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            使用账号密码或第三方 OIDC 认证源登录
+          </p>
+        </div>
 
-      <motion.div
-        animate={controls}
-        className="flex items-center justify-center space-x-2 px-4"
-      >
-        <Checkbox
-          id="terms"
-          checked={hasAgreed}
-          onCheckedChange={handleAgreementChange}
-        />
-        <label
-          htmlFor="terms"
-          className="text-muted-foreground text-xs text-balance opacity-75 hover:opacity-100 transition-opacity cursor-pointer leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-        >
-          我已阅读并同意
-          {" "}
-          <Dialog>
-            <DialogTrigger asChild>
-              <button
+        <Tabs value={mode} onValueChange={(value) => setMode(value as "login" | "register")}>
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="login">登录</TabsTrigger>
+            <TabsTrigger value="register" disabled={!registrationEnabled}>
+              注册
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="login" className="space-y-4 pt-4">
+            <div className="space-y-3">
+              <div className="space-y-2">
+                <Input
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="用户名"
+                  autoComplete="username"
+                />
+                <Input
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  type="password"
+                  placeholder="密码"
+                  autoComplete="current-password"
+                />
+              </div>
+
+              {errorMessage ? (
+                <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+                  {errorMessage}
+                </div>
+              ) : null}
+
+              <Button
                 type="button"
-                className="underline underline-offset-4 hover:text-foreground"
-                onClick={(e) => e.stopPropagation()}
+                className="w-full"
+                onClick={handlePasswordLogin}
+                disabled={!passwordLoginEnabled || loginMutation.isPending}
               >
-                服务条款
-              </button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>服务条款</DialogTitle>
-                <DialogDescription>请仔细阅读以下条款，使用本服务即表示您接受。</DialogDescription>
-              </DialogHeader>
-              <Accordion type="single" collapsible className="w-full">
-                {termsSections.map((section) => (
-                  <AccordionItem key={section.value} value={section.value}>
-                    <AccordionTrigger>{section.title}</AccordionTrigger>
-                    <AccordionContent>{section.content}</AccordionContent>
-                  </AccordionItem>
-                ))}
-              </Accordion>
-            </DialogContent>
-          </Dialog>
-          {" "}及{" "}
-          <Dialog>
-            <DialogTrigger asChild>
-              <button
+                {loginMutation.isPending ? (
+                  <>
+                    <Spinner className="mr-2" />
+                    登录中...
+                  </>
+                ) : (
+                  <>
+                    <KeyRound className="mr-2 size-4" />
+                    账号密码登录
+                  </>
+                )}
+              </Button>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="register" className="space-y-4 pt-4">
+            <div className="space-y-3">
+              <div className="space-y-2">
+                <Input
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="用户名"
+                  autoComplete="username"
+                />
+                <Input
+                  value={nickname}
+                  onChange={(e) => setNickname(e.target.value)}
+                  placeholder="昵称（可选）"
+                  autoComplete="nickname"
+                />
+                <Input
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  type="password"
+                  placeholder="密码（至少 8 位）"
+                  autoComplete="new-password"
+                />
+              </div>
+
+              {errorMessage ? (
+                <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+                  {errorMessage}
+                </div>
+              ) : null}
+
+              <Button
                 type="button"
-                className="underline underline-offset-4 hover:text-foreground"
-                onClick={(e) => e.stopPropagation()}
+                className="w-full"
+                onClick={handleRegister}
+                disabled={!registrationEnabled || registerMutation.isPending}
               >
-                隐私政策
-              </button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>隐私政策</DialogTitle>
-                <DialogDescription>我们重视您的隐私，以下说明信息如何收集与使用。</DialogDescription>
-              </DialogHeader>
-              <Accordion type="single" collapsible className="w-full">
-                {privacySections.map((section) => (
-                  <AccordionItem key={section.value} value={section.value}>
-                    <AccordionTrigger>{section.title}</AccordionTrigger>
-                    <AccordionContent>{section.content}</AccordionContent>
-                  </AccordionItem>
-                ))}
-              </Accordion>
-            </DialogContent>
-          </Dialog>
-        </label>
-      </motion.div>
-    </div>
+                {registerMutation.isPending ? (
+                  <>
+                    <Spinner className="mr-2" />
+                    注册中...
+                  </>
+                ) : (
+                  <>
+                    <UserPlus className="mr-2 size-4" />
+                    创建账号
+                  </>
+                )}
+              </Button>
+            </div>
+          </TabsContent>
+        </Tabs>
+
+        <Separator />
+
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+            <ShieldCheck className="size-4" />
+            第三方认证源
+          </div>
+          <div className="grid gap-2">
+            {authSources.length > 0 ? (
+              authSources.map((source) => (
+                <Button
+                  key={source.id}
+                  type="button"
+                  variant="outline"
+                  className="justify-start"
+                  onClick={() => void handleOAuthLogin(source.name)}
+                >
+                  {source.display_name || source.name} 登录
+                </Button>
+              ))
+            ) : (
+              <div className="rounded-lg border border-dashed border-border/60 px-3 py-4 text-sm text-muted-foreground">
+                暂无可用认证源
+              </div>
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   )
 }

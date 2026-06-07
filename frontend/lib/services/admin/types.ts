@@ -171,3 +171,38 @@ export interface UpdateUserStatusRequest {
   /** 是否激活 */
   is_active: boolean;
 }
+
+/**
+ * 认证源信息
+ */
+export interface AuthSource {
+  id: string;
+  name: string;
+  type: 'oidc';
+  display_name: string;
+  is_active: boolean;
+  client_id: string;
+  client_secret?: string;
+  client_secret_configured?: boolean;
+  openid_discovery_url: string;
+  scopes: string;
+  icon_url: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AuthSourceRequest {
+  name: string;
+  type: 'oidc';
+  display_name: string;
+  is_active: boolean;
+  client_id: string;
+  client_secret: string;
+  openid_discovery_url: string;
+  scopes: string;
+  icon_url: string;
+}
+
+export interface ToggleAuthSourceRequest {
+  is_active: boolean;
+}

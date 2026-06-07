@@ -1,5 +1,5 @@
 /*
-Copyright 2025 linux.do
+Copyright 2026 linux.do
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,52 +14,82 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package migrator
+package testhelper
 
 import (
 	"context"
-	"log"
+	"testing"
 
-	"github.com/linux-do/credit/internal/model"
-
-	"github.com/linux-do/credit/internal/config"
+	"github.com/alicebob/miniredis/v2"
+	"github.com/glebarez/sqlite"
+	"github.com/hibiken/asynq"
 	"github.com/linux-do/credit/internal/db"
+	"github.com/linux-do/credit/internal/model"
+	"github.com/linux-do/credit/internal/task/scheduler"
+	"github.com/redis/go-redis/v9"
+	"gorm.io/gorm"
 )
 
-func Migrate() {
-	if !config.Config.Database.Enabled {
-		return
+// SetupTestEnvironment initializes an in-memory SQLite DB, seeds default configurations,
+// starts miniredis, and overrides the global db/Redis clients. It returns a cleanup function.
+func SetupTestEnvironment(t *testing.T) (*gorm.DB, *miniredis.Miniredis, func()) {
+	// Initialize GORM in-memory SQLite
+	sqliteDB, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{
+		DisableForeignKeyConstraintWhenMigrating: true,
+	})
+	if err != nil {
+		t.Fatalf("failed to open in-memory SQLite db: %v", err)
 	}
 
-	if err := db.DB(context.Background()).AutoMigrate(
+	// AutoMigrate all tables
+	err = sqliteDB.AutoMigrate(
 		&model.User{},
 		&model.AuthSource{},
 		&model.ExternalAccount{},
 		&model.SystemConfig{},
 		&model.Upload{},
-	); err != nil {
-		log.Fatalf("[PostgreSQL] auto migrate failed: %v\n", err)
+	)
+	if err != nil {
+		t.Fatalf("failed to auto migrate tables: %v", err)
 	}
-	log.Printf("[PostgreSQL] auto migrate success\n")
 
-	// 初始化系统配置数据
-	initSystemConfigs()
+	// Set global db
+	db.SetDB(sqliteDB)
+
+	// Start miniredis
+	mr, err := miniredis.Run()
+	if err != nil {
+		t.Fatalf("failed to start miniredis: %v", err)
+	}
+
+	// Hook up Redis Client to miniredis
+	redisClient := redis.NewClient(&redis.Options{
+		Addr: mr.Addr(),
+	})
+	db.Redis = redisClient
+
+	// Hook up AsynqClient to miniredis
+	scheduler.AsynqClient = asynq.NewClient(asynq.RedisClientOpt{
+		Addr: mr.Addr(),
+	})
+
+	// Seed default configurations
+	seedDefaultConfigs(t, sqliteDB)
+
+	// Cleanup function
+	cleanup := func() {
+		redisClient.Close()
+		mr.Close()
+		// Reset database and Redis references
+		db.SetDB(nil)
+		db.Redis = nil
+		scheduler.AsynqClient = nil
+	}
+
+	return sqliteDB, mr, cleanup
 }
 
-// initSystemConfigs 初始化系统配置数据
-func initSystemConfigs() {
-	tx := db.DB(context.Background())
-
-	var count int64
-	if err := tx.Model(&model.SystemConfig{}).Count(&count).Error; err != nil {
-		log.Printf("[PostgreSQL] failed to check system_config table: %v\n", err)
-		return
-	}
-
-	if count > 0 {
-		return
-	}
-
+func seedDefaultConfigs(t *testing.T, tx *gorm.DB) {
 	defaultConfigs := []model.SystemConfig{
 		{
 			Key:         model.ConfigKeyUploadAllowedExtensions,
@@ -106,8 +136,12 @@ func initSystemConfigs() {
 	}
 
 	if err := tx.Create(&defaultConfigs).Error; err != nil {
-		log.Printf("[PostgreSQL] failed to create default system configs: %v\n", err)
-	} else {
-		log.Printf("[PostgreSQL] initialized %d default system configs\n", len(defaultConfigs))
+		t.Fatalf("failed to seed default system configs: %v", err)
+	}
+
+	// Also seed these in miniredis context if required, but they are stored in postgres first.
+	// We'll write configs to miniredis in actual handlers.
+	for _, config := range defaultConfigs {
+		_ = db.HSetJSON(context.Background(), model.SystemConfigRedisHashKey, config.Key, &config)
 	}
 }

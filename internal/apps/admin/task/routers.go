@@ -30,10 +30,13 @@ import (
 
 // ListTaskTypes 获取支持的任务类型列表
 // @Summary 获取支持的任务类型
-// @Description 返回系统支持的所有可调度任务类型列表，需要管理员权限
+// @Description 返回系统支持的所有可调度任务类型列表，包括任务名称、描述、是否支持时间范围等元数据，需要管理员权限
 // @Tags admin
 // @Produce json
-// @Success 200 {object} util.ResponseAny
+// @Security SessionCookie
+// @Success 200 {object} util.ResponseAny{data=[]task.TaskMeta} "任务类型列表"
+// @Failure 401 {object} util.ResponseAny "未登录"
+// @Failure 403 {object} util.ResponseAny "无管理员权限"
 // @Router /api/v1/admin/tasks/types [get]
 func ListTaskTypes(c *gin.Context) {
 	c.JSON(http.StatusOK, util.OK(task.DispatchableTasks))
@@ -53,8 +56,13 @@ type DispatchTaskRequest struct {
 // @Tags admin
 // @Accept json
 // @Produce json
-// @Param request body DispatchTaskRequest true "任务请求参数"
-// @Success 200 {object} util.ResponseAny
+// @Security SessionCookie
+// @Param request body task.DispatchTaskRequest true "任务请求参数"
+// @Success 200 {object} util.ResponseAny{data=string} "任务已入队"
+// @Failure 400 {object} util.ResponseAny "任务类型不存在或参数错误"
+// @Failure 401 {object} util.ResponseAny "未登录"
+// @Failure 403 {object} util.ResponseAny "无管理员权限"
+// @Failure 500 {object} util.ResponseAny "任务入队失败"
 // @Router /api/v1/admin/tasks/dispatch [post]
 func DispatchTask(c *gin.Context) {
 	var req DispatchTaskRequest

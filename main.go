@@ -20,6 +20,15 @@ import "github.com/linux-do/credit/internal/cmd"
 
 // @title LINUX DO Credit
 // @version 1.0.0
+// @description LINUX DO Credit 平台后端 API，提供用户认证、商户 API Key 管理、系统配置等功能。
+// @contact.name LINUX DO Credit
+// @contact.url https://linux.do
+// @license.name Apache 2.0
+// @license.url http://www.apache.org/licenses/LICENSE-2.0.html
+// @BasePath /
+// @securityDefinitions.apikey SessionCookie
+// @in cookie
+// @name session
 func main() {
 	cmd.Execute()
 }

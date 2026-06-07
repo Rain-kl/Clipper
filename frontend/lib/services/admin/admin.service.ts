@@ -1,13 +1,16 @@
-import { BaseService } from '../core/base.service';
+import {BaseService} from '../core/base.service';
 import type {
-  SystemConfig,
+  AuthSource,
+  AuthSourceRequest,
   CreateSystemConfigRequest,
-  UpdateSystemConfigRequest,
-  TaskMeta,
-  TaskTypeResponse,
   DispatchTaskRequest,
   ListUsersRequest,
   ListUsersResponse,
+  SystemConfig,
+  TaskMeta,
+  TaskTypeResponse,
+  ToggleAuthSourceRequest,
+  UpdateSystemConfigRequest,
   UpdateUserStatusRequest,
 } from './types';
 
@@ -16,7 +19,7 @@ export type { AdminUser } from './types';
 /**
  * 管理员服务
  * 处理系统配置和用户积分配置管理相关的 API 请求
- * 
+ *
  * @remarks
  * 所有接口都需要管理员权限
  */
@@ -32,7 +35,7 @@ export class AdminService extends BaseService {
    * @throws {UnauthorizedError} 当未登录时
    * @throws {ForbiddenError} 当无管理员权限时
    * @throws {ValidationError} 当参数验证失败或配置键已存在时
-   * 
+   *
    * @example
    * ```typescript
    * await AdminService.createSystemConfig({
@@ -53,7 +56,7 @@ export class AdminService extends BaseService {
    * @returns 系统配置列表
    * @throws {UnauthorizedError} 当未登录时
    * @throws {ForbiddenError} 当无管理员权限时
-   * 
+   *
    * @example
    * ```typescript
    * const configs = await AdminService.listSystemConfigs();
@@ -72,7 +75,7 @@ export class AdminService extends BaseService {
    * @throws {UnauthorizedError} 当未登录时
    * @throws {ForbiddenError} 当无管理员权限时
    * @throws {NotFoundError} 当配置不存在时
-   * 
+   *
    * @example
    * ```typescript
    * const config = await AdminService.getSystemConfig('app.version');
@@ -92,7 +95,7 @@ export class AdminService extends BaseService {
    * @throws {ForbiddenError} 当无管理员权限时
    * @throws {NotFoundError} 当配置不存在时
    * @throws {ValidationError} 当参数验证失败时
-   * 
+   *
    * @example
    * ```typescript
    * await AdminService.updateSystemConfig('app.version', {
@@ -115,7 +118,7 @@ export class AdminService extends BaseService {
    * @throws {UnauthorizedError} 当未登录时
    * @throws {ForbiddenError} 当无管理员权限时
    * @throws {NotFoundError} 当配置不存在时
-   * 
+   *
    * @example
    * ```typescript
    * await AdminService.deleteSystemConfig('app.version');
@@ -123,6 +126,28 @@ export class AdminService extends BaseService {
    */
   static async deleteSystemConfig(key: string): Promise<void> {
     return this.delete<void>(`/system-configs/${ key }`);
+  }
+
+  // ==================== 认证源管理 ====================
+
+  static async listAuthSources(): Promise<AuthSource[]> {
+    return this.get<AuthSource[]>('/auth-sources');
+  }
+
+  static async createAuthSource(request: AuthSourceRequest): Promise<AuthSource> {
+    return this.post<AuthSource>('/auth-sources', request);
+  }
+
+  static async updateAuthSource(id: string, request: AuthSourceRequest): Promise<AuthSource> {
+    return this.put<AuthSource>(`/auth-sources/${ id }`, request);
+  }
+
+  static async toggleAuthSource(id: string, request: ToggleAuthSourceRequest): Promise<void> {
+    return this.put<void>(`/auth-sources/${ id }/toggle`, request);
+  }
+
+  static async deleteAuthSource(id: string): Promise<void> {
+    return this.delete<void>(`/auth-sources/${ id }`);
   }
 
 
@@ -134,7 +159,7 @@ export class AdminService extends BaseService {
    * @returns 任务类型列表
    * @throws {UnauthorizedError} 当未登录时
    * @throws {ForbiddenError} 当无管理员权限时
-   * 
+   *
    * @example
    * ```typescript
    * const taskTypes = await AdminService.getTaskTypes();
@@ -162,7 +187,7 @@ export class AdminService extends BaseService {
    * @throws {UnauthorizedError} 当未登录时
    * @throws {ForbiddenError} 当无管理员权限时
    * @throws {ValidationError} 当参数验证失败时
-   * 
+   *
    * @example
    * ```typescript
    * // 下发订单同步任务（带时间范围）
@@ -171,19 +196,19 @@ export class AdminService extends BaseService {
    *   start_time: '2025-12-01T00:00:00Z',
    *   end_time: '2025-12-27T23:59:59Z'
    * });
-   * 
+   *
    * // 下发用户积分更新任务
    * await AdminService.dispatchTask({
    *   task_type: 'user_gamification',
    *   user_id: 123
    * });
-   * 
+   *
    * // 下发争议自动退款任务
    * await AdminService.dispatchTask({
    *   task_type: 'dispute_auto_refund'
    * });
    * ```
-   * 
+   *
    * @remarks
    * - 不同任务类型需要不同的参数
    * - order_sync 支持 start_time 和 end_time 参数
@@ -203,7 +228,7 @@ export class AdminService extends BaseService {
    * @throws {UnauthorizedError} 当未登录时
    * @throws {ForbiddenError} 当无管理员权限时
    * @throws {ValidationError} 当参数验证失败时
-   * 
+   *
    * @example
    * ```typescript
    * const result = await AdminService.listUsers({
@@ -215,7 +240,7 @@ export class AdminService extends BaseService {
    * console.log('用户总数:', result.total);
    * console.log('用户列表:', result.users);
    * ```
-   * 
+   *
    * @remarks
    * - page 从 1 开始
    * - page_size 范围 1-100
@@ -234,16 +259,16 @@ export class AdminService extends BaseService {
    * @throws {UnauthorizedError} 当未登录时
    * @throws {ForbiddenError} 当无管理员权限或禁用管理员用户时
    * @throws {NotFoundError} 当用户不存在时
-   * 
+   *
    * @example
    * ```typescript
    * // 禁用用户
    * await AdminService.updateUserStatus(123, { is_active: false });
-   * 
+   *
    * // 启用用户
    * await AdminService.updateUserStatus(123, { is_active: true });
    * ```
-   * 
+   *
    * @remarks
    * - 不能禁用管理员用户
    */
