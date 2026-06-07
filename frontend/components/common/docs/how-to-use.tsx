@@ -55,7 +55,7 @@ export const howToUseSections: PolicySection[] = [
           <li>
             <strong>创建应用</strong>
             <ul className="list-disc pl-4 md:pl-5 mt-2 space-y-1 text-muted-foreground">
-              <li>前往 <a href="/merchant" className="text-primary hover:underline">集市中心</a></li>
+              <li>前往 <a href="/home" className="text-primary hover:underline">控制面板</a></li>
               <li>点击顶部右侧 <strong>创建应用</strong> 按钮</li>
               <li>填写必要信息：应用名称、应用主页、回调地址、通知地址</li>
             </ul>
@@ -86,7 +86,7 @@ export const howToUseSections: PolicySection[] = [
           <li><strong>适用场景：</strong>无代码开发基础，或只用于简单的积分服务。</li>
           <li><strong>操作步骤：</strong>
             <ol className="list-decimal pl-4 md:pl-5 mt-2 space-y-1 text-muted-foreground">
-              <li>前往 <a href="/merchant" className="text-primary hover:underline">集市中心</a> 创建应用，获取 API 凭证</li>
+              <li>前往 <a href="/home" className="text-primary hover:underline">控制面板</a> 创建应用，获取 API 凭证</li>
               <li>选择应用，点击 <strong>在线收款</strong> 功能</li>
               <li>创建在线积分服务</li>
               <li>获取唯一积分服务链接</li>
@@ -101,7 +101,7 @@ export const howToUseSections: PolicySection[] = [
           <li><strong>操作步骤：</strong>
             <ol className="list-decimal pl-4 md:pl-5 mt-2 space-y-2 text-muted-foreground">
               <li>
-                前往 <a href="/merchant" className="text-primary hover:underline">集市中心</a>，点击 <strong>创建应用</strong>，填写 New API 站点信息：
+                前往 <a href="/home" className="text-primary hover:underline">控制面板</a>，点击 <strong>创建应用</strong>，填写 New API 站点信息：
                 <div className="my-4">
                   <DocsTable>
                     <DocsTableHeader>

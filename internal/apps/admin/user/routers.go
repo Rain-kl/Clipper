@@ -64,6 +64,8 @@ type listUsersResponse struct {
 }
 
 // ListUsers 获取用户列表
+// @Summary 获取用户列表
+// @Description 分页返回用户列表，支持按用户 ID 和用户名筛选，需要管理员权限
 // @Tags admin
 // @Produce json
 // @Param request query listUsersRequest true "查询参数"
@@ -122,10 +124,13 @@ type updateUserStatusRequest struct {
 }
 
 // UpdateUserStatus 更新用户状态（启用/禁用）
+// @Summary 更新用户状态
+// @Description 启用或禁用指定用户，管理员账号无法被禁用，需要管理员权限
 // @Tags admin
+// @Accept json
 // @Produce json
 // @Param id path int true "用户ID"
-// @Param request body updateUserStatusRequest true "状态"
+// @Param request body updateUserStatusRequest true "状态参数"
 // @Success 200 {object} util.ResponseAny
 // @Router /api/v1/admin/users/{id}/status [put]
 func UpdateUserStatus(c *gin.Context) {

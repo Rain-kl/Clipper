@@ -24,14 +24,16 @@ import (
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/linux-do/credit/internal/config"
 	"github.com/linux-do/credit/internal/db"
 	"github.com/linux-do/credit/internal/model"
-	"github.com/linux-do/credit/internal/service"
 	"github.com/linux-do/credit/internal/util"
 	"github.com/shopspring/decimal"
 )
 
 // GetLoginURL godoc
+// @Summary 获取登录地址
+// @Description 生成 OAuth 登录 URL，前端跳转至该地址完成授权
 // @Tags oauth
 // @Produce json
 // @Success 200 {object} util.ResponseAny
@@ -49,7 +51,9 @@ func GetLoginURL(c *gin.Context) {
 
 	// 构造登录 URL
 	var authURL string
-	if oidcVerifier != nil {
+	if config.Config.App.Env == "development" {
+		authURL = fmt.Sprintf("%s/login?code=dev_mock_code&state=%s", config.Config.App.FrontendURL, state)
+	} else if oidcVerifier != nil {
 		// OIDC 模式：state 同时用作 nonce
 		authURL = oauthConf.AuthCodeURL(state, oidc.Nonce(state))
 	} else {
@@ -65,8 +69,11 @@ type CallbackRequest struct {
 }
 
 // Callback godoc
+// @Summary OAuth 回调
+// @Description 接收前端传回的 state 和 code，完成 OAuth/OIDC 认证并建立用户会话
 // @Tags oauth
-// @Param request body CallbackRequest true "request body"
+// @Accept json
+// @Param request body CallbackRequest true "回调请求参数"
 // @Produce json
 // @Success 200 {object} util.ResponseAny
 // @Router /api/v1/oauth/callback [post]
@@ -122,37 +129,21 @@ type BasicUserInfo struct {
 	AvailableBalance decimal.Decimal  `json:"available_balance"`
 	PendingBalance   decimal.Decimal  `json:"pending_balance"`
 	PayScore         int64            `json:"pay_score"`
-	IsPayKey         bool             `json:"is_pay_key"`
 	IsAdmin          bool             `json:"is_admin"`
 	RemainQuota      decimal.Decimal  `json:"remain_quota"`
-	PayLevel         model.PayLevel   `json:"pay_level"`
+	PayLevel         string           `json:"pay_level"`
 	DailyLimit       *int64           `json:"daily_limit"`
 }
 
 // UserInfo godoc
+// @Summary 获取当前登录用户信息
+// @Description 返回当前登录用户的基本信息及余额数据，需要登录
 // @Tags oauth
 // @Produce json
 // @Success 200 {object} util.ResponseAny
 // @Router /api/v1/oauth/user-info [get]
 func UserInfo(c *gin.Context) {
 	user, _ := util.GetFromContext[*model.User](c, UserObjKey)
-
-	var payConfig model.UserPayConfig
-	if err := payConfig.GetByPayScore(db.DB(c.Request.Context()), user.PayScore); err != nil {
-		c.JSON(http.StatusInternalServerError, util.Err(err.Error()))
-		return
-	}
-
-	// 计算剩余额度（-1 表示无限额）
-	remainQuota := decimal.NewFromInt(-1)
-	if payConfig.DailyLimit != nil && *payConfig.DailyLimit > 0 {
-		todayUsed, err := service.GetTodayUsedAmount(db.DB(c.Request.Context()), user.ID)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, util.Err(err.Error()))
-			return
-		}
-		remainQuota = decimal.NewFromInt(*payConfig.DailyLimit).Sub(todayUsed)
-	}
 
 	c.JSON(
 		http.StatusOK,
@@ -170,16 +161,17 @@ func UserInfo(c *gin.Context) {
 			AvailableBalance: user.AvailableBalance,
 			PendingBalance:   user.PendingBalance,
 			PayScore:         user.PayScore,
-			IsPayKey:         user.PayKey != "",
 			IsAdmin:          user.IsAdmin,
-			RemainQuota:      remainQuota,
-			PayLevel:         payConfig.Level,
-			DailyLimit:       payConfig.DailyLimit,
+			RemainQuota:      decimal.NewFromInt(-1),
+			PayLevel:         "Free",
+			DailyLimit:       nil,
 		}),
 	)
 }
 
 // Logout godoc
+// @Summary 退出登录
+// @Description 清除当前用户的登录会话，完成退出
 // @Tags oauth
 // @Produce json
 // @Success 200 {object} util.ResponseAny

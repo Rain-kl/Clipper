@@ -17,5 +17,4 @@ limitations under the License.
 package user
 
 const (
-	EncryptPayKeyFailed = "加密支付密码失败"
 )

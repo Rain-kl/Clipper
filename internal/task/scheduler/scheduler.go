@@ -53,61 +53,11 @@ func StartScheduler() error {
 			},
 		)
 
-		// 用户积分更新任务
-		if _, err = scheduler.Register(
-			config.Config.Scheduler.UpdateUserGamificationScoresTaskCron,
-			asynq.NewTask(task.UpdateUserGamificationScoresTask, nil),
-			asynq.Queue(task.QueueWhitelistOnly),
-			asynq.MaxRetry(5),
-			asynq.Unique(23*time.Hour),
-		); err != nil {
-			return
-		}
-
-		// 争议自动退款任务
-		if _, err = scheduler.Register(
-			config.Config.Scheduler.AutoRefundExpiredDisputesTaskCron,
-			asynq.NewTask(task.AutoRefundExpiredDisputesTask, nil),
-			asynq.MaxRetry(5),
-			asynq.Unique(23*time.Hour),
-		); err != nil {
-			return
-		}
-
-		// 订单同步任务
-		if _, err = scheduler.Register(
-			config.Config.Scheduler.SyncOrdersToClickHouseTaskCron,
-			asynq.NewTask(task.SyncOrdersToClickHouseTask, nil),
-			asynq.MaxRetry(10),
-			asynq.Unique(23*time.Hour),
-		); err != nil {
-			return
-		}
-
-		// 红包过期退款任务
-		if _, err = scheduler.Register(
-			config.Config.Scheduler.RefundExpiredRedEnvelopesTaskCron,
-			asynq.NewTask(task.RefundExpiredRedEnvelopesTask, nil),
-			asynq.Unique(23*time.Hour),
-		); err != nil {
-			return
-		}
-
 		// 清理未使用的上传文件任务
 		if _, err = scheduler.Register(
 			config.Config.Scheduler.CleanupUnusedUploadsTaskCron,
 			asynq.NewTask(task.CleanupUnusedUploadsTask, nil),
 			asynq.Unique(23*time.Hour),
-			asynq.MaxRetry(3),
-		); err != nil {
-			return
-		}
-
-		// 延迟到账结算任务
-		if _, err = scheduler.Register(
-			config.Config.Scheduler.SettlePendingPaymentsTaskCron,
-			asynq.NewTask(task.SettlePendingPaymentsTask, nil),
-			asynq.Unique(55*time.Minute),
 			asynq.MaxRetry(3),
 		); err != nil {
 			return

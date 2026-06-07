@@ -56,6 +56,7 @@ interface ManagePageProps<T> {
   emptyDescription?: string
   loadingDescription?: string
   getId: (item: T) => string | number
+  headerExtra?: React.ReactNode
 }
 
 export function ManagePage<T>({
@@ -72,7 +73,8 @@ export function ManagePage<T>({
   emptyIcon = Layers,
   emptyDescription = "暂无数据",
   loadingDescription = "加载中",
-  getId
+  getId,
+  headerExtra
 }: ManagePageProps<T>) {
   /** 悬停状态 */
   const [hoveredItem, setHoveredItem] = useState<T | null>(null)
@@ -199,8 +201,9 @@ export function ManagePage<T>({
 
   return (
     <div className="py-6">
-      <div className="flex border-b border-border pb-2 mb-6">
+      <div className="flex border-b border-border pb-2 mb-6 items-center justify-between">
         <div className="text-2xl font-semibold">{title}</div>
+        {headerExtra}
       </div>
 
       <div className="space-y-6">

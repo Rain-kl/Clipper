@@ -8,7 +8,6 @@ import { SiteHeader } from "@/components/layout/header"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 
 import { UserProvider } from "@/contexts/user-context"
-import { MerchantProvider } from "@/contexts/merchant-context"
 
 
 export default function MainLayout({
@@ -21,7 +20,6 @@ export default function MainLayout({
 
   return (
     <UserProvider>
-      <MerchantProvider>
         <SidebarProvider
           className="h-screen"
           style={
@@ -51,7 +49,6 @@ export default function MainLayout({
             </div>
           </SidebarInset>
         </SidebarProvider>
-      </MerchantProvider>
     </UserProvider>
   )
 }

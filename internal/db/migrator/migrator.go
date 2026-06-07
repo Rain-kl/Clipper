@@ -24,7 +24,6 @@ import (
 
 	"github.com/linux-do/credit/internal/config"
 	"github.com/linux-do/credit/internal/db"
-	"github.com/shopspring/decimal"
 )
 
 func Migrate() {
@@ -34,15 +33,7 @@ func Migrate() {
 
 	if err := db.DB(context.Background()).AutoMigrate(
 		&model.User{},
-		&model.UserPayConfig{},
-		&model.MerchantAPIKey{},
-		&model.MerchantPaymentLink{},
-		&model.Order{},
-		&model.OrderTransfer{},
 		&model.SystemConfig{},
-		&model.Dispute{},
-		&model.RedEnvelope{},
-		&model.RedEnvelopeClaim{},
 		&model.Upload{},
 	); err != nil {
 		log.Fatalf("[PostgreSQL] auto migrate failed: %v\n", err)
@@ -51,9 +42,6 @@ func Migrate() {
 
 	// 初始化系统配置数据
 	initSystemConfigs()
-
-	// 初始化用户支付配置数据
-	initUserPayConfigs()
 }
 
 // initSystemConfigs 初始化系统配置数据
@@ -72,79 +60,28 @@ func initSystemConfigs() {
 
 	defaultConfigs := []model.SystemConfig{
 		{
-			Key:         model.ConfigKeyMerchantOrderExpireMinutes,
-			Value:       "5",
-			Description: "商家订单过期时间（分钟）",
-		},
-		{
-			Key:         model.ConfigKeyWebsiteOrderExpireMinutes,
-			Value:       "10",
-			Description: "网站订单过期时间（分钟）",
-		},
-		{
-			Key:         model.ConfigKeyDisputeTimeWindowHours,
-			Value:       "168",
-			Description: "商家争议时间窗口（小时）",
-		},
-		{
-			Key:         model.ConfigKeyNewUserInitialCredit,
-			Value:       "0",
-			Description: "新用户注册初始积分",
-		},
-		{
-			Key:         model.ConfigKeyNewUserProtectionDays,
-			Value:       "30",
-			Description: "新用户保护期天数，期内积分下降不扣分",
-		},
-		{
-			Key:         model.ConfigKeyLeaderboardCacheTTLSeconds,
-			Value:       "600",
-			Description: "排行榜缓存过期时间（秒）",
-		},
-		{
-			Key:         model.ConfigKeyRedEnvelopeEnabled,
-			Value:       "0",
-			Description: "红包功能是否启用（1启用，0禁用）",
-		},
-		{
-			Key:         model.ConfigKeyRedEnvelopeMaxAmount,
-			Value:       "1000",
-			Description: "单个红包的最大积分上限",
-		},
-		{
-			Key:         model.ConfigKeyRedEnvelopeDailyLimit,
-			Value:       "10",
-			Description: "每日发红包的个数限制",
-		},
-		{
-			Key:         model.ConfigKeyRedEnvelopeFeeRate,
-			Value:       "0",
-			Description: "红包手续费率（0-1之间的小数，0表示不收费）",
-		},
-		{
-			Key:         model.ConfigKeyRedEnvelopeMaxRecipients,
-			Value:       "10000",
-			Description: "每个红包的最大可领取人数上限",
-		},
-		{
-			Key:         model.ConfigKeyUserBalanceStatsCacheTTL,
-			Value:       "600",
-			Description: "用户余额统计缓存过期时间（秒）",
-		},
-		{
 			Key:         model.ConfigKeyUploadAllowedExtensions,
 			Value:       "jpg,png,webp",
+			Type:        "system",
 			Description: "允许上传的图片扩展名（逗号分隔）",
 		},
 		{
-			Key:         model.ConfigKeySettlementDelayDaysMin,
-			Value:       "7",
-			Description: "商户收款延迟到账最小天数（大于等于1）",
+			Key:         model.ConfigKeySiteName,
+			Value:       "Antigravity Project",
+			Type:        "system",
+			Description: "系统平台的展示名称",
 		},
 		{
-			Key:         model.ConfigKeySettlementDelayDaysMax,
-			Value:       "14",
-			Description: "商户收款延迟到账最大天数（实际天数在min~max随机）",
+			Key:         model.ConfigKeyRegistrationEnabled,
+			Value:       "true",
+			Type:        "system",
+			Description: "控制普通用户是否可以自主注册（true/false）",
+		},
+		{
+			Key:         model.ConfigKeyMaxAPIKeysPerUser,
+			Value:       "5",
+			Type:        "business",
+			Description: "限制每个普通用户可以创建的 API Key 最大数量",
 		},
 	}
 
@@ -152,70 +89,5 @@ func initSystemConfigs() {
 		log.Printf("[PostgreSQL] failed to create default system configs: %v\n", err)
 	} else {
 		log.Printf("[PostgreSQL] initialized %d default system configs\n", len(defaultConfigs))
-	}
-}
-
-// int64Ptr 返回 int64 指针
-func int64Ptr(v int64) *int64 {
-	return &v
-}
-
-// initUserPayConfigs 初始化用户支付配置数据
-func initUserPayConfigs() {
-	tx := db.DB(context.Background())
-
-	var count int64
-	if err := tx.Model(&model.UserPayConfig{}).Count(&count).Error; err != nil {
-		log.Printf("[PostgreSQL] failed to check user_pay_configs table: %v\n", err)
-		return
-	}
-
-	if count > 0 {
-		return
-	}
-
-	defaultConfigs := []model.UserPayConfig{
-		{
-			Level:          model.PayLevelFree,
-			MinScore:       0,
-			MaxScore:       int64Ptr(2000),
-			DailyLimit:     int64Ptr(1000),
-			FeeRate:        decimal.Zero,
-			ScoreRate:      decimal.Zero,
-			DistributeRate: decimal.Zero,
-		},
-		{
-			Level:          model.PayLevelBasic,
-			MinScore:       2000,
-			MaxScore:       int64Ptr(10000),
-			DailyLimit:     int64Ptr(6000),
-			FeeRate:        decimal.Zero,
-			ScoreRate:      decimal.Zero,
-			DistributeRate: decimal.Zero,
-		},
-		{
-			Level:          model.PayLevelStandard,
-			MinScore:       10000,
-			MaxScore:       int64Ptr(50000),
-			DailyLimit:     int64Ptr(25000),
-			FeeRate:        decimal.Zero,
-			ScoreRate:      decimal.Zero,
-			DistributeRate: decimal.Zero,
-		},
-		{
-			Level:          model.PayLevelPremium,
-			MinScore:       50000,
-			MaxScore:       nil,
-			DailyLimit:     nil,
-			FeeRate:        decimal.Zero,
-			ScoreRate:      decimal.Zero,
-			DistributeRate: decimal.Zero,
-		},
-	}
-
-	if err := tx.Create(&defaultConfigs).Error; err != nil {
-		log.Printf("[PostgreSQL] failed to create default user pay configs: %v\n", err)
-	} else {
-		log.Printf("[PostgreSQL] initialized %d default user pay configs\n", len(defaultConfigs))
 	}
 }

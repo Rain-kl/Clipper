@@ -151,7 +151,7 @@ signBase64 = base64.StdEncoding.EncodeToString(signature)`}
           <li><strong>协议：</strong>EasyPay / CodePay / VPay 兼容协议</li>
           <li><strong>服务类型：</strong>仅支持 <code className="bg-muted px-1.5 py-0.5 rounded text-xs font-mono before:content-none after:content-none">type=epay</code></li>
           <li><strong>网关基址：</strong><code className="bg-muted px-1.5 py-0.5 rounded text-xs font-mono before:content-none after:content-none">https://credit.linux.do/epay</code></li>
-          <li><strong>订单有效期：</strong>取系统配置 <code className="bg-muted px-1.5 py-0.5 rounded text-xs font-mono before:content-none after:content-none">merchant_order_expire_minutes</code>（平台端设置）</li>
+          <li><strong>订单有效期：</strong>取系统配置 <code className="bg-muted px-1.5 py-0.5 rounded text-xs font-mono before:content-none after:content-none">order_expire_minutes</code>（平台端设置）</li>
         </ul>
 
         <h3 id="2-2-common-errors" className="text-base md:text-lg font-semibold text-foreground mt-6 md:mt-8 mb-3 md:mb-4">2.2 常见错误</h3>

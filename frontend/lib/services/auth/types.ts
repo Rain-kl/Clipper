@@ -56,8 +56,6 @@ export interface User {
   pending_balance: string;
   /** 支付分数 */
   pay_score: number;
-  /** 是否有支付密钥 */
-  is_pay_key: boolean;
   /** 是否为管理员 */
   is_admin: boolean;
   /** 当日剩余配额 */

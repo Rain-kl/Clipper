@@ -20,7 +20,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math/rand"
 	"strconv"
 	"time"
 
@@ -32,21 +31,10 @@ import (
 
 // 配置键常量 - 所有系统配置的 key 定义
 const (
-	ConfigKeyMerchantOrderExpireMinutes = "merchant_order_expire_minutes" // 商家订单过期时间（分钟）
-	ConfigKeyWebsiteOrderExpireMinutes  = "website_order_expire_minutes"  // 网站订单过期时间（分钟）
-	ConfigKeyDisputeTimeWindowHours     = "dispute_time_window_hours"     // 商家争议时间窗口（小时）
-	ConfigKeyNewUserInitialCredit       = "new_user_initial_credit"       // 新用户注册初始积分
-	ConfigKeyNewUserProtectionDays      = "new_user_protection_days"      // 新用户保护期天数（期内不扣分）
-	ConfigKeyLeaderboardCacheTTLSeconds = "leaderboard_cache_ttl_seconds" // 排行榜缓存过期时间（秒）
-	ConfigKeyRedEnvelopeEnabled         = "red_envelope_enabled"          // 红包功能是否启用（1启用，0禁用）
-	ConfigKeyRedEnvelopeMaxAmount       = "red_envelope_max_amount"       // 单个红包的最大积分上限
-	ConfigKeyRedEnvelopeDailyLimit      = "red_envelope_daily_limit"      // 每日发红包的个数限制
-	ConfigKeyRedEnvelopeFeeRate         = "red_envelope_fee_rate"         // 红包手续费率（0-1之间的小数，0表示不收费）
-	ConfigKeyRedEnvelopeMaxRecipients   = "red_envelope_max_recipients"   // 每个红包的最大可领取人数上限
-	ConfigKeyUserBalanceStatsCacheTTL   = "user_balance_stats_cache_ttl"  // 用户余额统计缓存过期时间（秒)
-	ConfigKeyUploadAllowedExtensions    = "upload_allowed_extensions"     // 允许上传的文件扩展名，逗号分隔
-	ConfigKeySettlementDelayDaysMin     = "settlement_delay_days_min"     // 商户收款延迟到账最小天数（0表示即时到账）
-	ConfigKeySettlementDelayDaysMax     = "settlement_delay_days_max"     // 商户收款延迟到账最大天数（实际天数在min~max随机）
+	ConfigKeyUploadAllowedExtensions = "upload_allowed_extensions" // 允许上传的文件扩展名，逗号分隔
+	ConfigKeySiteName                = "site_name"                 // 站点名称
+	ConfigKeyRegistrationEnabled     = "registration_enabled"      // 是否允许注册
+	ConfigKeyMaxAPIKeysPerUser       = "max_api_keys_per_user"     // 每个用户最大 API Key 数量
 )
 
 const (
@@ -57,6 +45,7 @@ const (
 type SystemConfig struct {
 	Key         string    `json:"key" gorm:"primaryKey;size:64;not null"`
 	Value       string    `json:"value" gorm:"size:255;not null"`
+	Type        string    `json:"type" gorm:"size:32;not null;default:'system'"`
 	Description string    `json:"description" gorm:"size:255"`
 	UpdatedAt   time.Time `json:"updated_at" gorm:"autoUpdateTime"`
 	CreatedAt   time.Time `json:"created_at" gorm:"autoCreateTime"`
@@ -127,31 +116,4 @@ func GetBoolByKey(ctx context.Context, key string) (bool, error) {
 	}
 
 	return value, nil
-}
-
-const defaultHoldDays = 7
-
-func GetRandomHoldDays(ctx context.Context) int {
-	// get config
-	holdDays := defaultHoldDays
-	holdDaysMin, errMin := GetIntByKey(ctx, ConfigKeySettlementDelayDaysMin)
-	if errMin != nil || holdDaysMin <= 0 {
-		holdDaysMin = defaultHoldDays
-	}
-	holdDaysMax, errMax := GetIntByKey(ctx, ConfigKeySettlementDelayDaysMax)
-	if errMax != nil || holdDaysMax <= 0 {
-		holdDaysMax = defaultHoldDays
-	}
-	// check config
-	if holdDaysMin == holdDaysMax {
-		return holdDaysMin
-	}
-	if holdDaysMin > holdDaysMax {
-		return holdDays
-	}
-	return holdDaysMin + rand.Intn(holdDaysMax-holdDaysMin+1)
-}
-
-func GetRandomSettleAt(ctx context.Context) time.Time {
-	return time.Now().AddDate(0, 0, GetRandomHoldDays(ctx))
 }

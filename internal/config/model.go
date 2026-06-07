@@ -147,33 +147,20 @@ type logConfig struct {
 
 // schedulerConfig 定时任务配置
 type schedulerConfig struct {
-	UpdateUserGamificationScoresTaskCron     string `mapstructure:"update_user_gamification_scores_task_cron"`
-	DisputeAutoRefundDispatchIntervalSeconds int    `mapstructure:"dispute_auto_refund_dispatch_interval_seconds"`
-	AutoRefundExpiredDisputesTaskCron        string `mapstructure:"auto_refund_expired_disputes_task_cron"`
-	SyncOrdersToClickHouseTaskCron           string `mapstructure:"sync_orders_to_clickhouse_task_cron"`
-	RefundExpiredRedEnvelopesTaskCron        string `mapstructure:"refund_expired_red_envelopes_task_cron"`
-	CleanupUnusedUploadsTaskCron             string `mapstructure:"cleanup_unused_uploads_task_cron"`
-	SettlePendingPaymentsTaskCron            string `mapstructure:"settle_pending_payments_task_cron"`
+	CleanupUnusedUploadsTaskCron string `mapstructure:"cleanup_unused_uploads_task_cron"`
 }
 
 // workerConfig 工作配置
 type workerConfig struct {
-	Concurrency                int             `mapstructure:"concurrency"`
-	StrictPriority             bool            `mapstructure:"strict_priority"`
-	Queues                     []QueueConfig   `mapstructure:"queues"`
-	GamificationScoreRateLimit RateLimitConfig `mapstructure:"gamification_score_rate_limit"`
+	Concurrency    int           `mapstructure:"concurrency"`
+	StrictPriority bool          `mapstructure:"strict_priority"`
+	Queues         []QueueConfig `mapstructure:"queues"`
 }
 
 // QueueConfig 队列配置
 type QueueConfig struct {
 	Name     string `mapstructure:"name"`
 	Priority int    `mapstructure:"priority"`
-}
-
-// RateLimitConfig 速率限制配置（N次/M秒）
-type RateLimitConfig struct {
-	Rate   int `mapstructure:"rate"`   // 允许的请求次数
-	Period int `mapstructure:"period"` // 时间周期（秒）
 }
 
 // linuxDoConfig

@@ -22,88 +22,57 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/linux-do/credit/internal/model"
 	"github.com/linux-do/credit/internal/util"
-	"github.com/shopspring/decimal"
 )
 
 // PublicConfigResponse 公共配置响应
 type PublicConfigResponse struct {
-	DisputeTimeWindowHours   int             `json:"dispute_time_window_hours"`   // 争议时间窗口（小时）
-	RedEnvelopeEnabled       bool            `json:"red_envelope_enabled"`        // 红包功能是否启用
-	RedEnvelopeMaxAmount     decimal.Decimal `json:"red_envelope_max_amount"`     // 单个红包的最大积分上限
-	RedEnvelopeDailyLimit    int             `json:"red_envelope_daily_limit"`    // 每日发红包的个数限制
-	RedEnvelopeFeeRate       decimal.Decimal `json:"red_envelope_fee_rate"`       // 红包手续费率
-	RedEnvelopeMaxRecipients int             `json:"red_envelope_max_recipients"` // 每个红包的最大可领取人数上限
-	SettlementDelayDaysMin   int             `json:"settlement_delay_days_min"`   // 商户收款延迟到账最小天数
-	SettlementDelayDaysMax   int             `json:"settlement_delay_days_max"`   // 商户收款延迟到账最大天数
+	UploadAllowedExtensions string `json:"upload_allowed_extensions"` // 允许上传的图片扩展名
+	SiteName                string `json:"site_name"`                 // 站点名称
+	RegistrationEnabled     bool   `json:"registration_enabled"`      // 是否允许注册
+	MaxAPIKeysPerUser       int    `json:"max_api_keys_per_user"`     // 每个用户最大 API Key 数量
 }
 
 // GetPublicConfig 获取公共配置
+// @Summary 获取公共配置
+// @Description 返回对前端公开的系统配置信息，如允许上传的文件类型、站点名称、是否开放注册等
 // @Tags config
 // @Accept json
 // @Produce json
 // @Success 200 {object} util.ResponseAny
 // @Router /api/v1/config/public [get]
 func GetPublicConfig(c *gin.Context) {
-	// 获取争议时间窗口配置
-	disputeTimeHours, err := model.GetIntByKey(c.Request.Context(), model.ConfigKeyDisputeTimeWindowHours)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, util.Err(err.Error()))
-		return
+	ctx := c.Request.Context()
+	var sc model.SystemConfig
+
+	// 1. upload_allowed_extensions
+	var uploadExtensions string
+	if err := sc.GetByKey(ctx, model.ConfigKeyUploadAllowedExtensions); err == nil {
+		uploadExtensions = sc.Value
 	}
 
-	// 获取红包功能启用状态
-	redEnvelopeEnabled, err := model.GetBoolByKey(c.Request.Context(), model.ConfigKeyRedEnvelopeEnabled)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, util.Err(err.Error()))
-		return
+	// 2. site_name
+	var siteName string
+	if err := sc.GetByKey(ctx, model.ConfigKeySiteName); err == nil {
+		siteName = sc.Value
 	}
 
-	// 获取红包配置
-	redEnvelopeMaxAmount, err := model.GetDecimalByKey(c.Request.Context(), model.ConfigKeyRedEnvelopeMaxAmount, 2)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, util.Err(err.Error()))
-		return
+	// 3. registration_enabled
+	var registrationEnabled bool
+	if val, err := model.GetBoolByKey(ctx, model.ConfigKeyRegistrationEnabled); err == nil {
+		registrationEnabled = val
 	}
 
-	redEnvelopeDailyLimit, err := model.GetIntByKey(c.Request.Context(), model.ConfigKeyRedEnvelopeDailyLimit)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, util.Err(err.Error()))
-		return
-	}
-
-	redEnvelopeFeeRate, err := model.GetDecimalByKey(c.Request.Context(), model.ConfigKeyRedEnvelopeFeeRate, 2)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, util.Err(err.Error()))
-		return
-	}
-
-	redEnvelopeMaxRecipients, err := model.GetIntByKey(c.Request.Context(), model.ConfigKeyRedEnvelopeMaxRecipients)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, util.Err(err.Error()))
-		return
-	}
-
-	settlementDelayDaysMin, err := model.GetIntByKey(c.Request.Context(), model.ConfigKeySettlementDelayDaysMin)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, util.Err(err.Error()))
-		return
-	}
-
-	settlementDelayDaysMax, err := model.GetIntByKey(c.Request.Context(), model.ConfigKeySettlementDelayDaysMax)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, util.Err(err.Error()))
-		return
+	// 4. max_api_keys_per_user
+	var maxAPIKeys int
+	if val, err := model.GetIntByKey(ctx, model.ConfigKeyMaxAPIKeysPerUser); err == nil {
+		maxAPIKeys = val
 	}
 
 	response := PublicConfigResponse{
-		DisputeTimeWindowHours:   disputeTimeHours,
-		RedEnvelopeEnabled:       redEnvelopeEnabled,
-		RedEnvelopeMaxAmount:     redEnvelopeMaxAmount,
-		RedEnvelopeDailyLimit:    redEnvelopeDailyLimit,
-		RedEnvelopeFeeRate:       redEnvelopeFeeRate,
-		RedEnvelopeMaxRecipients: redEnvelopeMaxRecipients,
-		SettlementDelayDaysMin:   settlementDelayDaysMin,
-		SettlementDelayDaysMax:   settlementDelayDaysMax,
+		UploadAllowedExtensions: uploadExtensions,
+		SiteName:                siteName,
+		RegistrationEnabled:     registrationEnabled,
+		MaxAPIKeysPerUser:       maxAPIKeys,
 	}
 
 	c.JSON(http.StatusOK, util.OK(response))

@@ -49,9 +49,9 @@ export const HeroSection = React.memo(function HeroSection({ className }: HeroSe
               transition={{ duration: 0.6, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
               className="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.1] mb-6 text-foreground"
             >
-              LINUX DO Credit <br />
+              Modern Platform <br />
               <span className="bg-clip-text text-primary">
-                让积分流通更简单
+                为二次开发而生
               </span>
             </motion.h1>
 
@@ -62,9 +62,9 @@ export const HeroSection = React.memo(function HeroSection({ className }: HeroSe
               transition={{ duration: 0.6, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
               className="text-sm md:text-base text-muted-foreground max-w-xl leading-relaxed mb-10"
             >
-              专为 LINUX DO 社区打造的积分流通基础设施
+              通用的、现代化的后台管理系统脚手架
               <br className="hidden md:block" />
-              快速集成、全球覆盖、安全可靠，助您轻松流通积分。
+              开箱即用、完整基建、极易扩展，助您快速构建企业级应用。
             </motion.p>
 
             <motion.div
@@ -104,15 +104,15 @@ export const HeroSection = React.memo(function HeroSection({ className }: HeroSe
             >
               <div className="flex items-center gap-2">
                 <Zap className="w-5 h-5 text-yellow-500" />
-                <span>极速到账</span>
+                <span>开箱即用</span>
               </div>
               <div className="flex items-center gap-2">
                 <Globe className="w-5 h-5 text-blue-500" />
-                <span>全球覆盖</span>
+                <span>高度可扩展</span>
               </div>
               <div className="flex items-center gap-2">
                 <Shield className="w-5 h-5 text-green-500" />
-                <span>安全加密</span>
+                <span>工业级基建</span>
               </div>
             </motion.div>
           </div>
@@ -131,25 +131,22 @@ export const HeroSection = React.memo(function HeroSection({ className }: HeroSe
               <div className="relative z-10 w-full h-64 bg-background/40 backdrop-blur-2xl border border-white/10 rounded-3xl shadow-2xl p-6 flex flex-col justify-between transform transition-transform hover:scale-[1.02] duration-500">
                 <div className="flex gap-4 items-center">
                   <CreditCard className="size-6" />
-                  <span>LINUX DO Credit</span>
+                  <span>Modern Platform</span>
                 </div>
 
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <div className="h-2 w-24 bg-white/10 rounded-full" />
-                    <div className="h-2 w-16 bg-white/10 rounded-full" />
+                    <div className="text-xs text-muted-foreground mb-2">Stack</div>
+                    <div className="flex flex-wrap gap-2">
+                      <span className="inline-block px-2 py-1 bg-blue-500/10 text-blue-500 rounded text-xs font-medium">Go • Gin</span>
+                      <span className="inline-block px-2 py-1 bg-purple-500/10 text-purple-500 rounded text-xs font-medium">React • Next.js</span>
+                    </div>
                   </div>
                   <div className="flex justify-between items-end">
                     <div>
-                      <p className="text-sm text-muted-foreground mb-1">Total Balance</p>
-                      <div className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-1">
-                        <span>LDC</span>
-                        <CountingNumber
-                          number={balance}
-                          decimalPlaces={2}
-                          thousandSeparator=","
-                          initiallyStable={true}
-                        />
+                      <p className="text-sm text-muted-foreground mb-1">Ready for</p>
+                      <div className="text-lg font-bold tracking-tight text-foreground flex items-center gap-1">
+                        <span>Develop</span>
                       </div>
                     </div>
                     <div className="h-8 w-8 rounded-full bg-primary" />
@@ -163,22 +160,13 @@ export const HeroSection = React.memo(function HeroSection({ className }: HeroSe
                 className="absolute -top-6 -right-6 z-20 bg-background/60 backdrop-blur-xl border border-white/20 p-4 rounded-2xl shadow-xl"
               >
                 <div className="flex items-center gap-3">
-                  <div className={cn(
-                    "w-10 h-10 rounded-full flex items-center justify-center transition-colors duration-500",
-                    income < 0 ? "bg-red-500/20 text-red-500" : "bg-green-500/20 text-green-500"
-                  )}>
-                    <Wallet className="size-5" />
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center bg-emerald-500/20 text-emerald-500">
+                    <Zap className="size-5" />
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground">Income</p>
-                    <div className="text-sm font-bold flex items-center gap-1">
-                      <span>{income < 0 ? "-" : "+"} LDC</span>
-                      <CountingNumber
-                        number={Math.abs(income)}
-                        decimalPlaces={2}
-                        thousandSeparator=","
-                        initiallyStable={true}
-                      />
+                    <p className="text-xs text-muted-foreground">Features</p>
+                    <div className="text-sm font-bold">
+                      <span>Modern</span>
                     </div>
                   </div>
                 </div>

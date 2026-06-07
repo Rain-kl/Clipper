@@ -9,8 +9,6 @@ export default function TermsOfServicePage() {
       sections={termsSections}
       description={
         <span>
-          欢迎使用 LINUX DO Credit。本协议详述了您在使用本平台服务时的权利与义务。
-          <br className="hidden md:block" />
           为了保障您的合法权益，请您仔细阅读以下条款。
         </span>
       }

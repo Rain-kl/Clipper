@@ -31,28 +31,16 @@ import (
 	admin_task "github.com/linux-do/credit/internal/apps/admin/task"
 	admin_user "github.com/linux-do/credit/internal/apps/admin/user"
 	publicconfig "github.com/linux-do/credit/internal/apps/config"
-	"github.com/linux-do/credit/internal/apps/dispute"
 	"github.com/linux-do/credit/internal/apps/health"
-	"github.com/linux-do/credit/internal/apps/merchant/api_key"
-	"github.com/linux-do/credit/internal/apps/merchant/link"
-	"github.com/linux-do/credit/internal/apps/redenvelope"
 	"github.com/linux-do/credit/internal/apps/upload"
-	"github.com/linux-do/credit/internal/listener"
 	"github.com/linux-do/credit/internal/util"
-
-	"github.com/linux-do/credit/internal/apps/payment"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/redis"
 	"github.com/gin-gonic/gin"
 	_ "github.com/linux-do/credit/docs"
 	"github.com/linux-do/credit/internal/apps/admin/system_config"
-	"github.com/linux-do/credit/internal/apps/admin/user_pay_config"
-	"github.com/linux-do/credit/internal/apps/dashboard"
-	"github.com/linux-do/credit/internal/apps/leaderboard"
 	"github.com/linux-do/credit/internal/apps/oauth"
-	"github.com/linux-do/credit/internal/apps/order"
-	"github.com/linux-do/credit/internal/apps/user"
 	"github.com/linux-do/credit/internal/config"
 	"github.com/linux-do/credit/internal/otel_trace"
 	swaggerFiles "github.com/swaggo/files"
@@ -104,15 +92,6 @@ func Serve() {
 	// 补充中间件
 	r.Use(otelgin.Middleware(config.Config.App.AppName), loggerMiddleware())
 
-	// 支付接口
-	r.Match([]string{"GET", "POST"}, "/pay/submit.php", payment.RequireSignatureAuth(), payment.CreateMerchantOrder)
-	// 查询订单
-	r.GET("/api.php", payment.QueryMerchantOrder)
-	// 退款接口
-	r.POST("/api.php", payment.RefundMerchantOrder)
-	// 商户分发接口
-	r.POST("/pay/distribute", payment.RequireMerchantAuth(), payment.MerchantDistribute)
-
 	// Serve files by ID
 	r.GET("/f/:id", upload.ServeFileByID)
 
@@ -139,103 +118,19 @@ func Serve() {
 			userRouter := apiV1Router.Group("/user")
 			userRouter.Use(oauth.LoginRequired())
 			{
-				userRouter.PUT("/pay-key", user.UpdatePayKey)
-			}
-
-			// Dashboard
-			dashboardRouter := apiV1Router.Group("/dashboard")
-			dashboardRouter.Use(oauth.LoginRequired())
-			{
-				dashboardRouter.GET("/stats/daily", dashboard.GetDailyStats)
-				dashboardRouter.GET("/stats/top-customers", dashboard.GetTopCustomers)
-			}
-
-			apiV1Router.GET("/dashboard/stats/user-balance", dashboard.GetUserBalanceStats)
-
-			// Leaderboard
-			leaderboardRouter := apiV1Router.Group("/leaderboard")
-			leaderboardRouter.Use(oauth.LoginRequired())
-			{
-				leaderboardRouter.GET("", leaderboard.List)
-				leaderboardRouter.GET("/me", leaderboard.GetMyRank)
-				leaderboardRouter.GET("/users/:id", leaderboard.GetUserRankByID)
-			}
-
-			// Order
-			orderRouter := apiV1Router.Group("/order")
-			orderRouter.Use(oauth.LoginRequired())
-			{
-				orderRouter.POST("/transactions", order.ListTransactions)
-				orderRouter.POST("/dispute", dispute.CreateDispute)
-				orderRouter.POST("/disputes/merchant", dispute.ListMerchantDisputes)
-				orderRouter.POST("/disputes", dispute.ListDisputes)
-				orderRouter.POST("/refund-review", dispute.RefundReview)
-				orderRouter.POST("/dispute/close", dispute.CloseDispute)
-			}
-
-			// Payment
-			paymentRouter := apiV1Router.Group("/payment")
-			paymentRouter.Use(oauth.LoginRequired())
-			{
-				paymentRouter.POST("/transfer", payment.Transfer)
-			}
-
-			// Red Envelope
-			redEnvelopeRouter := apiV1Router.Group("/redenvelope")
-			{
-				redEnvelopeRouter.GET("/covers", oauth.LoginRequired(), upload.ListRedEnvelopeCovers)
-				redEnvelopeRouter.GET("/:id", oauth.LoginRequired(), redenvelope.CheckRedEnvelopeEnabled(), redenvelope.GetDetail)
-				redEnvelopeRouter.POST("/create", oauth.LoginRequired(), redenvelope.CheckRedEnvelopeEnabled(), redenvelope.Create)
-				redEnvelopeRouter.POST("/claim", oauth.LoginRequired(), redenvelope.CheckRedEnvelopeEnabled(), redenvelope.Claim)
-				redEnvelopeRouter.POST("/list", oauth.LoginRequired(), redenvelope.CheckRedEnvelopeEnabled(), redenvelope.List)
 			}
 
 			// Upload
 			uploadRouter := apiV1Router.Group("/upload")
 			uploadRouter.Use(oauth.LoginRequired())
 			{
-				uploadRouter.POST("/redenvelope/cover", upload.UploadRedEnvelopeCover)
+				// Keep generic uploads if needed
 			}
 
 			// Config (public)
 			configRouter := apiV1Router.Group("/config")
 			{
 				configRouter.GET("/public", publicconfig.GetPublicConfig)
-				configRouter.GET("/user-pay", user_pay_config.ListUserPayConfigs)
-			}
-
-			// MerchantAPIKey
-			merchantRouter := apiV1Router.Group("/merchant")
-			{
-				merchantRouter.POST("/api-keys", oauth.LoginRequired(), api_key.CreateAPIKey)
-				merchantRouter.GET("/api-keys", oauth.LoginRequired(), api_key.ListAPIKeys)
-
-				apiKeyRouter := merchantRouter.Group("/api-keys/:id")
-				apiKeyRouter.Use(oauth.LoginRequired(), api_key.RequireAPIKey())
-				{
-					apiKeyRouter.GET("", api_key.GetAPIKey)
-					apiKeyRouter.PUT("", api_key.UpdateAPIKey)
-					apiKeyRouter.DELETE("", api_key.DeleteAPIKey)
-
-					// Payment Links
-					linkRouter := apiKeyRouter.Group("/payment-links")
-					{
-						linkRouter.GET("", link.ListPaymentLinks)
-						linkRouter.POST("", link.CreatePaymentLink)
-						linkRouter.PUT("/:linkId", link.UpdatePaymentLink)
-						linkRouter.DELETE("/:linkId", link.DeletePaymentLink)
-					}
-				}
-
-				merchantRouter.GET("/payment-links/:token", oauth.LoginRequired(), link.GetPaymentLinkByToken)
-				merchantRouter.POST("/payment-links/pay", oauth.LoginRequired(), link.PayByLink)
-
-				// MerchantAPIKey Payment
-				MerchantPaymentRouter := merchantRouter.Group("/payment")
-				{
-					MerchantPaymentRouter.GET("/order", oauth.LoginRequired(), payment.GetPaymentPageDetails)
-					MerchantPaymentRouter.POST("", oauth.LoginRequired(), payment.PayMerchantOrder)
-				}
 			}
 
 			// Admin
@@ -260,25 +155,8 @@ func Serve() {
 					systemConfigRouter.PUT("", system_config.UpdateSystemConfig)
 					systemConfigRouter.DELETE("", system_config.DeleteSystemConfig)
 				}
-
-				// User Credit Config
-				adminRouter.POST("/user-pay-configs", user_pay_config.CreateUserPayConfig)
-				adminRouter.GET("/user-pay-configs", user_pay_config.ListUserPayConfigs)
-
-				userPayConfigRouter := adminRouter.Group("/user-pay-configs/:id")
-				{
-					userPayConfigRouter.GET("", user_pay_config.GetUserPayConfig)
-					userPayConfigRouter.PUT("", user_pay_config.UpdateUserPayConfig)
-					userPayConfigRouter.DELETE("", user_pay_config.DeleteUserPayConfig)
-				}
 			}
 		}
-	}
-
-	expireListenerCtx, expireListenerCancel := context.WithCancel(context.Background())
-
-	if err := listener.StartExpireListener(expireListenerCtx); err != nil {
-		log.Fatalf("[API] 警告: 启动过期监听器失败: %v\n", err)
 	}
 
 	srv := &http.Server{
@@ -299,7 +177,6 @@ func Serve() {
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), time.Duration(config.Config.App.GracefulShutdownTimeout)*time.Second)
 	defer cancel()
-	defer expireListenerCancel()
 
 	otel_trace.Shutdown(shutdownCtx)
 

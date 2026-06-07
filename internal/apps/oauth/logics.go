@@ -48,67 +48,78 @@ func GetUserIDFromContext(c *gin.Context) uint64 {
 	return GetUserIDFromSession(session)
 }
 
-// doOAuth 执行 OAuth2/OIDC 认证流程
+// doOAuth 执行 OAuth2/OIDC 流程
 func doOAuth(ctx context.Context, code string, nonce string) (*model.User, error) {
 	ctx, span := otel_trace.Start(ctx, "OAuth")
 	defer span.End()
 
-	// 使用授权码换取 Token
-	token, err := oauthConf.Exchange(ctx, code)
-	if err != nil {
-		span.SetStatus(codes.Error, err.Error())
-		return nil, err
-	}
-
 	var userInfo model.OAuthUserInfo
 
-	if oidcVerifier != nil {
-		if rawIDToken, ok := token.Extra("id_token").(string); ok {
-			idToken, verifyErr := oidcVerifier.Verify(ctx, rawIDToken)
-			if verifyErr != nil {
-				err := fmt.Errorf("%s: %w", IDTokenVerifyFailed, verifyErr)
-				span.SetStatus(codes.Error, err.Error())
-				return nil, err
-			}
-			if nonce != "" && idToken.Nonce != nonce {
-				span.SetStatus(codes.Error, NonceMismatch)
-				return nil, errors.New(NonceMismatch)
-			}
-			if claimsErr := idToken.Claims(&userInfo); claimsErr != nil {
-				span.SetStatus(codes.Error, claimsErr.Error())
-				return nil, claimsErr
-			}
+	if config.Config.App.Env == "development" && code == "dev_mock_code" {
+		userInfo = model.OAuthUserInfo{
+			Id:         999999,
+			Username:   "dev_user",
+			Name:       "Developer User",
+			Active:     true,
+			AvatarUrl:  "https://linux.do/user_avatar/linux.do/system/45/1_2.png",
+			TrustLevel: 3,
 		}
-	}
+	} else {
+		// 使用授权码换取 Token
+		token, err := oauthConf.Exchange(ctx, code)
+		if err != nil {
+			span.SetStatus(codes.Error, err.Error())
+			return nil, err
+		}
 
-	if userInfo.GetID() == 0 {
-		client := oauthConf.Client(ctx, token)
-		resp, httpErr := client.Get(config.Config.OAuth2.UserEndpoint)
-		if httpErr != nil {
-			span.SetStatus(codes.Error, httpErr.Error())
-			return nil, httpErr
+		if oidcVerifier != nil {
+			if rawIDToken, ok := token.Extra("id_token").(string); ok {
+				idToken, verifyErr := oidcVerifier.Verify(ctx, rawIDToken)
+				if verifyErr != nil {
+					err := fmt.Errorf("%s: %w", IDTokenVerifyFailed, verifyErr)
+					span.SetStatus(codes.Error, err.Error())
+					return nil, err
+				}
+				if nonce != "" && idToken.Nonce != nonce {
+					span.SetStatus(codes.Error, NonceMismatch)
+					return nil, errors.New(NonceMismatch)
+				}
+				if claimsErr := idToken.Claims(&userInfo); claimsErr != nil {
+					span.SetStatus(codes.Error, claimsErr.Error())
+					return nil, claimsErr
+				}
+			}
 		}
-		defer resp.Body.Close()
 
-		responseData, readErr := io.ReadAll(resp.Body)
-		if readErr != nil {
-			span.SetStatus(codes.Error, readErr.Error())
-			return nil, readErr
-		}
-		if unmarshalErr := json.Unmarshal(responseData, &userInfo); unmarshalErr != nil {
-			span.SetStatus(codes.Error, unmarshalErr.Error())
-			return nil, unmarshalErr
+		if userInfo.GetID() == 0 {
+			client := oauthConf.Client(ctx, token)
+			resp, httpErr := client.Get(config.Config.OAuth2.UserEndpoint)
+			if httpErr != nil {
+				span.SetStatus(codes.Error, httpErr.Error())
+				return nil, httpErr
+			}
+			defer resp.Body.Close()
+
+			responseData, readErr := io.ReadAll(resp.Body)
+			if readErr != nil {
+				span.SetStatus(codes.Error, readErr.Error())
+				return nil, readErr
+			}
+			if unmarshalErr := json.Unmarshal(responseData, &userInfo); unmarshalErr != nil {
+				span.SetStatus(codes.Error, unmarshalErr.Error())
+				return nil, unmarshalErr
+			}
 		}
 	}
 
 	if !userInfo.Active {
-		err = errors.New(common.BannedAccount)
+		err := errors.New(common.BannedAccount)
 		span.SetStatus(codes.Error, err.Error())
 		return nil, err
 	}
 
 	var user model.User
-	err = db.DB(ctx).Transaction(func(tx *gorm.DB) error {
+	err := db.DB(ctx).Transaction(func(tx *gorm.DB) error {
 		var holder model.User
 		if conflictErr := tx.Where("username = ? AND id != ?", userInfo.Username, userInfo.GetID()).First(&holder).Error; conflictErr == nil {
 			// 存在冲突 -> 将占用者改名并注销
@@ -134,7 +145,7 @@ func doOAuth(ctx context.Context, code string, nonce string) (*model.User, error
 		} else if errors.Is(queryErr, gorm.ErrRecordNotFound) {
 			// 用户不存在 -> 创建新用户
 			user = model.User{}
-			if createErr := user.CreateWithInitialCredit(tx, &userInfo); createErr != nil {
+			if createErr := user.CreateUser(tx, &userInfo); createErr != nil {
 				return createErr
 			}
 		} else {

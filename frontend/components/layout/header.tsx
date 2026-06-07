@@ -31,15 +31,15 @@ const BellButton = memo(function BellButton() {
   }
 
   return (
-    <Button 
-      variant="ghost" 
-      size="icon" 
+    <Button
+      variant="ghost"
+      size="icon"
       className="size-9 text-muted-foreground hover:text-foreground"
       onClick={handleClick}
     >
-      <Bell 
-        className="size-[18px]" 
-        style={(isRinging || isClickAnimating) ? { animation: 'var(--animate-bell-ring)', transformOrigin: 'top center' } : undefined} 
+      <Bell
+        className="size-[18px]"
+        style={(isRinging || isClickAnimating) ? { animation: 'var(--animate-bell-ring)', transformOrigin: 'top center' } : undefined}
       />
       <span className="sr-only">通知</span>
     </Button>
@@ -50,7 +50,7 @@ const BellButton = memo(function BellButton() {
 /**
  * 站点头部组件
  * 用于显示站点头部
- * 
+ *
  * @example
  * ```tsx
  * <SiteHeader />
@@ -114,10 +114,6 @@ export function SiteHeader({ isFullWidth = false, onToggleFullWidth }: { isFullW
               <Settings className="size-[18px]" />
               <span className="sr-only">设置</span>
             </Button>
-            <Button className="mx-1 size-7 rounded-full bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => router.push('/merchant')}>
-              <Plus className="size-4" />
-              <span className="sr-only">新建</span>
-            </Button>
 
             <Button variant="ghost" size="icon" className="size-9 text-muted-foreground hover:text-foreground" onClick={() => onToggleFullWidth?.(!isFullWidth)}>
               {isFullWidth ? <Minimize2 className="size-[18px]" /> : <Maximize2 className="size-[18px]" />}
@@ -165,8 +161,8 @@ function AppBanner() {
         >
           <div className="flex w-full items-center justify-center px-4 pr-10 py-2 text-xs md:text-[13px] font-medium text-muted-foreground">
             <p className="flex flex-wrap items-center justify-center gap-x-2 text-center">
-              <span className="text-foreground">「LINUX DO Credit」实时积分收入脚本已发布</span>
-              <a href="https://linux.do/t/topic/1365853" target="_blank" className="underline underline-offset-4 hover:text-foreground">
+              <span className="text-foreground">最新通知</span>
+              <a href="https://example.com" target="_blank" className="underline underline-offset-4 hover:text-foreground">
                 查看详情
               </a>
             </p>

@@ -47,18 +47,15 @@ import {
   Home,
   CreditCard,
   Settings,
-  Wallet,
   FileText,
-  CircleDollarSign,
   LogOut,
-  Store,
   ChevronDown,
   UserRound,
   FileQuestionMark,
   ShieldCheck,
-  Globe,
   Layers,
-  Trophy,
+  Key,
+  Palette,
   ArrowUpRight,
 } from "lucide-react"
 
@@ -68,23 +65,16 @@ import { useUser } from "@/contexts/user-context"
 const data = {
   navMain: [
     { title: "首页", url: "/home", icon: Home },
-    { title: "集市", url: "/merchant", icon: Store },
-    { title: "积分", url: "/balance", icon: Wallet },
-    { title: "活动", url: "/trade", icon: CircleDollarSign },
-    { title: "排行榜", url: "/leaderboard", icon: Trophy },
   ],
   admin: [
     { title: "系统配置", url: "/admin/system", icon: ShieldCheck },
-    { title: "积分配置", url: "/admin/credit", icon: Settings },
     { title: "用户管理", url: "/admin/users", icon: UserRound },
     { title: "任务管理", url: "/admin/tasks", icon: Layers },
   ],
   document: [
-    { title: "接口文档", url: "/docs/api", icon: CreditCard },
-    { title: "使用文档", url: "/docs/how-to-use", icon: FileText },
-  ],
-  products: [
-    { title: "在线流转", url: "/merchant/online-paying", icon: Globe },
+    { title: "接口文档", url: "/docs/api", icon: CreditCard, external: true },
+    { title: "使用文档", url: "/docs/how-to-use", icon: FileText, external: true },
+    { title: "组件库", url: "/components", icon: Palette },
   ],
 }
 
@@ -325,13 +315,21 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton
                       tooltip={item.title}
+                      isActive={pathname === item.url}
                       asChild
                     >
-                      <Link href={item.url} target="_blank" rel="noopener noreferrer" onClick={handleCloseSidebar}>
-                        {item.icon && <item.icon />}
-                        <span className="flex-1">{item.title}</span>
-                        <ArrowUpRight className="size-3 text-muted-foreground" />
-                      </Link>
+                      {item.external ? (
+                        <Link href={item.url} target="_blank" rel="noopener noreferrer" onClick={handleCloseSidebar}>
+                          {item.icon && <item.icon />}
+                          <span className="flex-1">{item.title}</span>
+                          <ArrowUpRight className="size-3 text-muted-foreground" />
+                        </Link>
+                      ) : (
+                        <Link href={item.url} onClick={handleCloseSidebar}>
+                          {item.icon && <item.icon />}
+                          <span className="flex-1">{item.title}</span>
+                        </Link>
+                      )}
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 ))}
@@ -339,28 +337,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             </SidebarGroupContent>
           </SidebarGroup>
 
-          <SidebarGroup className="py-0 pt-4">
-            <SidebarGroupLabel className="text-xs font-normal text-muted-foreground">
-              服务
-            </SidebarGroupLabel>
-            <SidebarGroupContent className="py-1">
-              <SidebarMenu className="gap-1">
-                {data.products.map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton
-                      tooltip={item.title}
-                      asChild
-                    >
-                      <Link href={item.url} onClick={handleCloseSidebar}>
-                        {item.icon && <item.icon />}
-                        <span>{item.title}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
         </SidebarContent>
         <SidebarFooter className="mt-auto px-3 py-3 group-data-[collapsible=icon]:hidden">
           <div className="border-t border-border/60 pt-3 text-[11px] leading-5 text-muted-foreground">

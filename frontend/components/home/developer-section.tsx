@@ -15,11 +15,14 @@ export interface DeveloperSectionProps {
 export const DeveloperSection = React.memo(function DeveloperSection({ className }: DeveloperSectionProps) {
   const [copied, setCopied] = React.useState(false);
 
-  const codeContent = `curl https://credit.linux.do/epay/submit.php \\
-  -u sk_live_...: \\
-  -d amount=1000 \\
-  -d currency="cny" \\
-  -d description="Pro Plan"`;
+  const codeContent = `# 注册用户
+curl -X POST https://api.example.com/api/v1/auth/register \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "username": "developer",
+    "email": "dev@example.com",
+    "password": "secure_password"
+  }'`;
 
   const onCopy = async () => {
     try {
@@ -79,11 +82,10 @@ export const DeveloperSection = React.memo(function DeveloperSection({ className
               </div>
               <pre className="text-xs sm:text-sm font-mono text-neutral-300 leading-relaxed whitespace-pre-wrap break-all sm:whitespace-pre sm:break-normal overflow-x-auto">
                 <code className="block">
-                  <span className="text-purple-400">curl</span> <span className="text-green-400">https://credit.linux.do/epay/submit.php</span> \{'\n'}
-                  {'  '}-u <span className="text-yellow-400">sk_live_...:</span> \{'\n'}
-                  {'  '}-d <span className="text-blue-400">amount</span>=<span className="text-orange-400">1000</span> \{'\n'}
-                  {'  '}-d <span className="text-blue-400">currency</span>=<span className="text-green-400">&quot;cny&quot;</span> \{'\n'}
-                  {'  '}-d <span className="text-blue-400">description</span>=<span className="text-green-400">&quot;Pro Plan&quot;</span>
+                  <span className="text-green-400"># 快速开始</span>{'\n'}
+                  <span className="text-purple-400">curl</span> -X <span className="text-yellow-400">POST</span> <span className="text-green-400">https://api.example.com/api/v1/auth/register</span> \{'\n'}
+                  {'  '}-H <span className="text-blue-400">&quot;Content-Type: application/json&quot;</span> \{'\n'}
+                  {'  '}-d <span className="text-orange-400">&quot;username=dev&amp;password=***&quot;</span>
                 </code>
               </pre>
             </div>
@@ -100,19 +102,19 @@ export const DeveloperSection = React.memo(function DeveloperSection({ className
             transition={{ duration: 0.8 }}
           >
             <h2 className="text-3xl md:text-5xl font-bold tracking-tight text-foreground leading-[1.1] mb-6">
-              简单直接，<br />
-              开发者快速集成
+              开发者友好，<br />
+              极速集成上手
             </h2>
             <p className="text-muted-foreground text-lg leading-relaxed mb-8">
-              标准化的 RESTful API 接口，清晰的错误提示，完善的调试工具。无论您使用什么编程语言，只需几行代码，即可完成积分服务功能接入。
+              标准化的 RESTful API 接口，完整的 TypeScript 类型定义，详细的文档和 Swagger UI。无论使用什么编程语言，只需几行代码，即可快速集成。
             </p>
 
             <ul className="space-y-4 mb-8">
               {[
-                "RESTful API 接口，语义清晰",
-                "完善的 Webhook 回调通知",
-                "简单调试，开发测试零成本",
-                "完善的文档和示例代码"
+                "RESTful API，语义清晰，易于理解",
+                "OpenAPI / Swagger 接口文档",
+                "TypeScript 类型定义，开发友好",
+                "丰富的代码示例和集成指南"
               ].map((item, i) => (
                 <li key={i} className="flex items-center gap-3 text-sm text-foreground/80">
                   <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary">
@@ -128,12 +130,6 @@ export const DeveloperSection = React.memo(function DeveloperSection({ className
                 <Button variant="secondary" className="rounded-full text-xs hover:bg-muted-foreground/10">
                   <Book className="w-3 h-3" />
                   API 文档
-                </Button>
-              </Link>
-              <Link href="/merchant">
-                <Button variant="default" className="rounded-full text-xs hover:bg-primary/70">
-                  <Key className="w-3 h-3" />
-                  获取 API Key
                 </Button>
               </Link>
             </div>

@@ -15,91 +15,23 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/api.php": {
-            "get": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "payment"
-                ],
-                "parameters": [
-                    {
-                        "type": "string",
-                        "name": "act",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "name": "key",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "maxLength": 64,
-                        "minLength": 1,
-                        "type": "string",
-                        "name": "out_trade_no",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "name": "pid",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/payment.QueryMerchantOrderResponse"
-                        }
-                    }
-                }
-            },
-            "post": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "payment"
-                ],
-                "parameters": [
-                    {
-                        "description": "退款请求",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/payment.RefundOrderRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/payment.RefundMerchantOrderResponse"
-                        }
-                    }
-                }
-            }
-        },
         "/api/v1/admin/system-configs": {
             "get": {
+                "description": "返回所有系统配置列表，支持按配置类型（system/business）过滤，需要管理员权限",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "admin"
+                ],
+                "summary": "获取系统配置列表",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "配置类型（system/business）",
+                        "name": "type",
+                        "in": "query"
+                    }
                 ],
                 "responses": {
                     "200": {
@@ -111,6 +43,7 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "description": "创建一条新的系统配置项，配置键不可重复，同时将新配置同步到 Redis，需要管理员权限",
                 "consumes": [
                     "application/json"
                 ],
@@ -120,9 +53,10 @@ const docTemplate = `{
                 "tags": [
                     "admin"
                 ],
+                "summary": "创建系统配置",
                 "parameters": [
                     {
-                        "description": "request body",
+                        "description": "创建请求参数",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -143,12 +77,14 @@ const docTemplate = `{
         },
         "/api/v1/admin/system-configs/{key}": {
             "get": {
+                "description": "根据配置键获取对应的系统配置详情，需要管理员权限",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "admin"
                 ],
+                "summary": "获取单个系统配置",
                 "parameters": [
                     {
                         "type": "string",
@@ -168,6 +104,7 @@ const docTemplate = `{
                 }
             },
             "put": {
+                "description": "根据配置键更新对应的配置内容，同时将更新同步到 Redis，需要管理员权限",
                 "consumes": [
                     "application/json"
                 ],
@@ -177,6 +114,7 @@ const docTemplate = `{
                 "tags": [
                     "admin"
                 ],
+                "summary": "更新系统配置",
                 "parameters": [
                     {
                         "type": "string",
@@ -186,7 +124,7 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "request body",
+                        "description": "更新请求参数",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -205,12 +143,14 @@ const docTemplate = `{
                 }
             },
             "delete": {
+                "description": "根据配置键删除对应配置，同时从 Redis 中移除对应缓存，需要管理员权限",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "admin"
                 ],
+                "summary": "删除系统配置",
                 "parameters": [
                     {
                         "type": "string",
@@ -232,6 +172,7 @@ const docTemplate = `{
         },
         "/api/v1/admin/tasks/dispatch": {
             "post": {
+                "description": "手动触发指定类型的异步任务，支持指定时间范围和用户，需要管理员权限",
                 "consumes": [
                     "application/json"
                 ],
@@ -241,9 +182,10 @@ const docTemplate = `{
                 "tags": [
                     "admin"
                 ],
+                "summary": "下发异步任务",
                 "parameters": [
                     {
-                        "description": "request body",
+                        "description": "任务请求参数",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -264,149 +206,14 @@ const docTemplate = `{
         },
         "/api/v1/admin/tasks/types": {
             "get": {
+                "description": "返回系统支持的所有可调度任务类型列表，需要管理员权限",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "admin"
                 ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/util.ResponseAny"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/admin/user-pay-configs": {
-            "get": {
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "admin"
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/util.ResponseAny"
-                        }
-                    }
-                }
-            },
-            "post": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "admin"
-                ],
-                "parameters": [
-                    {
-                        "description": "request body",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/user_pay_config.CreateUserPayConfigRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/util.ResponseAny"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/admin/user-pay-configs/{id}": {
-            "get": {
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "admin"
-                ],
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "配置ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/util.ResponseAny"
-                        }
-                    }
-                }
-            },
-            "put": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "admin"
-                ],
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "配置ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "request body",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/user_pay_config.UpdateUserPayConfigRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/util.ResponseAny"
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "admin"
-                ],
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "配置ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
+                "summary": "获取支持的任务类型",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -419,12 +226,14 @@ const docTemplate = `{
         },
         "/api/v1/admin/users": {
             "get": {
+                "description": "分页返回用户列表，支持按用户 ID 和用户名筛选，需要管理员权限",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "admin"
                 ],
+                "summary": "获取用户列表",
                 "parameters": [
                     {
                         "minimum": 1,
@@ -462,12 +271,17 @@ const docTemplate = `{
         },
         "/api/v1/admin/users/{id}/status": {
             "put": {
+                "description": "启用或禁用指定用户，管理员账号无法被禁用，需要管理员权限",
+                "consumes": [
+                    "application/json"
+                ],
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "admin"
                 ],
+                "summary": "更新用户状态",
                 "parameters": [
                     {
                         "type": "integer",
@@ -477,7 +291,7 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "状态",
+                        "description": "状态参数",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -498,6 +312,7 @@ const docTemplate = `{
         },
         "/api/v1/config/public": {
             "get": {
+                "description": "返回对前端公开的系统配置信息，如允许上传的文件类型、站点名称、是否开放注册等",
                 "consumes": [
                     "application/json"
                 ],
@@ -507,115 +322,12 @@ const docTemplate = `{
                 "tags": [
                     "config"
                 ],
+                "summary": "获取公共配置",
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/util.ResponseAny"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/dashboard/stats/daily": {
-            "get": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "dashboard"
-                ],
-                "summary": "获取每日收支统计",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "查询天数，最大7天",
-                        "name": "days",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/util.ResponseAny"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/dashboard/stats/top-customers": {
-            "get": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "dashboard"
-                ],
-                "summary": "获取Top客户",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "查询天数，最大7天",
-                        "name": "days",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "description": "返回数量，最大10",
-                        "name": "limit",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/util.ResponseAny"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/dashboard/stats/user-balance": {
-            "get": {
-                "description": "统计所有用户的AvailableBalance字段",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "dashboard"
-                ],
-                "summary": "获取用户余额统计",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/util.ResponseAny"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/dashboard.UserBalanceStatsResponse"
-                                        }
-                                    }
-                                }
-                            ]
                         }
                     }
                 }
@@ -623,512 +335,14 @@ const docTemplate = `{
         },
         "/api/v1/health": {
             "get": {
+                "description": "检查服务是否正常运行",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "health"
                 ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/util.ResponseAny"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/leaderboard": {
-            "get": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "leaderboard"
-                ],
-                "summary": "获取排行榜列表",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "页码",
-                        "name": "page",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "description": "每页数量",
-                        "name": "page_size",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/util.ResponseAny"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/leaderboard/me": {
-            "get": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "leaderboard"
-                ],
-                "summary": "获取当前用户排名",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/util.ResponseAny"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/leaderboard/users/{id}": {
-            "get": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "leaderboard"
-                ],
-                "summary": "获取指定用户排名",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "用户ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/util.ResponseAny"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/merchant/api-keys": {
-            "get": {
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "merchant"
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/util.ResponseAny"
-                        }
-                    }
-                }
-            },
-            "post": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "merchant"
-                ],
-                "parameters": [
-                    {
-                        "description": "request body",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/api_key.CreateAPIKeyRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/util.ResponseAny"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/merchant/api-keys/{id}": {
-            "get": {
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "merchant"
-                ],
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "API Key ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/util.ResponseAny"
-                        }
-                    }
-                }
-            },
-            "put": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "merchant"
-                ],
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "API Key ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "request body",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/api_key.UpdateAPIKeyRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/util.ResponseAny"
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "merchant"
-                ],
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "API Key ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/util.ResponseAny"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/merchant/api-keys/{id}/payment-links": {
-            "get": {
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "merchant"
-                ],
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "API Key ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/util.ResponseAny"
-                        }
-                    }
-                }
-            },
-            "post": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "merchant"
-                ],
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "API Key ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "创建支付链接请求",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/link.PaymentLinkRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/util.ResponseAny"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/merchant/api-keys/{id}/payment-links/{linkId}": {
-            "put": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "merchant"
-                ],
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "API Key ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Payment Link ID",
-                        "name": "linkId",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "更新支付链接请求",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/link.PaymentLinkRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/util.ResponseAny"
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "merchant"
-                ],
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "API Key ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Payment Link ID",
-                        "name": "linkId",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/util.ResponseAny"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/merchant/payment": {
-            "post": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "payment"
-                ],
-                "parameters": [
-                    {
-                        "description": "支付订单请求",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/payment.PayOrderRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/util.ResponseAny"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/merchant/payment-links/pay": {
-            "post": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "merchant"
-                ],
-                "parameters": [
-                    {
-                        "description": "支付请求",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/link.PayByLinkRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/util.ResponseAny"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/merchant/payment-links/{token}": {
-            "get": {
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "merchant"
-                ],
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "支付链接 Token",
-                        "name": "token",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/util.ResponseAny"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/merchant/payment/order": {
-            "get": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "payment"
-                ],
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "订单号",
-                        "name": "order_no",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
+                "summary": "健康检查",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -1141,15 +355,20 @@ const docTemplate = `{
         },
         "/api/v1/oauth/callback": {
             "post": {
+                "description": "接收前端传回的 state 和 code，完成 OAuth/OIDC 认证并建立用户会话",
+                "consumes": [
+                    "application/json"
+                ],
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "oauth"
                 ],
+                "summary": "OAuth 回调",
                 "parameters": [
                     {
-                        "description": "request body",
+                        "description": "回调请求参数",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -1170,12 +389,14 @@ const docTemplate = `{
         },
         "/api/v1/oauth/login": {
             "get": {
+                "description": "生成 OAuth 登录 URL，前端跳转至该地址完成授权",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "oauth"
                 ],
+                "summary": "获取登录地址",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -1188,12 +409,14 @@ const docTemplate = `{
         },
         "/api/v1/oauth/logout": {
             "get": {
+                "description": "清除当前用户的登录会话，完成退出",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "oauth"
                 ],
+                "summary": "退出登录",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -1206,452 +429,14 @@ const docTemplate = `{
         },
         "/api/v1/oauth/user-info": {
             "get": {
+                "description": "返回当前登录用户的基本信息及余额数据，需要登录",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "oauth"
                 ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/util.ResponseAny"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/order/dispute": {
-            "post": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "order"
-                ],
-                "parameters": [
-                    {
-                        "description": "request body",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/dispute.CreateDisputeRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/util.ResponseAny"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/order/dispute/close": {
-            "post": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "order"
-                ],
-                "parameters": [
-                    {
-                        "description": "request body",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/dispute.CloseDisputeRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/util.ResponseAny"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/order/disputes": {
-            "post": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "order"
-                ],
-                "parameters": [
-                    {
-                        "description": "request body",
-                        "name": "request",
-                        "in": "body",
-                        "schema": {
-                            "$ref": "#/definitions/dispute.ListDisputesRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/util.ResponseAny"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/order/disputes/merchant": {
-            "post": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "order"
-                ],
-                "parameters": [
-                    {
-                        "description": "request body",
-                        "name": "request",
-                        "in": "body",
-                        "schema": {
-                            "$ref": "#/definitions/dispute.ListDisputesRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/util.ResponseAny"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/order/refund-review": {
-            "post": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "order"
-                ],
-                "parameters": [
-                    {
-                        "description": "request body",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/dispute.RefundReviewRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/util.ResponseAny"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/order/transactions": {
-            "post": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "order"
-                ],
-                "parameters": [
-                    {
-                        "description": "request body",
-                        "name": "request",
-                        "in": "body",
-                        "schema": {
-                            "$ref": "#/definitions/order.TransactionListRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/util.ResponseAny"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/payment/transfer": {
-            "post": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "payment"
-                ],
-                "parameters": [
-                    {
-                        "description": "转账请求",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/payment.TransferRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/util.ResponseAny"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/redenvelope/claim": {
-            "post": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "redenvelope"
-                ],
-                "parameters": [
-                    {
-                        "description": "领取红包请求",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/redenvelope.ClaimRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/util.ResponseAny"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/redenvelope/covers": {
-            "get": {
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "redenvelope"
-                ],
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "封面类型 (cover/heterotypic)",
-                        "name": "type",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/util.ResponseAny"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/redenvelope/create": {
-            "post": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "redenvelope"
-                ],
-                "parameters": [
-                    {
-                        "description": "创建红包请求",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/redenvelope.CreateRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/util.ResponseAny"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/redenvelope/list": {
-            "post": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "redenvelope"
-                ],
-                "parameters": [
-                    {
-                        "description": "列表请求",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/redenvelope.ListRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/util.ResponseAny"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/redenvelope/{id}": {
-            "get": {
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "redenvelope"
-                ],
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "红包ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/util.ResponseAny"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/upload/redenvelope/cover": {
-            "post": {
-                "consumes": [
-                    "multipart/form-data"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "upload"
-                ],
-                "parameters": [
-                    {
-                        "type": "file",
-                        "description": "图片文件",
-                        "name": "file",
-                        "in": "formData",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "封面类型 (cover/heterotypic)",
-                        "name": "type",
-                        "in": "formData",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/util.ResponseAny"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/user/pay-key": {
-            "put": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "user"
-                ],
-                "parameters": [
-                    {
-                        "description": "request body",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/user.UpdatePayKeyRequest"
-                        }
-                    }
-                ],
+                "summary": "获取当前登录用户信息",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -1685,370 +470,9 @@ const docTemplate = `{
                     }
                 }
             }
-        },
-        "/pay/distribute": {
-            "post": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "payment"
-                ],
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Basic Auth (base64(client_id:client_secret))",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    },
-                    {
-                        "description": "分发请求",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/payment.MerchantDistributeRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/util.ResponseAny"
-                        }
-                    }
-                }
-            }
-        },
-        "/pay/submit.php": {
-            "get": {
-                "consumes": [
-                    "application/x-www-form-urlencoded"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "payment"
-                ],
-                "parameters": [
-                    {
-                        "description": "request body",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/payment.CreateOrderRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/util.ResponseAny"
-                        }
-                    }
-                }
-            },
-            "post": {
-                "consumes": [
-                    "application/x-www-form-urlencoded"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "payment"
-                ],
-                "parameters": [
-                    {
-                        "description": "request body",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/payment.CreateOrderRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/util.ResponseAny"
-                        }
-                    }
-                }
-            }
         }
     },
     "definitions": {
-        "api_key.CreateAPIKeyRequest": {
-            "type": "object",
-            "required": [
-                "app_homepage_url",
-                "app_name",
-                "notify_url"
-            ],
-            "properties": {
-                "app_description": {
-                    "type": "string",
-                    "maxLength": 100
-                },
-                "app_homepage_url": {
-                    "type": "string",
-                    "maxLength": 100
-                },
-                "app_name": {
-                    "type": "string",
-                    "maxLength": 20
-                },
-                "notify_url": {
-                    "type": "string",
-                    "maxLength": 100
-                },
-                "public_key": {
-                    "type": "string",
-                    "maxLength": 100
-                },
-                "redirect_uri": {
-                    "type": "string",
-                    "maxLength": 100
-                },
-                "test_mode": {
-                    "type": "boolean"
-                }
-            }
-        },
-        "api_key.UpdateAPIKeyRequest": {
-            "type": "object",
-            "properties": {
-                "app_description": {
-                    "type": "string",
-                    "maxLength": 100
-                },
-                "app_homepage_url": {
-                    "type": "string",
-                    "maxLength": 100
-                },
-                "app_name": {
-                    "type": "string",
-                    "maxLength": 20
-                },
-                "notify_url": {
-                    "type": "string",
-                    "maxLength": 100
-                },
-                "public_key": {
-                    "type": "string",
-                    "maxLength": 100
-                },
-                "redirect_uri": {
-                    "type": "string",
-                    "maxLength": 100
-                },
-                "test_mode": {
-                    "type": "boolean"
-                }
-            }
-        },
-        "dashboard.UserBalanceStatsResponse": {
-            "type": "object",
-            "properties": {
-                "avg_amount": {
-                    "type": "number"
-                },
-                "max_amount": {
-                    "type": "number"
-                },
-                "median_amount": {
-                    "type": "number"
-                },
-                "min_amount": {
-                    "type": "number"
-                },
-                "std_dev": {
-                    "type": "number"
-                },
-                "total_amount": {
-                    "type": "number"
-                },
-                "total_count": {
-                    "type": "integer"
-                }
-            }
-        },
-        "dispute.CloseDisputeRequest": {
-            "type": "object",
-            "required": [
-                "dispute_id"
-            ],
-            "properties": {
-                "dispute_id": {
-                    "type": "string",
-                    "example": "0"
-                }
-            }
-        },
-        "dispute.CreateDisputeRequest": {
-            "type": "object",
-            "required": [
-                "order_id",
-                "reason"
-            ],
-            "properties": {
-                "order_id": {
-                    "type": "string",
-                    "example": "0"
-                },
-                "reason": {
-                    "type": "string",
-                    "maxLength": 100
-                }
-            }
-        },
-        "dispute.ListDisputesRequest": {
-            "type": "object",
-            "properties": {
-                "dispute_id": {
-                    "type": "string",
-                    "example": "0"
-                },
-                "page": {
-                    "type": "integer",
-                    "minimum": 1
-                },
-                "page_size": {
-                    "type": "integer",
-                    "maximum": 100,
-                    "minimum": 1
-                },
-                "status": {
-                    "type": "string",
-                    "enum": [
-                        "disputing",
-                        "refund",
-                        "closed"
-                    ]
-                }
-            }
-        },
-        "dispute.RefundReviewRequest": {
-            "type": "object",
-            "required": [
-                "dispute_id",
-                "status"
-            ],
-            "properties": {
-                "dispute_id": {
-                    "type": "string",
-                    "example": "0"
-                },
-                "reason": {
-                    "type": "string",
-                    "maxLength": 100
-                },
-                "status": {
-                    "type": "string",
-                    "enum": [
-                        "refund",
-                        "closed"
-                    ]
-                }
-            }
-        },
-        "link.PayByLinkRequest": {
-            "type": "object",
-            "required": [
-                "pay_key",
-                "token"
-            ],
-            "properties": {
-                "pay_key": {
-                    "type": "string",
-                    "maxLength": 6
-                },
-                "remark": {
-                    "type": "string",
-                    "maxLength": 100
-                },
-                "token": {
-                    "type": "string"
-                }
-            }
-        },
-        "link.PaymentLinkRequest": {
-            "type": "object",
-            "required": [
-                "amount",
-                "product_name"
-            ],
-            "properties": {
-                "amount": {
-                    "type": "number"
-                },
-                "product_name": {
-                    "type": "string",
-                    "maxLength": 30
-                },
-                "remark": {
-                    "type": "string",
-                    "maxLength": 100
-                },
-                "total_limit": {
-                    "type": "integer",
-                    "minimum": 1
-                },
-                "user_limit": {
-                    "type": "integer",
-                    "minimum": 1
-                }
-            }
-        },
-        "model.OrderTransferStatus": {
-            "type": "string",
-            "enum": [
-                "pending",
-                "completed"
-            ],
-            "x-enum-varnames": [
-                "OrderTransferStatusPending",
-                "OrderTransferStatusCompleted"
-            ]
-        },
-        "model.PayLevel": {
-            "type": "integer",
-            "format": "int32",
-            "enum": [
-                0,
-                1,
-                2,
-                3
-            ],
-            "x-enum-varnames": [
-                "PayLevelFree",
-                "PayLevelBasic",
-                "PayLevelStandard",
-                "PayLevelPremium"
-            ]
-        },
-        "model.RedEnvelopeType": {
-            "type": "string",
-            "enum": [
-                "fixed",
-                "random"
-            ],
-            "x-enum-varnames": [
-                "RedEnvelopeTypeFixed",
-                "RedEnvelopeTypeRandom"
-            ]
-        },
         "oauth.CallbackRequest": {
             "type": "object",
             "properties": {
@@ -2060,348 +484,11 @@ const docTemplate = `{
                 }
             }
         },
-        "order.TransactionListRequest": {
-            "type": "object",
-            "properties": {
-                "client_id": {
-                    "type": "string"
-                },
-                "endTime": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string",
-                    "example": "0"
-                },
-                "order_name": {
-                    "type": "string"
-                },
-                "page": {
-                    "type": "integer",
-                    "minimum": 1
-                },
-                "page_size": {
-                    "type": "integer",
-                    "maximum": 100,
-                    "minimum": 1
-                },
-                "payee_transfer_status": {
-                    "enum": [
-                        "pending",
-                        "completed"
-                    ],
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/model.OrderTransferStatus"
-                        }
-                    ]
-                },
-                "payee_username": {
-                    "type": "string"
-                },
-                "payer_username": {
-                    "type": "string"
-                },
-                "startTime": {
-                    "type": "string"
-                },
-                "statuses": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "types": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                }
-            }
-        },
-        "payment.CreateOrderRequest": {
-            "type": "object",
-            "required": [
-                "amount",
-                "order_name"
-            ],
-            "properties": {
-                "amount": {
-                    "type": "number"
-                },
-                "merchant_order_no": {
-                    "type": "string",
-                    "maxLength": 64,
-                    "minLength": 1
-                },
-                "notify_url": {
-                    "type": "string",
-                    "maxLength": 100
-                },
-                "order_name": {
-                    "type": "string",
-                    "maxLength": 64
-                },
-                "payment_type": {
-                    "type": "string"
-                },
-                "remark": {
-                    "type": "string",
-                    "maxLength": 100
-                },
-                "return_url": {
-                    "type": "string",
-                    "maxLength": 100
-                }
-            }
-        },
-        "payment.MerchantDistributeRequest": {
-            "type": "object",
-            "required": [
-                "amount",
-                "user_id",
-                "username"
-            ],
-            "properties": {
-                "amount": {
-                    "type": "number"
-                },
-                "out_trade_no": {
-                    "type": "string",
-                    "maxLength": 64,
-                    "minLength": 1
-                },
-                "remark": {
-                    "type": "string",
-                    "maxLength": 100
-                },
-                "user_id": {
-                    "type": "integer"
-                },
-                "username": {
-                    "type": "string"
-                }
-            }
-        },
-        "payment.PayOrderRequest": {
-            "type": "object",
-            "required": [
-                "order_no",
-                "pay_key"
-            ],
-            "properties": {
-                "order_no": {
-                    "type": "string"
-                },
-                "pay_key": {
-                    "type": "string",
-                    "maxLength": 6
-                }
-            }
-        },
-        "payment.QueryMerchantOrderResponse": {
-            "type": "object",
-            "properties": {
-                "addtime": {
-                    "type": "string",
-                    "example": "2023-12-08 12:00:00"
-                },
-                "code": {
-                    "type": "integer",
-                    "example": 1
-                },
-                "endtime": {
-                    "type": "string",
-                    "example": "2023-12-08 12:05:00"
-                },
-                "money": {
-                    "type": "string",
-                    "example": "10.00"
-                },
-                "msg": {
-                    "type": "string",
-                    "example": "查询订单号成功！"
-                },
-                "name": {
-                    "type": "string",
-                    "example": "商品名称"
-                },
-                "out_trade_no": {
-                    "type": "string",
-                    "example": "M202312080001"
-                },
-                "pid": {
-                    "type": "string",
-                    "example": "1001"
-                },
-                "status": {
-                    "type": "integer",
-                    "example": 1
-                },
-                "trade_no": {
-                    "type": "string",
-                    "example": "123456"
-                },
-                "type": {
-                    "type": "string",
-                    "example": "epay"
-                }
-            }
-        },
-        "payment.RefundMerchantOrderResponse": {
-            "type": "object",
-            "properties": {
-                "code": {
-                    "type": "integer",
-                    "example": 1
-                },
-                "msg": {
-                    "type": "string",
-                    "example": "退款成功"
-                }
-            }
-        },
-        "payment.RefundOrderRequest": {
-            "type": "object",
-            "required": [
-                "key",
-                "money",
-                "pid",
-                "trade_no"
-            ],
-            "properties": {
-                "key": {
-                    "type": "string"
-                },
-                "money": {
-                    "type": "number"
-                },
-                "out_trade_no": {
-                    "type": "string"
-                },
-                "pid": {
-                    "type": "string"
-                },
-                "trade_no": {
-                    "type": "integer"
-                }
-            }
-        },
-        "payment.TransferRequest": {
-            "type": "object",
-            "required": [
-                "amount",
-                "pay_key",
-                "recipient_id",
-                "recipient_username"
-            ],
-            "properties": {
-                "amount": {
-                    "type": "number"
-                },
-                "pay_key": {
-                    "type": "string",
-                    "maxLength": 6
-                },
-                "recipient_id": {
-                    "type": "string",
-                    "example": "0"
-                },
-                "recipient_username": {
-                    "type": "string"
-                },
-                "remark": {
-                    "type": "string",
-                    "maxLength": 100
-                }
-            }
-        },
-        "redenvelope.ClaimRequest": {
-            "type": "object",
-            "required": [
-                "id"
-            ],
-            "properties": {
-                "id": {
-                    "type": "string",
-                    "example": "0"
-                }
-            }
-        },
-        "redenvelope.CreateRequest": {
-            "type": "object",
-            "required": [
-                "pay_key",
-                "total_amount",
-                "total_count",
-                "type"
-            ],
-            "properties": {
-                "cover_upload_id": {
-                    "type": "string",
-                    "example": "0"
-                },
-                "greeting": {
-                    "type": "string",
-                    "maxLength": 100
-                },
-                "heterotypic_upload_id": {
-                    "type": "string",
-                    "example": "0"
-                },
-                "pay_key": {
-                    "type": "string",
-                    "maxLength": 10
-                },
-                "total_amount": {
-                    "type": "number"
-                },
-                "total_count": {
-                    "type": "integer",
-                    "minimum": 1
-                },
-                "type": {
-                    "enum": [
-                        "fixed",
-                        "random"
-                    ],
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/model.RedEnvelopeType"
-                        }
-                    ]
-                }
-            }
-        },
-        "redenvelope.ListRequest": {
-            "type": "object",
-            "required": [
-                "page",
-                "page_size"
-            ],
-            "properties": {
-                "page": {
-                    "type": "integer",
-                    "minimum": 1
-                },
-                "page_size": {
-                    "type": "integer",
-                    "maximum": 100,
-                    "minimum": 1
-                },
-                "type": {
-                    "type": "string",
-                    "enum": [
-                        "sent",
-                        "received"
-                    ]
-                }
-            }
-        },
         "system_config.CreateSystemConfigRequest": {
             "type": "object",
             "required": [
                 "key",
+                "type",
                 "value"
             ],
             "properties": {
@@ -2412,6 +499,13 @@ const docTemplate = `{
                 "key": {
                     "type": "string",
                     "maxLength": 64
+                },
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "system",
+                        "business"
+                    ]
                 },
                 "value": {
                     "type": "string",
@@ -2455,82 +549,11 @@ const docTemplate = `{
                 }
             }
         },
-        "user.UpdatePayKeyRequest": {
-            "type": "object",
-            "required": [
-                "pay_key"
-            ],
-            "properties": {
-                "pay_key": {
-                    "type": "string",
-                    "maxLength": 6
-                }
-            }
-        },
         "user.updateUserStatusRequest": {
             "type": "object",
             "properties": {
                 "is_active": {
                     "type": "boolean"
-                }
-            }
-        },
-        "user_pay_config.CreateUserPayConfigRequest": {
-            "type": "object",
-            "required": [
-                "distribute_rate",
-                "fee_rate",
-                "score_rate"
-            ],
-            "properties": {
-                "daily_limit": {
-                    "type": "integer"
-                },
-                "distribute_rate": {
-                    "type": "number"
-                },
-                "fee_rate": {
-                    "type": "number"
-                },
-                "level": {
-                    "$ref": "#/definitions/model.PayLevel"
-                },
-                "max_score": {
-                    "type": "integer"
-                },
-                "min_score": {
-                    "type": "integer"
-                },
-                "score_rate": {
-                    "type": "number"
-                }
-            }
-        },
-        "user_pay_config.UpdateUserPayConfigRequest": {
-            "type": "object",
-            "required": [
-                "distribute_rate",
-                "fee_rate",
-                "score_rate"
-            ],
-            "properties": {
-                "daily_limit": {
-                    "type": "integer"
-                },
-                "distribute_rate": {
-                    "type": "number"
-                },
-                "fee_rate": {
-                    "type": "number"
-                },
-                "max_score": {
-                    "type": "integer"
-                },
-                "min_score": {
-                    "type": "integer"
-                },
-                "score_rate": {
-                    "type": "number"
                 }
             }
         },

@@ -17,7 +17,6 @@ limitations under the License.
 package task
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
@@ -30,6 +29,8 @@ import (
 )
 
 // ListTaskTypes 获取支持的任务类型列表
+// @Summary 获取支持的任务类型
+// @Description 返回系统支持的所有可调度任务类型列表，需要管理员权限
 // @Tags admin
 // @Produce json
 // @Success 200 {object} util.ResponseAny
@@ -47,10 +48,12 @@ type DispatchTaskRequest struct {
 }
 
 // DispatchTask 下发任务
+// @Summary 下发异步任务
+// @Description 手动触发指定类型的异步任务，支持指定时间范围和用户，需要管理员权限
 // @Tags admin
 // @Accept json
 // @Produce json
-// @Param request body DispatchTaskRequest true "request body"
+// @Param request body DispatchTaskRequest true "任务请求参数"
 // @Success 200 {object} util.ResponseAny
 // @Router /api/v1/admin/tasks/dispatch [post]
 func DispatchTask(c *gin.Context) {
@@ -69,41 +72,8 @@ func DispatchTask(c *gin.Context) {
 	var taskInfo *asynq.Task
 	var taskID string
 
-	switch req.TaskType {
-	case task.TaskTypeOrderSync:
-		if req.StartTime != nil && req.EndTime != nil {
-			if req.EndTime.Before(*req.StartTime) {
-				c.JSON(http.StatusBadRequest, util.Err(InvalidTimeRange))
-				return
-			}
-			payload, _ := json.Marshal(map[string]interface{}{
-				"start_time": req.StartTime,
-				"end_time":   req.EndTime,
-			})
-			taskInfo = asynq.NewTask(meta.AsynqTask, payload)
-			taskID = fmt.Sprintf("manual_%s_%s_%s", req.TaskType,
-				req.StartTime.Format("20060102150405"),
-				req.EndTime.Format("20060102150405"))
-		} else {
-			taskInfo = asynq.NewTask(meta.AsynqTask, nil)
-			taskID = fmt.Sprintf("manual_%s", req.TaskType)
-		}
-
-	case task.TaskTypeUserGamification:
-		if req.UserID == nil || *req.UserID == 0 {
-			taskInfo = asynq.NewTask(task.UpdateUserGamificationScoresTask, nil)
-			taskID = fmt.Sprintf("manual_%s", req.TaskType)
-		} else {
-			payload, _ := json.Marshal(map[string]interface{}{
-				"user_id": *req.UserID,
-			})
-			taskInfo = asynq.NewTask(meta.AsynqTask, payload)
-			taskID = fmt.Sprintf("manual_%s_user_%d", req.TaskType, *req.UserID)
-		}
-	default:
-		taskInfo = asynq.NewTask(meta.AsynqTask, nil)
-		taskID = fmt.Sprintf("manual_%s", req.TaskType)
-	}
+	taskInfo = asynq.NewTask(meta.AsynqTask, nil)
+	taskID = fmt.Sprintf("manual_%s", req.TaskType)
 
 	_, err := scheduler.AsynqClient.Enqueue(
 		taskInfo,

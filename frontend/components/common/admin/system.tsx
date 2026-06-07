@@ -4,6 +4,7 @@ import * as React from "react"
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
 import { ManagePage, ManageDetailPanel } from "@/components/common/general/manage-pannel"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 import { formatDateTime } from "@/lib/utils"
 import type { SystemConfig } from "@/lib/services"
@@ -70,7 +71,22 @@ function SystemConfigDetailPanel({
                 />
               ) : (
                 <Input
-                  type="number"
+                  type={
+                    config?.key && (
+                      config.key.endsWith('_limit') ||
+                      config.key.endsWith('_minutes') ||
+                      config.key.endsWith('_days') ||
+                      config.key.endsWith('_seconds') ||
+                      config.key.endsWith('_hours') ||
+                      config.key.endsWith('_ttl') ||
+                      config.key.endsWith('_max') ||
+                      config.key.endsWith('_min') ||
+                      config.key.includes('max_') ||
+                      config.key.includes('min_') ||
+                      config.key.includes('limit') ||
+                      config.key.includes('count')
+                    ) ? "number" : "text"
+                  }
                   step="1"
                   min="0"
                   value={editData.value !== undefined ? editData.value : (config?.value || '')}
@@ -108,6 +124,17 @@ function SystemConfigDetailPanel({
             </div>
           </div>
 
+          <div className="px-3 py-2 flex items-center justify-between border-b border-dashed last:border-b-0">
+            <label className="text-xs font-medium text-muted-foreground">配置类型</label>
+            <span className={`text-[11px] px-1.5 py-0.5 rounded font-medium ${
+              config?.type === 'system' 
+                ? 'bg-blue-500/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400' 
+                : 'bg-indigo-500/10 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400'
+            }`}>
+              {config?.type === 'system' ? '系统配置' : '业务配置'}
+            </span>
+          </div>
+
           <div className="px-3 py-2 flex items-center justify-between">
             <label className="text-xs font-medium text-muted-foreground">创建时间</label>
             <p className="text-xs text-muted-foreground">{config ? formatDateTime(config.created_at) : ''}</p>
@@ -139,6 +166,12 @@ export function SystemConfigs() {
     deleteSystemConfig
   } = useAdmin()
 
+  const [activeTab, setActiveTab] = React.useState<'system' | 'business'>('business')
+
+  React.useEffect(() => {
+    refetchSystemConfigs(activeTab)
+  }, [activeTab, refetchSystemConfigs])
+
   const getInitialEditData = (config: SystemConfig) => ({
     value: config.value,
     description: config.description
@@ -151,7 +184,6 @@ export function SystemConfigs() {
       value: editData.value ?? config.value,
       description: editData.description ?? config.description
     })
-    await refetchSystemConfigs()
   }
 
   const handleDelete = async (config: SystemConfig) => {
@@ -164,13 +196,21 @@ export function SystemConfigs() {
       data={configs}
       loading={loading}
       error={error}
-      onReload={refetchSystemConfigs}
+      onReload={() => refetchSystemConfigs(activeTab)}
       getInitialEditData={getInitialEditData}
       onSave={handleSave}
       onDelete={handleDelete}
       getId={(config) => config.key}
       emptyDescription="未发现系统配置"
       loadingDescription="配置加载中"
+      headerExtra={
+        <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as 'system' | 'business')} className="w-[180px]">
+          <TabsList className="grid w-full grid-cols-2 h-8">
+            <TabsTrigger value="business" className="text-[11px] h-7">业务配置</TabsTrigger>
+            <TabsTrigger value="system" className="text-[11px] h-7">系统配置</TabsTrigger>
+          </TabsList>
+        </Tabs>
+      }
       columns={[
         { header: "配置键", cell: (item) => <span className="font-mono font-medium">{item.key}</span>, width: "200px" },
         { header: "配置值", cell: (item) => <span className="truncate max-w-[120px] inline-block" title={item.value}>{item.value}</span>, width: "120px" },

@@ -20,7 +20,6 @@ const rateLimitStore = new Map<string, RateLimitEntry>()
 /** 不需要速率限制的路径 */
 const EXCLUDED_PREFIXES = [
   '/api/v1/config',
-  '/api/v1/redenvelope/covers',
   '/epay/',
   '/lpay/',
 ]
@@ -29,8 +28,6 @@ const EXCLUDED_PREFIXES = [
 const RATE_LIMITS: Record<string, [number, number]> = {
   '/api/v1/oauth/login': [1, 5000],
   '/api/v1/oauth/callback': [1, 5000],
-  '/api/v1/upload/redenvelope/cover': [10, 3600000],
-  '/api/v1/redenvelope': [30, 60000],
 }
 
 /** 默认限制: 60次/60秒 */
@@ -107,7 +104,7 @@ export function proxy(request: NextRequest) {
 
   /* 页面请求：公共路由放行 */
   const publicRoutes = ['/', '/login', '/callback', '/privacy', '/terms']
-  const publicPrefixes = ['/docs/', '/epay/', '/redenvelope/']
+  const publicPrefixes = ['/docs/', '/epay/']
 
   if (publicRoutes.includes(pathname) || publicPrefixes.some(p => pathname.startsWith(p))) {
     return NextResponse.next()

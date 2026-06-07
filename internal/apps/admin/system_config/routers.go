@@ -31,6 +31,7 @@ import (
 type CreateSystemConfigRequest struct {
 	Key         string `json:"key" binding:"required,max=64"`
 	Value       string `json:"value" binding:"required,max=255"`
+	Type        string `json:"type" binding:"required,oneof=system business"`
 	Description string `json:"description" binding:"max=255"`
 }
 
@@ -41,10 +42,12 @@ type UpdateSystemConfigRequest struct {
 }
 
 // CreateSystemConfig 创建系统配置
+// @Summary 创建系统配置
+// @Description 创建一条新的系统配置项，配置键不可重复，同时将新配置同步到 Redis，需要管理员权限
 // @Tags admin
 // @Accept json
 // @Produce json
-// @Param request body CreateSystemConfigRequest true "request body"
+// @Param request body CreateSystemConfigRequest true "创建请求参数"
 // @Success 200 {object} util.ResponseAny
 // @Router /api/v1/admin/system-configs [post]
 func CreateSystemConfig(c *gin.Context) {
@@ -67,6 +70,7 @@ func CreateSystemConfig(c *gin.Context) {
 	config := model.SystemConfig{
 		Key:         req.Key,
 		Value:       req.Value,
+		Type:        req.Type,
 		Description: req.Description,
 	}
 
@@ -90,15 +94,22 @@ func CreateSystemConfig(c *gin.Context) {
 }
 
 // ListSystemConfigs 获取系统配置列表
+// @Summary 获取系统配置列表
+// @Description 返回所有系统配置列表，支持按配置类型（system/business）过滤，需要管理员权限
 // @Tags admin
 // @Produce json
+// @Param type query string false "配置类型（system/business）"
 // @Success 200 {object} util.ResponseAny
 // @Router /api/v1/admin/system-configs [get]
 func ListSystemConfigs(c *gin.Context) {
+	configType := c.Query("type")
+	query := db.DB(c.Request.Context()).Order("created_at DESC")
+	if configType != "" {
+		query = query.Where("type = ?", configType)
+	}
+
 	var configs []model.SystemConfig
-	if err := db.DB(c.Request.Context()).
-		Order("created_at DESC").
-		Find(&configs).Error; err != nil {
+	if err := query.Find(&configs).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, util.Err(err.Error()))
 		return
 	}
@@ -107,6 +118,8 @@ func ListSystemConfigs(c *gin.Context) {
 }
 
 // GetSystemConfig 获取单个系统配置
+// @Summary 获取单个系统配置
+// @Description 根据配置键获取对应的系统配置详情，需要管理员权限
 // @Tags admin
 // @Produce json
 // @Param key path string true "配置键"
@@ -127,11 +140,13 @@ func GetSystemConfig(c *gin.Context) {
 }
 
 // UpdateSystemConfig 更新系统配置
+// @Summary 更新系统配置
+// @Description 根据配置键更新对应的配置内容，同时将更新同步到 Redis，需要管理员权限
 // @Tags admin
 // @Accept json
 // @Produce json
 // @Param key path string true "配置键"
-// @Param request body UpdateSystemConfigRequest true "request body"
+// @Param request body UpdateSystemConfigRequest true "更新请求参数"
 // @Success 200 {object} util.ResponseAny
 // @Router /api/v1/admin/system-configs/{key} [put]
 func UpdateSystemConfig(c *gin.Context) {
@@ -178,6 +193,8 @@ func UpdateSystemConfig(c *gin.Context) {
 }
 
 // DeleteSystemConfig 删除系统配置
+// @Summary 删除系统配置
+// @Description 根据配置键删除对应配置，同时从 Redis 中移除对应缓存，需要管理员权限
 // @Tags admin
 // @Produce json
 // @Param key path string true "配置键"

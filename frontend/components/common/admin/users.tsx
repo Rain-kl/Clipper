@@ -8,10 +8,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Sheet, SheetTitle, SheetContent } from "@/components/ui/sheet"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Layers, Search, UserX, UserCheck, Eye, Wallet, CreditCard, ShieldCheck, Filter, X, ChevronDown, ChevronLeft, ChevronRight, Users, Loader2 } from "lucide-react"
+import { Layers, Search, UserX, UserCheck, Eye, ShieldCheck, Filter, X, ChevronDown, ChevronLeft, ChevronRight, Loader2 } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
-import { AdminUser, AdminService, DispatchTaskRequest } from "@/lib/services"
+import { AdminUser, AdminService } from "@/lib/services"
 import { toast } from "sonner"
 import { formatDateTime } from "@/lib/utils"
 import { EmptyStateWithBorder } from "@/components/layout/empty"
@@ -43,7 +43,6 @@ export function UsersManager() {
 
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null)
   const [detailOpen, setDetailOpen] = useState(false)
-  const [updatingUserId, setUpdatingUserId] = useState<string | null>(null)
 
   useEffect(() => {
     fetchUsers()
@@ -62,25 +61,7 @@ export function UsersManager() {
     setDetailOpen(true)
   }
 
-  const handleUpdateCredits = async (user: AdminUser) => {
-    try {
-      setUpdatingUserId(user.id)
-      const params: DispatchTaskRequest = {
-        task_type: 'user_gamification',
-        user_id: user.id
-      }
-      await AdminService.dispatchTask(params)
-      toast.success('积分更新任务已下发', {
-        description: `正在更新用户 ${ user.username } 的积分数据`
-      })
-    } catch (err) {
-      toast.error('任务下发失败', {
-        description: err instanceof Error ? err.message : '未知错误'
-      })
-    } finally {
-      setUpdatingUserId(null)
-    }
-  }
+
 
   const totalPages = Math.ceil(total / pageSize)
   const hasSearchFilter = Boolean(searchUserId || searchUsername)
@@ -315,12 +296,7 @@ export function UsersManager() {
               <TableRow className="border-b border-dashed hover:bg-transparent">
                 <TableHead className="w-[90px] whitespace-nowrap py-2 h-8">ID</TableHead>
                 <TableHead className="w-[120px] whitespace-nowrap py-2 h-8">用户</TableHead>
-                <TableHead className="text-right whitespace-nowrap min-w-[80px] py-2 h-8 font-mono">余额</TableHead>
-                <TableHead className="text-right whitespace-nowrap min-w-[80px] py-2 h-8 font-mono">基准分</TableHead>
-                <TableHead className="text-right whitespace-nowrap min-w-[80px] py-2 h-8 font-mono">支付分</TableHead>
-                <TableHead className="text-right whitespace-nowrap min-w-[80px] py-2 h-8 font-mono">总收益</TableHead>
-                <TableHead className="text-right whitespace-nowrap min-w-[80px] py-2 h-8 font-mono">总消耗</TableHead>
-                <TableHead className="text-right whitespace-nowrap min-w-[80px] py-2 h-8 font-mono is-last-money">总划转</TableHead>
+
                 <TableHead className="whitespace-nowrap min-w-[140px] py-2 h-8 pl-4">上次登陆</TableHead>
                 <TableHead className="whitespace-nowrap min-w-[140px] py-2 h-8">注册时间</TableHead>
                 <TableHead className="whitespace-nowrap min-w-[140px] py-2 h-8">上次更新</TableHead>
@@ -358,24 +334,7 @@ export function UsersManager() {
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell className="text-right font-mono text-[11px] text-green-600 dark:text-green-500 font-medium py-1">
-                    {Number(user.available_balance).toFixed(2)}
-                  </TableCell>
-                  <TableCell className="text-right font-mono text-[11px] py-1">
-                    {Number(user.community_balance).toFixed(2)}
-                  </TableCell>
-                  <TableCell className="text-right font-mono text-[11px] py-1">
-                    {Number(user.pay_score).toFixed(2)}
-                  </TableCell>
-                  <TableCell className="text-right font-mono text-[11px] text-green-600 py-1">
-                    {Number(user.total_receive).toFixed(2)}
-                  </TableCell>
-                  <TableCell className="text-right font-mono text-[11px] text-red-500 py-1">
-                    {Number(user.total_payment).toFixed(2)}
-                  </TableCell>
-                  <TableCell className="text-right font-mono text-[11px] text-purple-500 py-1 is-last-money">
-                    {Number(user.total_community).toFixed(2)}
-                  </TableCell>
+
                   <TableCell className="text-[10px] text-muted-foreground font-mono whitespace-nowrap py-1 pl-4">
                     {formatDateTime(user.last_login_at)}
                   </TableCell>
@@ -404,24 +363,7 @@ export function UsersManager() {
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
-                      <TooltipProvider delayDuration={0}>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6 text-muted-foreground hover:text-foreground"
-                              onClick={() => handleUpdateCredits(user)}
-                              disabled={updatingUserId === user.id}
-                            >
-                              <Loader2 className={cn("size-3", updatingUserId === user.id && "animate-spin")} />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent side="top" className="text-xs">
-                            更新积分
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
+
                       <TooltipProvider delayDuration={0}>
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -487,60 +429,7 @@ export function UsersManager() {
                     </div>
                   </div>
 
-                  <div className="p-6">
-                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4 px-1">核心资产</h4>
-                    <div className="grid grid-cols-3 gap-2">
-                      <div className="p-3 rounded-xl border bg-card/50 hover:bg-card/80 transition-colors space-y-2">
-                        <div className="flex flex-col gap-1 text-muted-foreground">
-                          <Wallet className="w-4 h-4" />
-                          <span className="text-[10px] font-medium">可用余额</span>
-                        </div>
-                        <div className="text-lg font-mono font-bold tracking-tight text-foreground truncate">
-                          {Number(selectedUser.available_balance).toFixed(2)}
-                        </div>
-                      </div>
-                      <div className="p-3 rounded-xl border bg-card/50 hover:bg-card/80 transition-colors space-y-2">
-                        <div className="flex flex-col gap-1 text-muted-foreground">
-                          <CreditCard className="w-4 h-4" />
-                          <span className="text-[10px] font-medium">支付积分</span>
-                        </div>
-                        <div className="text-lg font-mono font-bold tracking-tight text-foreground truncate">
-                          {Number(selectedUser.pay_score).toFixed(2)}
-                        </div>
-                      </div>
-                      <div className="p-3 rounded-xl border bg-card/50 hover:bg-card/80 transition-colors space-y-2">
-                        <div className="flex flex-col gap-1 text-muted-foreground">
-                          <Users className="w-4 h-4" />
-                          <span className="text-[10px] font-medium">社区余额</span>
-                        </div>
-                        <div className="text-lg font-mono font-bold tracking-tight text-foreground truncate">
-                          {Number(selectedUser.community_balance).toFixed(2)}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <Separator className="mx-6 w-auto opacity-50" />
-
                   <div className="p-6 space-y-6">
-                    <div className="space-y-4">
-                      <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-1">财务概况</h4>
-                      <div className="rounded-lg border divide-y bg-background/50">
-                        <div className="flex items-center justify-between p-3.5">
-                          <span className="text-[10px]">累计收益</span>
-                          <span className="font-mono text-[10px] font-medium text-purple-600 dark:text-purple-400">+{Number(selectedUser.total_community).toFixed(2)}</span>
-                        </div>
-                        <div className="flex items-center justify-between p-3.5">
-                          <span className="text-[10px]">累计收入</span>
-                          <span className="font-mono text-[10px] font-medium text-green-600">+{Number(selectedUser.total_receive).toFixed(2)}</span>
-                        </div>
-                        <div className="flex items-center justify-between p-3.5">
-                          <span className="text-[10px]">累计支出</span>
-                          <span className="font-mono text-[10px] font-medium text-red-500">{Number(selectedUser.total_payment) === 0 ? '0.00' : `-${ Number(selectedUser.total_payment).toFixed(2) }`}</span>
-                        </div>
-                      </div>
-                    </div>
-
                     <div className="space-y-4">
                       <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-1">系统记录</h4>
                       <div className="rounded-lg border divide-y bg-background/50">
