@@ -20,7 +20,6 @@ import "time"
 
 type configModel struct {
 	App         appConfig         `mapstructure:"app"`
-	OAuth2      OAuth2Config      `mapstructure:"oauth2"`
 	Database    databaseConfig    `mapstructure:"database"`
 	Redis       redisConfig       `mapstructure:"redis"`
 	Log         logConfig         `mapstructure:"log"`
@@ -52,17 +51,6 @@ type appConfig struct {
 // IsProduction 检查当前环境是否为生产环境
 func (a *appConfig) IsProduction() bool {
 	return a.Env == "production"
-}
-
-// OAuth2Config OAuth2/OIDC认证配置
-type OAuth2Config struct {
-	ClientID              string `mapstructure:"client_id"`
-	ClientSecret          string `mapstructure:"client_secret"`
-	RedirectURI           string `mapstructure:"redirect_uri"`
-	Issuer                string `mapstructure:"issuer"`
-	AuthorizationEndpoint string `mapstructure:"authorization_endpoint"`
-	TokenEndpoint         string `mapstructure:"token_endpoint"`
-	UserEndpoint          string `mapstructure:"user_endpoint"`
 }
 
 // databaseConfig 数据库配置

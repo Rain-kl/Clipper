@@ -46,6 +46,7 @@ Refreshing/                        # 项目根目录（模块名: github.com/lin
 ├── config.example.yaml            # 配置模板（需提交）
 ├── Makefile                       # 常用命令（swagger/tidy/license）
 ├── Dockerfile                     # 后端容器镜像构建
+├── docker-compose.yml             # 本地依赖服务（PostgreSQL / Redis / ClickHouse）
 ├── .editorconfig                  # 编辑器格式规范
 ├── .gitignore
 ├── docs/                          # Swagger 自动生成文档（不要手动编辑）

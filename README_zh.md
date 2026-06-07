@@ -98,12 +98,18 @@ cd refreshing
 cp config.example.yaml config.yaml
 ```
 
-编辑 `config.yaml`，配置数据库、Redis，以及至少一个认证源（OIDC 或密码登录）。
+编辑 `config.yaml`，配置数据库和 Redis。OIDC 认证源统一在管理后台的系统设置页面运行时配置。
 
 ### 3. 初始化数据库
 
 ```bash
-# 创建数据库
+# 启动本地依赖服务（PostgreSQL + Redis）
+docker compose up -d
+
+# 可选：同时启动 ClickHouse
+docker compose --profile clickhouse up -d
+
+# 如果使用外部 PostgreSQL，而不是 Docker 内置服务，则手动创建数据库
 createdb -h <主机> -p 5432 -U postgres refreshing
 
 # 数据库表结构在首次启动时自动迁移，无需手动执行
@@ -159,7 +165,6 @@ pnpm dev
 | `database.database` | 数据库名称 | `refreshing` |
 | `redis.host` | Redis 主机 | `127.0.0.1` |
 | `storage.endpoint` | S3 兼容存储端点 | `s3.amazonaws.com` |
-| `oauth2.client_id` | 默认 OIDC 客户端 ID | `your_client_id` |
 
 ## 🔧 开发指南
 

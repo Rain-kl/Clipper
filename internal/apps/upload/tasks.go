@@ -92,6 +92,6 @@ func (h *CleanupUnusedUploadsHandler) Execute(ctx context.Context, payload []byt
 	}
 
 	msg := fmt.Sprintf("共处理 %d 个文件，成功删除 %d 个", totalProcessed, totalDeleted)
-	task.AppendLog(ctx, msg)
+	task.AppendLog(ctx, "%s", msg)
 	return &task.TaskResult{Message: msg}, nil
 }

@@ -2,10 +2,8 @@ package oauth
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -53,33 +51,30 @@ type CallbackRequest struct {
 	Code  string `json:"code" binding:"required"`
 }
 
-func defaultAuthSource() *model.AuthSource {
-	if config.Config.OAuth2.ClientID == "" || config.Config.OAuth2.RedirectURI == "" {
-		return nil
+func GetUserIDFromSession(s sessions.Session) uint64 {
+	userID, ok := s.Get(UserIDKey).(uint64)
+	if !ok {
+		return 0
 	}
-	source := &model.AuthSource{
-		Name:               "default",
-		Type:               model.AuthSourceTypeOIDC,
-		DisplayName:        "默认认证源",
-		IsActive:           true,
-		ClientID:           config.Config.OAuth2.ClientID,
-		ClientSecret:       config.Config.OAuth2.ClientSecret,
-		OpenIDDiscoveryURL: config.Config.OAuth2.Issuer,
-	}
-	if source.DisplayName == "" {
-		source.DisplayName = "默认认证源"
-	}
-	return source
+	return userID
+}
+
+func GetUserIDFromContext(c *gin.Context) uint64 {
+	session := sessions.Default(c)
+	return GetUserIDFromSession(session)
 }
 
 func resolveAuthSource(sourceName string) (*model.AuthSource, error) {
 	name := strings.TrimSpace(strings.ToLower(sourceName))
-	if name == "" || name == "default" {
-		source := defaultAuthSource()
-		if source == nil {
-			return nil, errors.New("默认认证源未配置")
+	if name == "" {
+		sources, err := model.GetActiveAuthSources()
+		if err != nil {
+			return nil, err
 		}
-		return source, nil
+		if len(sources) == 0 {
+			return nil, errors.New("未配置可用认证源")
+		}
+		return &sources[0], nil
 	}
 	return model.GetAuthSourceByName(name)
 }
@@ -90,24 +85,11 @@ func activeLoginSources() []AuthSourceView {
 		return nil
 	}
 
-	sources := make([]AuthSourceView, 0, 4)
-	if source := defaultAuthSource(); source != nil {
-		source.Sanitize()
-		sources = append(sources, AuthSourceView{
-			ID:                     source.ID,
-			Name:                   source.Name,
-			Type:                   source.Type,
-			DisplayName:            source.DisplayName,
-			IsActive:               source.IsActive,
-			IconURL:                source.IconURL,
-			ClientSecretConfigured: source.ClientSecretConfigured,
-		})
-	}
-
 	dbSources, err := model.GetActiveAuthSources()
 	if err != nil {
-		return sources
+		return nil
 	}
+	sources := make([]AuthSourceView, 0, len(dbSources))
 	for _, source := range dbSources {
 		sources = append(sources, AuthSourceView{
 			ID:                     source.ID,
@@ -126,33 +108,12 @@ func frontendLoginRedirectURL() string {
 	if config.Config.App.FrontendURL != "" {
 		return strings.TrimRight(config.Config.App.FrontendURL, "/") + "/login"
 	}
-	if config.Config.OAuth2.RedirectURI != "" {
-		return config.Config.OAuth2.RedirectURI
-	}
 	return "/login"
 }
 
 func buildOAuthConfig(ctx context.Context, source *model.AuthSource, redirectURL string) (*oauth2.Config, *oidc.IDTokenVerifier, error) {
 	if source == nil {
 		return nil, nil, errors.New("认证源不能为空")
-	}
-
-	if source.Name == "default" {
-		scopes := []string{"profile", "email"}
-		if oidcVerifier != nil {
-			scopes = append([]string{oidc.ScopeOpenID}, scopes...)
-		}
-		return &oauth2.Config{
-			ClientID:     config.Config.OAuth2.ClientID,
-			ClientSecret: config.Config.OAuth2.ClientSecret,
-			RedirectURL:  redirectURL,
-			Scopes:       scopes,
-			Endpoint: oauth2.Endpoint{
-				AuthURL:   config.Config.OAuth2.AuthorizationEndpoint,
-				TokenURL:  config.Config.OAuth2.TokenEndpoint,
-				AuthStyle: oauth2.AuthStyleAutoDetect,
-			},
-		}, oidcVerifier, nil
 	}
 
 	if source.OpenIDDiscoveryURL == "" {
@@ -260,29 +221,6 @@ func buildOAuthUserInfo(ctx context.Context, source *model.AuthSource, code stri
 		userInfo.Name = userInfo.Username
 	}
 
-	if userInfo.Username == "" {
-		client := authConfig.Client(ctx, token)
-		userEndpoint := config.Config.OAuth2.UserEndpoint
-		if source.Name != "default" {
-			userEndpoint = ""
-		}
-		if userEndpoint != "" {
-			resp, httpErr := client.Get(userEndpoint)
-			if httpErr != nil {
-				return nil, httpErr
-			}
-			defer resp.Body.Close()
-
-			responseData, readErr := io.ReadAll(resp.Body)
-			if readErr != nil {
-				return nil, readErr
-			}
-			if unmarshalErr := json.Unmarshal(responseData, userInfo); unmarshalErr != nil {
-				return nil, unmarshalErr
-			}
-		}
-	}
-
 	return userInfo, nil
 }
 
@@ -336,10 +274,10 @@ func GetLoginSources(c *gin.Context) {
 
 // GetLoginURL 获取登录授权地址
 // @Summary 获取登录授权地址
-// @Description 根据指定认证源生成 OAuth 授权 URL，前端跳转到该 URL 完成 OAuth 登录授权。source 参数为空时使用默认认证源。
+// @Description 根据指定认证源生成 OAuth 授权 URL，前端跳转到该 URL 完成 OAuth 登录授权。source 参数为空时使用第一个启用的认证源。
 // @Tags oauth
 // @Produce json
-// @Param source query string false "认证源名称，为空使用默认源"
+// @Param source query string false "认证源名称，为空使用第一个启用的认证源"
 // @Success 200 {object} util.ResponseAny{data=oauth.OAuthAuthorizeResponse} "授权 URL"
 // @Failure 400 {object} util.ResponseAny "认证源不存在或未配置"
 // @Failure 500 {object} util.ResponseAny "Redis 异常或构造 URL 失败"
@@ -522,16 +460,8 @@ func Callback(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, util.Err(uniqueErr.Error()))
 			return
 		}
-		user = model.User{
-			Username:    username,
-			Nickname:    userInfo.Name,
-			AvatarUrl:   userInfo.AvatarUrl,
-			TrustLevel:  userInfo.TrustLevel,
-			SignKey:     util.GenerateUniqueIDSimple(),
-			IsActive:    true,
-			LastLoginAt: time.Now(),
-		}
-		if err := db.DB(ctx).Create(&user).Error; err != nil {
+		userInfo.Username = username
+		if err := user.CreateUser(db.DB(ctx), userInfo); err != nil {
 			c.JSON(http.StatusInternalServerError, util.Err(err.Error()))
 			return
 		}

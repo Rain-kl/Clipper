@@ -251,7 +251,7 @@ func ListExternalAccountsByUserID(userID uint64) ([]ExternalAccountView, error) 
 		if account.AuthSourceID == 0 {
 			name = "default"
 			sourceType = "oidc"
-			label = "默认认证源"
+			label = "历史认证源"
 		} else {
 			source, err := GetAuthSourceByID(account.AuthSourceID)
 			if err != nil {

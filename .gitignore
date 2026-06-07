@@ -44,3 +44,4 @@ uploads/*
 
 s3_cache
 /frontend/.next/
+/data/

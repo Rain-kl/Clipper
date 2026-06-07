@@ -27,6 +27,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -134,6 +135,17 @@ var (
 	testJWKS          jose.JSONWebKeySet
 )
 
+const (
+	testIssuerURL     = "https://connect.linux.do"
+	testAuthURL       = "https://connect.linux.do/oauth2/authorize"
+	testTokenURL      = "https://connect.linux.do/oauth2/token"
+	testJWKSURL       = "https://connect.linux.do/oauth2/keys"
+	testClientID      = "test_client_id"
+	testClientSecret  = "test_client_secret"
+	testSourceName    = "linuxdo"
+	testSourceDisplay = "LINUX DO"
+)
+
 func init() {
 	var err error
 	testRSAPrivateKey, err = rsa.GenerateKey(rand.Reader, 2048)
@@ -151,7 +163,50 @@ func init() {
 	}
 }
 
+func seedTestAuthSource(t *testing.T, dbConn *gorm.DB) {
+	t.Helper()
+	if err := dbConn.Create(&model.AuthSource{
+		ID:                 100,
+		Name:               testSourceName,
+		Type:               model.AuthSourceTypeOIDC,
+		DisplayName:        testSourceDisplay,
+		IsActive:           true,
+		ClientID:           testClientID,
+		ClientSecret:       testClientSecret,
+		OpenIDDiscoveryURL: testIssuerURL,
+	}).Error; err != nil {
+		t.Fatalf("failed to seed auth source: %v", err)
+	}
+}
+
+func oidcDiscoveryResponse() *http.Response {
+	body := fmt.Sprintf(`{
+		"issuer": %q,
+		"authorization_endpoint": %q,
+		"token_endpoint": %q,
+		"jwks_uri": %q,
+		"response_types_supported": ["code"],
+		"subject_types_supported": ["public"],
+		"id_token_signing_alg_values_supported": ["RS256"]
+	}`, testIssuerURL, testAuthURL, testTokenURL, testJWKSURL)
+	return &http.Response{
+		StatusCode: http.StatusOK,
+		Body:       io.NopCloser(strings.NewReader(body)),
+		Header:     make(http.Header),
+	}
+}
+
+func jwksResponse() *http.Response {
+	jwksJSON, _ := json.Marshal(testJWKS)
+	return &http.Response{
+		StatusCode: http.StatusOK,
+		Body:       io.NopCloser(bytes.NewReader(jwksJSON)),
+		Header:     make(http.Header),
+	}
+}
+
 type mockClaims struct {
+	ID       uint64 `json:"id"`
 	Issuer   string `json:"iss"`
 	Subject  string `json:"sub"`
 	Audience string `json:"aud"`
@@ -169,7 +224,9 @@ func generateMockIDToken(issuer, sub, aud, nonce, username, email, name string) 
 	if err != nil {
 		panic(err)
 	}
+	id, _ := strconv.ParseUint(sub, 10, 64)
 	claims := mockClaims{
+		ID:       id,
 		Issuer:   issuer,
 		Subject:  sub,
 		Audience: aud,
@@ -236,19 +293,6 @@ func setupTestRouter(dbConn *gorm.DB, mockRedis *mockRedisClient, mockClient *ht
 	db.SetDB(dbConn)
 	db.Redis = mockRedis
 
-	// Setup oauth vars
-	oauthConf = &oauth2.Config{
-		ClientID:     config.Config.OAuth2.ClientID,
-		ClientSecret: config.Config.OAuth2.ClientSecret,
-		RedirectURL:  config.Config.OAuth2.RedirectURI,
-		Scopes:       []string{"profile", "email"},
-		Endpoint: oauth2.Endpoint{
-			AuthURL:  config.Config.OAuth2.AuthorizationEndpoint,
-			TokenURL: config.Config.OAuth2.TokenEndpoint,
-		},
-	}
-	oidcVerifier = nil
-
 	api := r.Group("/api/v1")
 	{
 		api.GET("/oauth/sources", GetLoginSources)
@@ -288,12 +332,7 @@ func initializeTestConfig() {
 	config.Config.App.SessionCookieName = "test_session_id"
 	config.Config.App.SessionSecret = "test_session_secret"
 	config.Config.App.APIPrefix = "/api"
-	config.Config.OAuth2.ClientID = "test_client_id"
-	config.Config.OAuth2.ClientSecret = "test_client_secret"
-	config.Config.OAuth2.RedirectURI = "http://localhost:3000/callback"
-	config.Config.OAuth2.AuthorizationEndpoint = "https://connect.linux.do/oauth2/authorize"
-	config.Config.OAuth2.TokenEndpoint = "https://connect.linux.do/oauth2/token"
-	config.Config.OAuth2.UserEndpoint = "https://connect.linux.do/api/user"
+	config.Config.App.FrontendURL = "http://localhost:3000"
 	config.Config.OpenAPIRisk.Enabled = false
 	config.Config.OpenAPIRisk.BaseURL = ""
 	config.Config.OpenAPIRisk.BlockRiskLevels = []string{}
@@ -352,13 +391,12 @@ func TestGetLoginSources(t *testing.T) {
 		t.Fatalf("failed to unmarshal response: %v", err)
 	}
 
-	if len(resp.Data) != 2 {
-		t.Fatalf("expected 2 active sources, got %d", len(resp.Data))
+	if len(resp.Data) != 1 {
+		t.Fatalf("expected 1 active source, got %d", len(resp.Data))
 	}
 
-	names := []string{resp.Data[0].Name, resp.Data[1].Name}
-	if !strings.Contains(strings.Join(names, ","), "default") || !strings.Contains(strings.Join(names, ","), "github") {
-		t.Errorf("expected default and github sources, got %v", names)
+	if resp.Data[0].Name != "github" {
+		t.Errorf("expected github source, got %s", resp.Data[0].Name)
 	}
 
 	// Test disabling OIDC
@@ -379,10 +417,14 @@ func TestGetLoginURL(t *testing.T) {
 	initializeTestConfig()
 	dbConn := setupTestDB(t)
 	mockRedis := newMockRedisClient()
+	seedTestAuthSource(t, dbConn)
 
 	httpMock := &http.Client{
 		Transport: &mockRoundTripper{
 			roundTripFunc: func(req *http.Request) (*http.Response, error) {
+				if req.Method == http.MethodGet && strings.Contains(req.URL.String(), "/.well-known/openid-configuration") {
+					return oidcDiscoveryResponse(), nil
+				}
 				return nil, fmt.Errorf("unexpected request")
 			},
 		},
@@ -404,7 +446,7 @@ func TestGetLoginURL(t *testing.T) {
 		t.Fatalf("failed to unmarshal response: %v", err)
 	}
 
-	if !strings.Contains(resp.Data.AuthorizeURL, config.Config.OAuth2.AuthorizationEndpoint) {
+	if !strings.Contains(resp.Data.AuthorizeURL, testAuthURL) {
 		t.Errorf("invalid authorize URL: %s", resp.Data.AuthorizeURL)
 	}
 
@@ -424,7 +466,7 @@ func TestGetLoginURL(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to decode state payload: %v", err)
 	}
-	if payload.SourceName != "default" || payload.Purpose != OAuthPurposeLogin {
+	if payload.SourceName != testSourceName || payload.Purpose != OAuthPurposeLogin {
 		t.Errorf("unexpected payload: %+v", payload)
 	}
 
@@ -525,23 +567,23 @@ func TestCallbackLoginAndUserInfo(t *testing.T) {
 	initializeTestConfig()
 	dbConn := setupTestDB(t)
 	mockRedis := newMockRedisClient()
+	seedTestAuthSource(t, dbConn)
+	state := uuid.NewString()
 
 	// 1. Mock the outgoing HTTP client for token exchange and user info fetching
 	httpMock := &http.Client{
 		Transport: &mockRoundTripper{
 			roundTripFunc: func(req *http.Request) (*http.Response, error) {
-				// Handle Token Exchange
-				if req.Method == http.MethodPost && req.URL.String() == config.Config.OAuth2.TokenEndpoint {
-					body := `{"access_token":"mock_access_token","token_type":"Bearer","expires_in":3600}`
-					return &http.Response{
-						StatusCode: http.StatusOK,
-						Body:       io.NopCloser(strings.NewReader(body)),
-						Header:     make(http.Header),
-					}, nil
+				if req.Method == http.MethodGet && strings.Contains(req.URL.String(), "/.well-known/openid-configuration") {
+					return oidcDiscoveryResponse(), nil
 				}
-				// Handle User Info fetch
-				if req.Method == http.MethodGet && req.URL.String() == config.Config.OAuth2.UserEndpoint {
-					body := `{"id":88888,"sub":"oauth_user_88888","username":"test_oauth_user","email":"oauth@linux.do","name":"Oauth Test User","active":true,"trust_level":3}`
+				if req.Method == http.MethodGet && req.URL.String() == testJWKSURL {
+					return jwksResponse(), nil
+				}
+				// Handle Token Exchange
+				if req.Method == http.MethodPost && req.URL.String() == testTokenURL {
+					idToken := generateMockIDToken(testIssuerURL, "88888", testClientID, state, "test_oauth_user", "oauth@linux.do", "Oauth Test User")
+					body := fmt.Sprintf(`{"access_token":"mock_access_token","token_type":"Bearer","expires_in":3600,"id_token":"%s"}`, idToken)
 					return &http.Response{
 						StatusCode: http.StatusOK,
 						Body:       io.NopCloser(strings.NewReader(body)),
@@ -556,9 +598,8 @@ func TestCallbackLoginAndUserInfo(t *testing.T) {
 	router := setupTestRouter(dbConn, mockRedis, httpMock)
 
 	// 2. Setup state in Redis
-	state := uuid.NewString()
 	payloadValue, _ := encodeOAuthStatePayload(oauthStatePayload{
-		SourceName: "default",
+		SourceName: testSourceName,
 		Purpose:    OAuthPurposeLogin,
 	})
 	mockRedis.Set(context.Background(), db.PrefixedKey(fmt.Sprintf(OAuthStateCacheKeyFormat, state)), payloadValue, OAuthStateCacheKeyExpiration)
@@ -582,13 +623,13 @@ func TestCallbackLoginAndUserInfo(t *testing.T) {
 		t.Errorf("expected logged_in status, got %s", callbackResp.Data.Status)
 	}
 
-	if callbackResp.Data.User.Username != "test_oauth_user" || callbackResp.Data.User.ID != 1 {
+	if callbackResp.Data.User.Username != "test_oauth_user" || callbackResp.Data.User.ID != 88888 {
 		t.Errorf("unexpected user returned: %+v", callbackResp.Data.User)
 	}
 
 	// Verify user is created in database
 	var user model.User
-	if err := dbConn.First(&user, "id = ?", 1).Error; err != nil {
+	if err := dbConn.First(&user, "id = ?", 88888).Error; err != nil {
 		t.Fatalf("user was not created in DB: %v", err)
 	}
 
@@ -619,15 +660,15 @@ func TestCallbackLoginAndUserInfo(t *testing.T) {
 	httpMock2 := &http.Client{
 		Transport: &mockRoundTripper{
 			roundTripFunc: func(req *http.Request) (*http.Response, error) {
-				if req.Method == http.MethodPost && req.URL.String() == config.Config.OAuth2.TokenEndpoint {
-					body := `{"access_token":"mock_access_token","token_type":"Bearer","expires_in":3600}`
-					return &http.Response{
-						StatusCode: http.StatusOK,
-						Body:       io.NopCloser(strings.NewReader(body)),
-					}, nil
+				if req.Method == http.MethodGet && strings.Contains(req.URL.String(), "/.well-known/openid-configuration") {
+					return oidcDiscoveryResponse(), nil
 				}
-				if req.Method == http.MethodGet && req.URL.String() == config.Config.OAuth2.UserEndpoint {
-					body := `{"id":99999,"sub":"oauth_user_99999","username":"test_oauth_user","email":"another@linux.do","name":"Another User","active":true,"trust_level":1}`
+				if req.Method == http.MethodGet && req.URL.String() == testJWKSURL {
+					return jwksResponse(), nil
+				}
+				if req.Method == http.MethodPost && req.URL.String() == testTokenURL {
+					idToken := generateMockIDToken(testIssuerURL, "99999", testClientID, state2, "test_oauth_user", "another@linux.do", "Another User")
+					body := fmt.Sprintf(`{"access_token":"mock_access_token","token_type":"Bearer","expires_in":3600,"id_token":"%s"}`, idToken)
 					return &http.Response{
 						StatusCode: http.StatusOK,
 						Body:       io.NopCloser(strings.NewReader(body)),

@@ -2,9 +2,24 @@
 
 import {useEffect, useMemo, useState} from "react"
 import {useMutation, useQuery, useQueryClient} from "@tanstack/react-query"
-import {Fingerprint, Globe, Loader2, Lock, Pencil, Plus, Settings, Trash2, UserPlus} from "lucide-react"
+import {
+  CalendarClock,
+  Fingerprint,
+  Globe,
+  Info,
+  Loader2,
+  Lock,
+  Monitor,
+  Pencil,
+  Plus,
+  Server,
+  Settings,
+  Trash2,
+  UserPlus
+} from "lucide-react"
 import {useRouter} from "next/navigation"
 import {motion} from "motion/react"
+import packageJson from "../../../package.json"
 
 import {Button} from "@/components/ui/button"
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "@/components/ui/card"
@@ -12,7 +27,7 @@ import {Switch} from "@/components/ui/switch"
 import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs"
 import {useAuth} from "@/components/providers/auth-provider"
 import {AuthSourceModal} from "@/components/common/settings/auth-source-modal"
-import {AdminService} from "@/lib/services"
+import {AdminService, apiConfig} from "@/lib/services"
 import type {AuthSource, SystemConfig} from "@/lib/services/admin"
 import {toast} from "sonner"
 
@@ -52,12 +67,33 @@ function systemConfigMap(configs: SystemConfig[]) {
   }, {})
 }
 
+function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-4 border-b border-dashed py-2 last:border-b-0">
+      <span className="text-xs text-muted-foreground">{label}</span>
+      <span className="text-right text-xs font-medium text-foreground break-all">{value || "-"}</span>
+    </div>
+  )
+}
+
+function formatBooleanConfig(config?: SystemConfig) {
+  if (!config) return "未配置"
+  return config.value === "true" ? "启用" : "禁用"
+}
+
 export function SecurityMain() {
   const queryClient = useQueryClient()
   const { user, loading } = useAuth()
   const router = useRouter()
   const [authSourceModalOpen, setAuthSourceModalOpen] = useState(false)
   const [selectedSource, setSelectedSource] = useState<AuthSource | null>(null)
+  const [runtimeInfo, setRuntimeInfo] = useState({
+    language: "-",
+    platform: "-",
+    timezone: "-",
+    viewport: "-",
+    userAgent: "-",
+  })
 
   const systemConfigsQuery = useQuery({
     queryKey: ["admin", "system-configs"],
@@ -83,10 +119,14 @@ export function SecurityMain() {
   }, [user, loading, router])
 
   useEffect(() => {
-    if (user?.is_admin) {
-      void systemConfigsQuery.refetch()
-    }
-  }, [systemConfigsQuery, user])
+    setRuntimeInfo({
+      language: navigator.language || "-",
+      platform: navigator.platform || "-",
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "-",
+      viewport: `${window.innerWidth} x ${window.innerHeight}`,
+      userAgent: navigator.userAgent || "-",
+    })
+  }, [])
 
   const updateConfigMutation = useMutation({
     mutationFn: async ({ key, value }: { key: SecurityKey; value: boolean }) => {
@@ -341,7 +381,93 @@ export function SecurityMain() {
         <TabsContent value="operation" />
         <TabsContent value="system" />
         <TabsContent value="other" />
-        <TabsContent value="info" />
+        <TabsContent value="info" className="pt-4">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <Card className="border border-dashed shadow-sm">
+              <CardHeader className="border-b border-dashed pb-4">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 rounded-lg bg-muted text-muted-foreground">
+                    <Info className="size-4" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base font-semibold">应用信息</CardTitle>
+                    <CardDescription className="text-xs">当前前端应用的版本与构建信息</CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-4">
+                <InfoRow label="应用名称" value={packageJson.name} />
+                <InfoRow label="版本号" value={packageJson.version} />
+                <InfoRow label="构建时间" value={packageJson.buildDate} />
+                <InfoRow label="Next.js" value={packageJson.dependencies.next} />
+                <InfoRow label="React" value={packageJson.dependencies.react} />
+              </CardContent>
+            </Card>
+
+            <Card className="border border-dashed shadow-sm">
+              <CardHeader className="border-b border-dashed pb-4">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 rounded-lg bg-muted text-muted-foreground">
+                    <Server className="size-4" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base font-semibold">服务连接</CardTitle>
+                    <CardDescription className="text-xs">前端 API 客户端的基础连接参数</CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-4">
+                <InfoRow label="API Base URL" value={apiConfig.baseURL || "同源"} />
+                <InfoRow label="请求超时" value={`${apiConfig.timeout}ms`} />
+                <InfoRow label="携带凭证" value={apiConfig.withCredentials ? "是" : "否"} />
+                <InfoRow label="系统配置项" value={`${systemConfigsQuery.data?.length ?? 0} 项`} />
+                <InfoRow label="认证源数量" value={`${authSourcesQuery.data?.length ?? 0} 个`} />
+              </CardContent>
+            </Card>
+
+            <Card className="border border-dashed shadow-sm">
+              <CardHeader className="border-b border-dashed pb-4">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 rounded-lg bg-muted text-muted-foreground">
+                    <Monitor className="size-4" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base font-semibold">运行环境</CardTitle>
+                    <CardDescription className="text-xs">当前浏览器会话的本地运行信息</CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-4">
+                <InfoRow label="语言" value={runtimeInfo.language} />
+                <InfoRow label="平台" value={runtimeInfo.platform} />
+                <InfoRow label="时区" value={runtimeInfo.timezone} />
+                <InfoRow label="视口" value={runtimeInfo.viewport} />
+                <InfoRow label="User Agent" value={runtimeInfo.userAgent} />
+              </CardContent>
+            </Card>
+
+            <Card className="border border-dashed shadow-sm">
+              <CardHeader className="border-b border-dashed pb-4">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 rounded-lg bg-muted text-muted-foreground">
+                    <CalendarClock className="size-4" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base font-semibold">安全配置概览</CardTitle>
+                    <CardDescription className="text-xs">当前系统登录与注册开关状态</CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-4">
+                <InfoRow label="密码登录" value={formatBooleanConfig(configs.password_login_enabled)} />
+                <InfoRow label="开放注册" value={formatBooleanConfig(configs.registration_enabled)} />
+                <InfoRow label="密码注册" value={formatBooleanConfig(configs.password_register_enabled)} />
+                <InfoRow label="OIDC 登录" value={formatBooleanConfig(configs.oidc_login_enabled)} />
+                <InfoRow label="配置加载状态" value={systemConfigsQuery.isFetching ? "刷新中" : "已加载"} />
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
       </Tabs>
 
       <AuthSourceModal

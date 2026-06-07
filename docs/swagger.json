@@ -1478,7 +1478,7 @@
         },
         "/api/v1/oauth/login": {
             "get": {
-                "description": "根据指定认证源生成 OAuth 授权 URL，前端跳转到该 URL 完成 OAuth 登录授权。source 参数为空时使用默认认证源。",
+                "description": "根据指定认证源生成 OAuth 授权 URL，前端跳转到该 URL 完成 OAuth 登录授权。source 参数为空时使用第一个启用的认证源。",
                 "produces": [
                     "application/json"
                 ],
@@ -1489,7 +1489,7 @@
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "认证源名称，为空使用默认源",
+                        "description": "认证源名称，为空使用第一个启用的认证源",
                         "name": "source",
                         "in": "query"
                     }

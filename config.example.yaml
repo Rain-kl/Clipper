@@ -18,17 +18,6 @@ app:
   api_prefix: "/api"
   frontend_url: "http://localhost:3000"
 
-# ─── Default OAuth2 / OIDC Provider (optional) ──────────────────────────────────
-# You can configure additional OIDC providers at runtime via the admin panel.
-oauth2:
-  client_id: "<OAUTH2_CLIENT_ID>"
-  client_secret: "<OAUTH2_CLIENT_SECRET>"
-  redirect_uri: "<OAUTH2_REDIRECT_URI>"
-  issuer: ""                   # OIDC Issuer URL for auto-discovery (recommended)
-  authorization_endpoint: ""   # Leave empty if issuer is set
-  token_endpoint: ""
-  user_endpoint: ""
-
 # ─── PostgreSQL ─────────────────────────────────────────────────────────────────
 # Supports Standalone and Primary-Replica (read/write split) modes.
 database:
@@ -36,7 +25,7 @@ database:
   host: "127.0.0.1"
   port: 5432
   username: "postgres"
-  password: ""
+  password: "postgres"
   database: "refreshing"
   max_idle_conn: 16
   max_open_conn: 128

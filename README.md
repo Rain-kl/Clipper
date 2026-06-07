@@ -98,12 +98,18 @@ cd refreshing
 cp config.example.yaml config.yaml
 ```
 
-Edit `config.yaml` to configure your database, Redis, and at least one auth source (OIDC or password-based).
+Edit `config.yaml` to configure your database and Redis. OIDC auth sources are configured at runtime in the admin settings page.
 
 ### 3. Initialize Database
 
 ```bash
-# Create the database
+# Start local dependencies (PostgreSQL + Redis)
+docker compose up -d
+
+# Optional: also start ClickHouse
+docker compose --profile clickhouse up -d
+
+# If you use an external PostgreSQL instance instead of Docker, create the database manually
 createdb -h <host> -p 5432 -U postgres refreshing
 
 # Database schema is auto-migrated on first startup
@@ -159,7 +165,6 @@ Key configuration options (see `config.example.yaml` for the full reference):
 | `database.database` | Database name | `refreshing` |
 | `redis.host` | Redis host | `127.0.0.1` |
 | `storage.endpoint` | S3-compatible endpoint | `s3.amazonaws.com` |
-| `oauth2.client_id` | Default OIDC client ID | `your_client_id` |
 
 ## 🔧 Development Guide
 

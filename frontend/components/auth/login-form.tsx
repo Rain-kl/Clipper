@@ -237,31 +237,28 @@ export function LoginForm() {
 
         <Separator />
 
-        <div className="space-y-3">
-          <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-            <ShieldCheck className="size-4" />
-            第三方认证源
-          </div>
-          <div className="grid gap-2">
-            {authSources.length > 0 ? (
-              authSources.map((source) => (
-                <Button
-                  key={source.id}
-                  type="button"
-                  variant="outline"
-                  className="justify-start"
-                  onClick={() => void handleOAuthLogin(source.name)}
-                >
-                  {source.display_name || source.name} 登录
-                </Button>
-              ))
-            ) : (
-              <div className="rounded-lg border border-dashed border-border/60 px-3 py-4 text-sm text-muted-foreground">
-                暂无可用认证源
+        {authSources.length > 0 ? (
+          authSources.map((source) => (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                <ShieldCheck className="size-4" />
+                第三方认证源
               </div>
-            )}
-          </div>
-        </div>
+              <div className="grid gap-2">
+            <Button
+              key={source.id}
+              type="button"
+              variant="outline"
+              className="justify-start"
+              onClick={() => void handleOAuthLogin(source.name)}
+            >
+              {source.display_name || source.name} 登录
+            </Button>
+              </div>
+            </div>
+          ))
+        ) : null}
+        
       </CardContent>
     </Card>
   )
