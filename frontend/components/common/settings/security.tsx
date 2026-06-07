@@ -254,7 +254,7 @@ export function SecurityMain() {
                 setSelectedSource(null)
                 setAuthSourceModalOpen(true)
               }}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-600/10 transition-colors"
+              variant="secondary"
             >
               <Plus className="mr-1.5 size-3.5" />
               新增认证源

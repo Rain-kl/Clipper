@@ -1492,6 +1492,393 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/upload": {
+            "post": {
+                "security": [
+                    {
+                        "SessionCookie": []
+                    }
+                ],
+                "description": "支持各种类型的通用文件上传，支持自动文件类型检测、哈希计算与“秒传”去重",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "upload"
+                ],
+                "summary": "上传文件",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "要上传的文件",
+                        "name": "file",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "业务分类 (例如: avatar, attachment, doc，默认为 generic)",
+                        "name": "type",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "额外的 JSON 格式元数据",
+                        "name": "metadata",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "上传成功",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/util.ResponseAny"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.Upload"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "请求参数错误或文件受限",
+                        "schema": {
+                            "$ref": "#/definitions/util.ResponseAny"
+                        }
+                    },
+                    "401": {
+                        "description": "未登录",
+                        "schema": {
+                            "$ref": "#/definitions/util.ResponseAny"
+                        }
+                    },
+                    "500": {
+                        "description": "内部错误",
+                        "schema": {
+                            "$ref": "#/definitions/util.ResponseAny"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/upload/download/batch": {
+            "post": {
+                "security": [
+                    {
+                        "SessionCookie": []
+                    }
+                ],
+                "description": "传入多个文件 ID，后台实时将其打包压缩为 ZIP 流并输出，自动处理文件名重复冲突",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/octet-stream"
+                ],
+                "tags": [
+                    "upload"
+                ],
+                "summary": "批量打包下载",
+                "parameters": [
+                    {
+                        "description": "包含文件 ID 数组的请求体",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/upload.batchDownloadRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功下载打包后的 ZIP",
+                        "schema": {
+                            "type": "file"
+                        }
+                    },
+                    "400": {
+                        "description": "参数错误",
+                        "schema": {
+                            "$ref": "#/definitions/util.ResponseAny"
+                        }
+                    },
+                    "500": {
+                        "description": "打包失败",
+                        "schema": {
+                            "$ref": "#/definitions/util.ResponseAny"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/upload/download/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "SessionCookie": []
+                    }
+                ],
+                "description": "根据文件 ID 获取文件，以附件形式 (Attachment) 强制开启客户端浏览器下载",
+                "produces": [
+                    "application/octet-stream"
+                ],
+                "tags": [
+                    "upload"
+                ],
+                "summary": "下载单文件",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "文件 ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功下载文件",
+                        "schema": {
+                            "type": "file"
+                        }
+                    },
+                    "400": {
+                        "description": "参数错误",
+                        "schema": {
+                            "$ref": "#/definitions/util.ResponseAny"
+                        }
+                    },
+                    "404": {
+                        "description": "文件不存在",
+                        "schema": {
+                            "$ref": "#/definitions/util.ResponseAny"
+                        }
+                    },
+                    "500": {
+                        "description": "服务内部错误",
+                        "schema": {
+                            "$ref": "#/definitions/util.ResponseAny"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/user/access-tokens": {
+            "get": {
+                "security": [
+                    {
+                        "SessionCookie": []
+                    }
+                ],
+                "description": "返回当前登录用户的所有 active access tokens（脱敏后）",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "user"
+                ],
+                "summary": "获取当前用户的 AccessToken 列表",
+                "responses": {
+                    "200": {
+                        "description": "令牌列表",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/util.ResponseAny"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/model.AccessToken"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "未登录",
+                        "schema": {
+                            "$ref": "#/definitions/util.ResponseAny"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "SessionCookie": []
+                    }
+                ],
+                "description": "为当前用户新建一个 API 访问令牌，仅在此接口返回一次明文令牌值，请妥善保存。",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "user"
+                ],
+                "summary": "创建一个新的 AccessToken",
+                "parameters": [
+                    {
+                        "description": "令牌名称",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/user.createTokenRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "新建令牌成功",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/util.ResponseAny"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/user.tokenResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "参数错误或超限",
+                        "schema": {
+                            "$ref": "#/definitions/util.ResponseAny"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/user/access-tokens/{id}": {
+            "delete": {
+                "security": [
+                    {
+                        "SessionCookie": []
+                    }
+                ],
+                "description": "撤销并删除一个属于当前用户的 API 访问令牌",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "user"
+                ],
+                "summary": "删除一个 AccessToken",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "令牌ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "删除成功",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/util.ResponseAny"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "参数错误",
+                        "schema": {
+                            "$ref": "#/definitions/util.ResponseAny"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/user/access-tokens/{id}/rotate": {
+            "post": {
+                "security": [
+                    {
+                        "SessionCookie": []
+                    }
+                ],
+                "description": "轮换（重新生成）一个属于当前用户的 API 访问令牌的密钥，旧令牌将立即失效",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "user"
+                ],
+                "summary": "轮换一个 AccessToken",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "令牌ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "令牌轮换成功",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/util.ResponseAny"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/user.tokenResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "参数错误",
+                        "schema": {
+                            "$ref": "#/definitions/util.ResponseAny"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/user/login": {
             "post": {
                 "description": "使用用户名和密码登录，登录成功后建立 Session。若管理员已关闭密码登录功能则返回错误。",
@@ -1740,6 +2127,32 @@ const docTemplate = `{
                 }
             }
         },
+        "model.AccessToken": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "last_used_at": {
+                    "type": "string"
+                },
+                "masked_token": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "integer"
+                }
+            }
+        },
         "model.AuthSource": {
             "type": "object",
             "properties": {
@@ -1848,6 +2261,129 @@ const docTemplate = `{
                 "TrustLevelUser",
                 "TrustLevelActiveUser",
                 "TrustLevelLeader"
+            ]
+        },
+        "model.Upload": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "extension": {
+                    "description": "文件后缀名 (不含点，如 png, pdf)",
+                    "type": "string"
+                },
+                "file_name": {
+                    "description": "原始文件名 (例如: image.png)",
+                    "type": "string"
+                },
+                "file_path": {
+                    "description": "文件相对路径 / S3 Key",
+                    "type": "string"
+                },
+                "file_size": {
+                    "description": "文件大小（字节）",
+                    "type": "integer"
+                },
+                "hash": {
+                    "description": "文件哈希 (SHA-256/MD5，可用于排重)",
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string",
+                    "example": "0"
+                },
+                "metadata": {
+                    "description": "业务扩展元数据",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/model.UploadMetadata"
+                        }
+                    ]
+                },
+                "mime_type": {
+                    "description": "媒体类型 (MIME, 如 image/png)",
+                    "type": "string"
+                },
+                "status": {
+                    "description": "状态",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/model.UploadStatus"
+                        }
+                    ]
+                },
+                "storage_driver": {
+                    "description": "存储引擎驱动 (如 local, s3, oss)",
+                    "type": "string"
+                },
+                "type": {
+                    "description": "业务标识类型 (如 avatar, doc, attachment)",
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "string",
+                    "example": "0"
+                }
+            }
+        },
+        "model.UploadMetadata": {
+            "type": "object",
+            "properties": {
+                "bucket": {
+                    "description": "存储桶名称 (适用于 S3 等)",
+                    "type": "string"
+                },
+                "client_ip": {
+                    "description": "上传者 IP",
+                    "type": "string"
+                },
+                "duration": {
+                    "description": "音视频时长 (s)",
+                    "type": "number"
+                },
+                "extra": {
+                    "description": "其它任意业务自定义元数据",
+                    "type": "object",
+                    "additionalProperties": {}
+                },
+                "height": {
+                    "description": "图像/视频高度 (px)",
+                    "type": "integer"
+                },
+                "original_mime": {
+                    "description": "原始 MIME 类型",
+                    "type": "string"
+                },
+                "user_agent": {
+                    "description": "上传者的 UA",
+                    "type": "string"
+                },
+                "width": {
+                    "description": "图像/视频宽度 (px)",
+                    "type": "integer"
+                }
+            }
+        },
+        "model.UploadStatus": {
+            "type": "string",
+            "enum": [
+                "pending",
+                "used",
+                "deleted"
+            ],
+            "x-enum-comments": {
+                "UploadStatusDeleted": "已删除",
+                "UploadStatusPending": "待使用",
+                "UploadStatusUsed": "已使用"
+            },
+            "x-enum-varnames": [
+                "UploadStatusPending",
+                "UploadStatusUsed",
+                "UploadStatusDeleted"
             ]
         },
         "oauth.AuthSourceView": {
@@ -2057,6 +2593,29 @@ const docTemplate = `{
                 }
             }
         },
+        "upload.batchDownloadRequest": {
+            "type": "object",
+            "required": [
+                "ids"
+            ],
+            "properties": {
+                "ids": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "user.createTokenRequest": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
         "user.listUsersResponse": {
             "type": "object",
             "properties": {
@@ -2095,6 +2654,17 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "user.tokenResponse": {
+            "type": "object",
+            "properties": {
+                "record": {
+                    "$ref": "#/definitions/model.AccessToken"
+                },
+                "token": {
                     "type": "string"
                 }
             }

@@ -1,126 +1,134 @@
-# LINUX DO Credit
+# Refreshing
 
-🚀 Linux Do Community Credit Service Platform
+🚀 A modern, production-ready full-stack boilerplate for building scalable web applications
 
 [中文](./README_zh.md)
 
 [![License: Apache2.0](https://img.shields.io/badge/License-Apache2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Go Version](https://img.shields.io/badge/Go-1.25.5-blue.svg)](https://golang.org/)
+[![Go Version](https://img.shields.io/badge/Go-1.25+-blue.svg)](https://golang.org/)
 [![Next.js](https://img.shields.io/badge/Next.js-16-black.svg)](https://nextjs.org/)
 [![React](https://img.shields.io/badge/React-19-blue.svg)](https://reactjs.org/)
 
-[![GitHub release](https://img.shields.io/github/v/release/linux-do/credit?include_prereleases)](https://github.com/linux-do/credit/releases)
-[![GitHub stars](https://img.shields.io/github/stars/linux-do/credit)](https://github.com/linux-do/credit/stargazers) 
-[![GitHub forks](https://img.shields.io/github/forks/linux-do/credit)](https://github.com/linux-do/credit/network)
-[![GitHub issues](https://img.shields.io/github/issues/linux-do/credit)](https://github.com/linux-do/credit/issues)
-[![GitHub pull requests](https://img.shields.io/github/issues-pr/linux-do/credit)](https://github.com/linux-do/credit/pulls)
-[![GitHub contributors](https://img.shields.io/github/contributors/linux-do/credit)](https://github.com/linux-do/credit/graphs/contributors)
-
-[![Backend Build](https://github.com/linux-do/credit/actions/workflows/build_backend.yml/badge.svg)](https://github.com/linux-do/credit/actions/workflows/build_backend.yml)
-[![Frontend Build](https://github.com/linux-do/credit/actions/workflows/build_frontend.yml/badge.svg)](https://github.com/linux-do/credit/actions/workflows/build_frontend.yml)
-[![Docker Build](https://github.com/linux-do/credit/actions/workflows/build_image.yml/badge.svg)](https://github.com/linux-do/credit/actions/workflows/build_image.yml)
-[![CodeQL](https://github.com/linux-do/credit/actions/workflows/codeql.yml/badge.svg)](https://github.com/linux-do/credit/actions/workflows/codeql.yml)
-[![ESLint](https://github.com/linux-do/credit/actions/workflows/eslint.yml/badge.svg)](https://github.com/linux-do/credit/actions/workflows/eslint.yml)
-
 ## 📖 Introduction
 
-LINUX DO Credit is a credit service platform built for the Linux Do community, aimed at providing a series of credit-related services and offering a foundational framework for credit circulation for community developers.
+**Refreshing** is a generic, production-ready full-stack boilerplate built with **Go (Gin + GORM)** on the backend and **Next.js (App Router + Shadcn UI)** on the frontend. It ships with everything you need to bootstrap a modern SaaS, internal tool, or developer platform — without the boilerplate headaches.
+
+The project was designed from the ground up to be **framework-first and business-agnostic**: plug in your own domain logic while reusing the battle-tested infrastructure that comes out of the box.
 
 ### ✨ Key Features
 
-- 🔐 **OAuth2 Authentication** - Integrated with Linux Do community account system
-- 🛡️ **Risk Control** - Comprehensive trust level and risk assessment system
-- 📊 **Real-time Monitoring** - Detailed distribution statistics and user behavior analysis
-- 🎨 **Modern Interface** - Responsive design based on Next.js 16 and React 19
-- ⚡ **High Performance** - Go Backend + Redis Cache + PostgreSQL Database
+- 🔐 **Multi-auth System** — Local password login/registration + pluggable OIDC/OAuth2 providers (supports multiple auth sources simultaneously)
+- 🗝️ **Personal Access Tokens** — API key management for programmatic access; supports `Authorization: Bearer` and `X-Access-Token` headers
+- 👤 **User Management** — Admin panel for listing, searching, filtering, enabling/disabling user accounts
+- ⚙️ **Dynamic System Config** — Key-value system configuration management with live reload, controllable from the admin UI
+- 📋 **Async Task Queue** — Background job processing with [Asynq](https://github.com/hibiken/asynq) (Redis-backed), including a scheduling dashboard
+- 📁 **S3 File Storage** — Unified file upload/download via S3-compatible APIs with local disk cache
+- 📊 **Observability** — Structured logging (Zap) + distributed tracing (OpenTelemetry)
+- 🎨 **Modern UI** — Responsive, dark-mode-ready design system built with Tailwind CSS 4 and Shadcn UI
+- 📖 **Built-in Documentation** — Integrated docs portal with usage guides, API reference, privacy policy, and terms of service
 
 ## 🏗️ Architecture Overview
 
 ```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Frontend      │    │    Backend      │    │   Database      │
-│   (Next.js)     │◄──►│     (Go)        │◄──►│  (PostgreSQL)   │
-│                 │    │                 │    │                 │
-│ • React 19      │    │ • Gin Framework │    │ • PostgreSQL    │
-│ • TypeScript    │    │ • OAuth2        │    │ • Redis Cache   │
-│ • Tailwind CSS  │    │ • Session Store │    │                 │
-│ • Shadcn UI     │    │ • OpenTelemetry │    │                 │
-│                 │    │ • Swagger API   │    │                 │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
+┌─────────────────┐    ┌─────────────────────────────┐    ┌─────────────────┐
+│   Frontend      │    │          Backend             │    │   Database      │
+│   (Next.js)     │◄──►│           (Go)               │◄──►│  (PostgreSQL)   │
+│                 │    │                              │    │                 │
+│ • React 19      │    │ • Gin HTTP Framework         │    │ • PostgreSQL    │
+│ • TypeScript    │    │ • GORM ORM                   │    │ • Redis Cache   │
+│ • Tailwind 4    │    │ • Multi-provider Auth        │    │                 │
+│ • Shadcn UI     │    │ • AccessToken Middleware     │    │                 │
+│                 │    │ • Asynq Task Queue           │    │                 │
+│                 │    │ • OpenTelemetry Tracing      │    │                 │
+│                 │    │ • Swagger API Docs           │    │                 │
+└─────────────────┘    └─────────────────────────────┘    └─────────────────┘
+                                      │
+                           ┌──────────┴──────────┐
+                           │   Multi-Process CLI  │
+                           │  (Cobra + Viper)     │
+                           │ • api      (HTTP)    │
+                           │ • worker   (Queue)   │
+                           │ • scheduler(Cron)    │
+                           └─────────────────────┘
 ```
 
 ## 🛠️ Tech Stack
 
 ### Backend
-- **[Go 1.25.5](https://go.dev/doc)** - Primary development language
-- **[GIN](https://github.com/gin-gonic/gin)** - Web Framework
-- **[GORM](https://github.com/go-gorm/gorm)** - ORM Framework
-- **[Redis](https://github.com/redis/redis)** - Cache and session store
-- **[PostgreSQL](https://www.postgresql.org)** - Primary Database
-- **[OpenTelemetry](https://opentelemetry.io)** - Observability
-- **[Swagger](https://github.com/swaggo/swag)** - API Documentation
+- **[Go 1.25+](https://go.dev/doc)** — Primary language
+- **[Gin](https://github.com/gin-gonic/gin)** — HTTP web framework
+- **[GORM](https://github.com/go-gorm/gorm)** — ORM with PostgreSQL & ClickHouse support
+- **[Redis](https://github.com/redis/redis)** — Cache, session store, and task queue backend
+- **[Asynq](https://github.com/hibiken/asynq)** — Distributed task queue (Redis-backed)
+- **[Cobra + Viper](https://github.com/spf13/cobra)** — CLI entrypoint and configuration management
+- **[OpenTelemetry](https://opentelemetry.io)** — Distributed tracing and observability
+- **[Zap](https://github.com/uber-go/zap)** — Structured, high-performance logging
+- **[Swagger (Swaggo)](https://github.com/swaggo/swag)** — Auto-generated API documentation
+- **[AWS SDK v2](https://github.com/aws/aws-sdk-go-v2)** — S3-compatible file storage
+- **[Snowflake](https://github.com/bwmarrin/snowflake)** — Distributed ID generation
 
 ### Frontend
-- **[Next.js 16](https://github.com/vercel/next.js)** - React Framework
-- **[React 19](https://github.com/facebook/react)** - UI Library
-- **[TypeScript](https://github.com/microsoft/TypeScript)** - Type Safety
-- **[Tailwind CSS 4](https://github.com/tailwindlabs/tailwindcss)** - Styling Framework
-- **[Shadcn UI](https://github.com/shadcn-ui/ui)** - Component Library
-- **[Lucide Icons](https://github.com/lucide-icons/lucide)** - Icon Library
+- **[Next.js 16](https://github.com/vercel/next.js)** — React framework with App Router
+- **[React 19](https://github.com/facebook/react)** — UI library
+- **[TypeScript](https://github.com/microsoft/TypeScript)** — Type safety
+- **[Tailwind CSS 4](https://github.com/tailwindlabs/tailwindcss)** — Utility-first styling
+- **[Shadcn UI](https://github.com/shadcn-ui/ui)** — Accessible, composable component library
+- **[Lucide Icons](https://github.com/lucide-icons/lucide)** — Icon library
 
 ## 📋 Requirements
 
-- **Go** >= 1.25.5
+- **Go** >= 1.25
 - **Node.js** >= 18.0
-- **PostgreSQL** >= 18
+- **PostgreSQL** >= 14
 - **Redis** >= 6.0
-- **pnpm** >= 8.0 (Recommended)
+- **pnpm** >= 8.0 (recommended)
 
 ## 🚀 Quick Start
 
-### 1. Clone the Project
+### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/linux-do/credit.git
-cd credit
+git clone https://github.com/linux-do/credit.git refreshing
+cd refreshing
 ```
 
 ### 2. Configure Environment
-
-Copy the configuration file and edit it:
 
 ```bash
 cp config.example.yaml config.yaml
 ```
 
-Edit `config.yaml` to configure database connections, Redis, OAuth2, etc.
+Edit `config.yaml` to configure your database, Redis, and at least one auth source (OIDC or password-based).
 
 ### 3. Initialize Database
 
 ```bash
-# Create database
-createdb -h <host> -p 5432 -U postgres linux_do_credit
+# Create the database
+createdb -h <host> -p 5432 -U postgres refreshing
 
-# If you need to specify encoding, use:
-# psql -h <host> -p 5432 -U postgres -c "CREATE DATABASE linux_do_credit WITH ENCODING 'UTF8' LC_COLLATE='zh_CN.UTF-8' LC_CTYPE='zh_CN.UTF-8' TEMPLATE template0;"
-
-# Run migrations (automatically executed when starting the backend)
+# Database schema is auto-migrated on first startup
 ```
 
-### 4. Start Backend
+### 4. Start the Backend
 
 ```bash
 # Install Go dependencies
 go mod tidy
 
-# Generate API documentation
+# Generate Swagger API documentation
 make swagger
 
-# Start backend service
+# Start the HTTP API server
 go run main.go api
 ```
 
-### 5. Start Frontend
+> The backend also supports separate `scheduler` and `worker` processes for async task processing:
+> ```bash
+> go run main.go scheduler   # Cron job scheduler
+> go run main.go worker      # Asynq task worker
+> ```
+
+### 5. Start the Frontend
 
 ```bash
 cd frontend
@@ -128,40 +136,34 @@ cd frontend
 # Install dependencies
 pnpm install
 
-# Start development server
+# Start dev server (Turbopack)
 pnpm dev
 ```
 
-### 6. Access Application
+### 6. Access the Application
 
-- **Frontend Interface**: http://localhost:3000
-- **API Documentation**: http://localhost:8000/swagger/index.html
-- **Health Check**: http://localhost:8000/api/health
+| Service | URL |
+|---------|-----|
+| Frontend | http://localhost:3000 |
+| Swagger API Docs | http://localhost:8000/swagger/index.html |
+| Health Check | http://localhost:8000/api/health |
 
 ## ⚙️ Configuration
 
-### Main Configuration Options
+Key configuration options (see `config.example.yaml` for the full reference):
 
 | Option | Description | Example |
 |--------|-------------|---------|
-| `app.addr` | Backend service listening address | `:8000` |
-| `oauth2.client_id` | OAuth2 Client ID | `your_client_id` |
-| `database.host` | PostgreSQL database host | `127.0.0.1` |
-| `database.port` | PostgreSQL database port | `5432` |
-| `database.username` | PostgreSQL database username | `postgres` |
-| `database.password` | PostgreSQL database password | `password` |
-| `database.database` | PostgreSQL database name | `linux_do_credit` |
-| `database.ssl_mode` | PostgreSQL SSL mode | `disable` |
-| `database.application_name` | PostgreSQL application name | `credit-server` |
-| `database.search_path` | PostgreSQL search path | `public` |
-| `database.default_query_exec_mode` | SQL cache mode | `cache_statement` |
-| `redis.host` | Redis server address | `127.0.0.1` |
-
-For detailed configuration instructions, please refer to the `config.example.yaml` file.
+| `app.addr` | Backend listen address | `:8000` |
+| `database.host` | PostgreSQL host | `127.0.0.1` |
+| `database.database` | Database name | `refreshing` |
+| `redis.host` | Redis host | `127.0.0.1` |
+| `storage.endpoint` | S3-compatible endpoint | `s3.amazonaws.com` |
+| `oauth2.client_id` | Default OIDC client ID | `your_client_id` |
 
 ## 🔧 Development Guide
 
-### Backend Development
+### Backend
 
 ```bash
 # Run API server
@@ -170,115 +172,135 @@ go run main.go api
 # Run task scheduler
 go run main.go scheduler
 
-# Run worker queue
+# Run async worker
 go run main.go worker
 
-# Generate Swagger documentation
+# Regenerate Swagger docs (required after controller changes)
 make swagger
 
-# Format and check code
+# Format & vet code
 make tidy
 ```
 
-### Frontend Development
+### Frontend
 
 ```bash
 cd frontend
 
-# Development mode (using Turbopack)
+# Development mode (Turbopack)
 pnpm dev
 
-# Build production version
+# Production build
 pnpm build
 
-# Start production service
+# Start production server
 pnpm start
 
-# Lint and format code
+# Lint & format
 pnpm lint
 pnpm format
 ```
 
+## 📁 Project Structure
+
+```
+Refreshing/
+├── main.go                  # Entry point (delegates to internal/cmd)
+├── config.example.yaml      # Configuration template
+├── Makefile                 # Common commands (swagger, tidy, license)
+├── Dockerfile               # Container image build
+├── docs/                    # Swagger auto-generated docs
+├── frontend/                # Next.js frontend application
+│   ├── app/                 # App Router pages
+│   ├── components/          # React components (ui, common, layout)
+│   ├── lib/services/        # API service layer
+│   └── types/               # TypeScript type definitions
+└── internal/                # Go backend (private)
+    ├── cmd/                 # CLI commands (api, scheduler, worker)
+    ├── apps/                # Business modules (oauth, user, admin, upload)
+    ├── model/               # GORM entities and business methods
+    ├── router/              # HTTP route registration
+    ├── task/                # Async task definitions and workers
+    ├── db/                  # Database and Redis initialization
+    ├── storage/             # S3 file storage abstraction
+    └── common/              # Shared utilities and response helpers
+```
+
 ## 📚 API Documentation
 
-API documentation is automatically generated by Swagger and can be accessed after starting the backend service:
+Swagger API documentation is auto-generated and available once the backend is running:
 
 ```
 http://localhost:8000/swagger/index.html
 ```
 
+The built-in frontend docs portal at `/docs` includes:
+- **Usage Guide** — Step-by-step walkthrough for getting started
+- **API Reference** — Detailed interface documentation
+- **Privacy Policy** — Template privacy policy (customize as needed)
+- **Terms of Service** — Template terms of service
+
 ## 🧪 Testing
 
 ```bash
-# Backend testing
+# Backend tests
 go test ./...
 
-# Frontend testing
-cd frontend
-pnpm test
+# Frontend lint
+cd frontend && pnpm lint
 ```
 
 ## 🚀 Deployment
 
-### Docker Deployment
+### Docker
 
 ```bash
 # Build image
-docker build -t linux-do-credit .
+docker build -t refreshing .
 
-# Run container
-docker run -d -p 8000:8000 linux-do-credit
+# Run (pass your config as a volume mount)
+docker run -d -p 8000:8000 \
+  -v $(pwd)/config.yaml:/app/config.yaml \
+  refreshing api
 ```
 
-### Production Environment Deployment
+### Production
 
-1. Build frontend resources:
+1. Build the frontend:
    ```bash
    cd frontend && pnpm build
    ```
 
-2. Compile backend program:
+2. Compile the backend:
    ```bash
-   go build -o credit main.go
+   go build -o refreshing main.go
    ```
 
-3. Configure `config.yaml` for production
+3. Configure `config.yaml` for production.
 
-4. Start service:
+4. Start services:
    ```bash
-   ./credit api
+   ./refreshing api        # HTTP API
+   ./refreshing scheduler  # Cron scheduler (optional)
+   ./refreshing worker     # Task worker (optional)
    ```
 
-## 🤝 Contribution Guidelines
+## 🤝 Contributing
 
-We welcome community contributions! Please read the following before submitting code:
+We welcome contributions! Please read the following before submitting code:
 
-- [Contribution Guidelines](CONTRIBUTING.md)
+- [Contributing Guidelines](CONTRIBUTING.md)
 - [Code of Conduct](CODE_OF_CONDUCT.md)
 - [Contributor License Agreement](CLA.md)
 
-### Submission Process
+### Workflow
 
-1. Fork this repository
+1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/your-feature`)
-3. Commit changes (`git commit -am 'Add your feature'`)
-4. Push to branch (`git push origin feature/your-feature`)
-5. Create Pull Request
+3. Commit your changes (`git commit -am 'Add your feature'`)
+4. Push to the branch (`git push origin feature/your-feature`)
+5. Open a Pull Request
 
 ## 📄 License
 
-This project is open source under the [Apache2.0 License](LICENSE).
-
-## 🔗 Related Links
-
-- [Linux Do Community](https://linux.do)
-- [Issue Reporting](https://github.com/linux-do/credit/issues)
-- [Feature Request](https://github.com/linux-do/credit/issues/new?template=feature_request.md)
-
-## ❤️ Acknowledgements
-
-Thanks to all developers who contributed to this project and the support of the Linux Do Community!
-
-## 📈 Star History
-
-[![Star History Chart](https://api.star-history.com/svg?repos=linux-do/credit&type=Date)](https://star-history.com/#linux-do/credit&Date)
+This project is licensed under the [Apache 2.0 License](LICENSE).

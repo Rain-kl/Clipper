@@ -104,6 +104,7 @@ export type {
 
 // 用户服务
 export { UserService } from './user';
+export type { AccessToken, CreateTokenResponse } from './user';
 
 // 上传服务
 export { UploadService } from './upload';

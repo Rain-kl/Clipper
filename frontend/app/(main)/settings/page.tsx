@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import {Card, CardContent, CardDescription, CardTitle} from "@/components/ui/card"
-import {Bell, Loader2, Palette, Shield, UserRound} from "lucide-react"
+import {Bell, Key, Loader2, Palette, Shield, UserRound} from "lucide-react"
 import {useAuth} from "@/components/providers/auth-provider"
 
 /* 设置项 */
@@ -12,6 +12,13 @@ const settingsItems = [
     description: "查看您的账户信息",
     icon: UserRound,
     href: "/settings/profile",
+    category: "个人设置",
+  },
+  {
+    title: "访问令牌 (AccessToken)",
+    description: "管理用于 API 访问的个人 Token",
+    icon: Key,
+    href: "/settings/access-token",
     category: "个人设置",
   },
   {

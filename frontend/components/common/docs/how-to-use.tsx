@@ -1,13 +1,5 @@
-import { type PolicySection } from "./types"
-import { CodeBlock } from "@/components/ui/code-block"
-import {
-  DocsTable,
-  DocsTableHeader,
-  DocsTableBody,
-  DocsTableHead,
-  DocsTableRow,
-  DocsTableCell,
-} from "@/components/ui/docs-table"
+import {type PolicySection} from "./types"
+import {CodeBlock} from "@/components/ui/code-block"
 
 /**
  * ------------------------------------------------------------------
@@ -21,261 +13,96 @@ export const howToUseSections: PolicySection[] = [
     content: (
       <div className="space-y-4 text-sm leading-relaxed">
         <div className="bg-muted/50 border border-border/50 rounded-lg px-3 py-2 mb-6">
-          <p className="text-muted-foreground m-0">为社区开发者与用户提供完整的平台使用说明</p>
+          <p className="text-muted-foreground m-0">为开发者提供通用全栈开发脚手架 (Boilerplate) 平台使用说明</p>
         </div>
         <ul className="list-disc pl-5 space-y-2">
-          <li><strong>身份认证：</strong>基于 LINUX DO Connect (OAuth)</li>
-          <li><strong>认证方式：</strong>账户积分消耗认证</li>
-          <li><strong>手续费：</strong>动态费率，由服务方承担</li>
-          <li><strong>争议处理：</strong>支持服务方与消费方的双方争议处理</li>
+          <li><strong>架构底座：</strong>Go (Gin + GORM + Redis + Asynq) 后端 + React (Next.js 16 + Tailwind CSS 4 + Shadcn UI) 前端</li>
+          <li><strong>认证体系：</strong>支持本地常规账号密码注册登录 + 第三方自定义 OIDC (OAuth2) 认证源绑定</li>
+          <li><strong>访问令牌：</strong>提供开发者个人 AccessToken (API Key)，用于通过 Http Header 鉴权直接调用系统 API</li>
+          <li><strong>可观测性：</strong>集成 Zap 结构化日志与 OpenTelemetry 全链路 Tracing 追踪</li>
         </ul>
       </div>
     )
   },
   {
-    value: "roles",
-    title: "2. 角色说明",
+    value: "auth-security",
+    title: "2. 身份认证与安全设置",
     content: (
       <div className="space-y-4 text-sm leading-relaxed">
-        <ul className="list-disc pl-5 space-y-2">
-          <li><strong>服务方：</strong>最终积分流转的转入方</li>
-          <li><strong>消费方：</strong>最终积分流转的转出方</li>
-          <li><strong>认证平台：</strong>LINUX DO Credit 系统本身</li>
+        <p>平台采用混合式身份认证，满足不同的部署和业务场景需求：</p>
+        <h3 id="2-1-login" className="text-base md:text-lg font-semibold text-foreground mt-4 mb-2">2.1 常规账号密码认证</h3>
+        <ul className="list-disc pl-4 md:pl-5 space-y-2">
+          <li><strong>自主注册与密码登录：</strong>支持普通用户通过用户名及密码直接进行注册与会话建立，密码在后端采用 <code className="bg-muted px-1.5 py-0.5 rounded text-xs font-mono">bcrypt</code> 高强度加盐哈希存储。</li>
+          <li><strong>系统开关控制：</strong>管理员可在后台配置动态开关，随时禁用自主密码注册或密码登录，以转为纯第三方认证模式。</li>
         </ul>
-      </div>
-    )
-  },
-  {
-    value: "integration",
-    title: "3. 接入积分服务",
-    content: (
-      <div className="space-y-4 text-sm leading-relaxed">
-        <h3 id="3-1-api" className="text-base md:text-lg font-semibold text-foreground mt-6 md:mt-8 mb-3 md:mb-4">3.1 使用 API 接口</h3>
-        <ol className="list-decimal pl-4 md:pl-5 space-y-2">
-          <li>
-            <strong>创建应用</strong>
-            <ul className="list-disc pl-4 md:pl-5 mt-2 space-y-1 text-muted-foreground">
-              <li>前往 <a href="/home" className="text-primary hover:underline">控制面板</a></li>
-              <li>点击顶部右侧 <strong>创建应用</strong> 按钮</li>
-              <li>填写必要信息：应用名称、应用主页、回调地址、通知地址</li>
-            </ul>
-          </li>
-          <li>
-            <strong>获取 API 凭证</strong>
-            <ul className="list-disc pl-4 md:pl-5 mt-2 space-y-1 text-muted-foreground">
-              <li>在集市中心顶部右侧选择器中选择您的应用</li>
-              <li>在 <strong>API 配置</strong> 面板中获取：
-                <ul className="list-[circle] pl-4 md:pl-5 mt-1">
-                  <li><code className="bg-muted px-1.5 py-0.5 rounded text-xs font-mono before:content-none after:content-none">Client ID</code>：客户端ID，用于标识您的身份</li>
-                  <li><code className="bg-muted px-1.5 py-0.5 rounded text-xs font-mono before:content-none after:content-none">Client Secret</code>：客户端密钥，用于签名验证（<strong>请妥善保管，切勿泄露</strong>）</li>
-                </ul>
-              </li>
-            </ul>
-          </li>
-          <li>
-            <strong>使用 API 接口</strong>
-            <ul className="list-disc pl-4 md:pl-5 mt-2 space-y-1 text-muted-foreground">
-              <li>使用 API 接口创建积分流转服务</li>
-              <li>参考文档：<a href="/docs/api" className="text-primary hover:underline">API 接口文档</a></li>
-            </ul>
-          </li>
+
+        <h3 id="2-2-oidc" className="text-base md:text-lg font-semibold text-foreground mt-4 mb-2">2.2 第三方 OIDC 认证源</h3>
+        <p>用户可以在个人资料页面关联绑定外部授权账户：</p>
+        <ol className="list-decimal pl-4 md:pl-5 space-y-1">
+          <li>进入 <strong>设置 / 个人资料</strong> 页面。</li>
+          <li>在“第三方账号绑定”栏目下查看当前绑定的账号，或点击未绑定的可用 OIDC 认证源直接触发 OAuth2 绑定流。</li>
+          <li>绑定成功后，用户在登录界面可直接点击 OIDC 登录按钮实现快捷跳转。</li>
         </ol>
-
-        <h3 id="3-2-online" className="text-base md:text-lg font-semibold text-foreground mt-6 md:mt-8 mb-3 md:mb-4">3.2 使用在线服务</h3>
-        <ul className="list-disc pl-4 md:pl-5 space-y-2 mb-4">
-          <li><strong>适用场景：</strong>无代码开发基础，或只用于简单的积分服务。</li>
-          <li><strong>操作步骤：</strong>
-            <ol className="list-decimal pl-4 md:pl-5 mt-2 space-y-1 text-muted-foreground">
-              <li>前往 <a href="/home" className="text-primary hover:underline">控制面板</a> 创建应用，获取 API 凭证</li>
-              <li>选择应用，点击 <strong>在线收款</strong> 功能</li>
-              <li>创建在线积分服务</li>
-              <li>获取唯一积分服务链接</li>
-              <li>发送给您所服务的客户使用</li>
-            </ol>
-          </li>
-        </ul>
-
-        <h3 id="3-3-new-api" className="text-base md:text-lg font-semibold text-foreground mt-6 md:mt-8 mb-3 md:mb-4">3.3 快速集成 New API</h3>
-        <ul className="list-disc pl-4 md:pl-5 space-y-2 mb-4">
-          <li><strong>适用场景：</strong>New API 站点，LINUX DO Credit 兼容 EasyPay 协议，公益站站长可直接集成。</li>
-          <li><strong>操作步骤：</strong>
-            <ol className="list-decimal pl-4 md:pl-5 mt-2 space-y-2 text-muted-foreground">
-              <li>
-                前往 <a href="/home" className="text-primary hover:underline">控制面板</a>，点击 <strong>创建应用</strong>，填写 New API 站点信息：
-                <div className="my-4">
-                  <DocsTable>
-                    <DocsTableHeader>
-                      <DocsTableRow>
-                        <DocsTableHead>字段</DocsTableHead>
-                        <DocsTableHead>值</DocsTableHead>
-                      </DocsTableRow>
-                    </DocsTableHeader>
-                    <DocsTableBody>
-                      <DocsTableRow>
-                        <DocsTableCell>应用名称</DocsTableCell>
-                        <DocsTableCell><code className="bg-muted px-1 rounded text-xs before:content-none after:content-none">您的应用名称</code></DocsTableCell>
-                      </DocsTableRow>
-                      <DocsTableRow>
-                        <DocsTableCell>应用主页</DocsTableCell>
-                        <DocsTableCell><code className="bg-muted px-1 rounded text-xs before:content-none after:content-none">https://{"{您的 New API 域名}"}</code></DocsTableCell>
-                      </DocsTableRow>
-                      <DocsTableRow>
-                        <DocsTableCell>回调地址</DocsTableCell>
-                        <DocsTableCell><code className="bg-muted px-1 rounded text-xs before:content-none after:content-none">https://{"{您的 New API 域名}"}/console/log</code></DocsTableCell>
-                      </DocsTableRow>
-                      <DocsTableRow>
-                        <DocsTableCell>通知地址</DocsTableCell>
-                        <DocsTableCell><code className="bg-muted px-1 rounded text-xs before:content-none after:content-none">https://{"{您的 New API 域名}"}/api/user/epay/notify</code></DocsTableCell>
-                      </DocsTableRow>
-                    </DocsTableBody>
-                  </DocsTable>
-                </div>
-              </li>
-              <li>前往 New API 站点的系统设置，找到 <strong>支付设置</strong>。</li>
-              <li>
-                配置 LINUX DO Credit 平台参数：
-                <div className="my-4">
-                  <DocsTable>
-                    <DocsTableHeader>
-                      <DocsTableRow>
-                        <DocsTableHead>参数</DocsTableHead>
-                        <DocsTableHead>值</DocsTableHead>
-                      </DocsTableRow>
-                    </DocsTableHeader>
-                    <DocsTableBody>
-                      <DocsTableRow>
-                        <DocsTableCell>支付地址</DocsTableCell>
-                        <DocsTableCell><code className="bg-muted px-1 rounded text-xs before:content-none after:content-none">https://credit.linux.do/epay/pay</code></DocsTableCell>
-                      </DocsTableRow>
-                      <DocsTableRow>
-                        <DocsTableCell>易支付商户ID</DocsTableCell>
-                        <DocsTableCell>您的 <code className="bg-muted px-1 rounded text-xs before:content-none after:content-none">Client ID</code></DocsTableCell>
-                      </DocsTableRow>
-                      <DocsTableRow>
-                        <DocsTableCell>易支付商户密钥</DocsTableCell>
-                        <DocsTableCell>您的 <code className="bg-muted px-1 rounded text-xs before:content-none after:content-none">Client Secret</code></DocsTableCell>
-                      </DocsTableRow>
-                      <DocsTableRow>
-                        <DocsTableCell>回调地址</DocsTableCell>
-                        <DocsTableCell><code className="bg-muted px-1 rounded text-xs before:content-none after:content-none">https://{"{您的 New API 域名}"}</code></DocsTableCell>
-                      </DocsTableRow>
-                    </DocsTableBody>
-                  </DocsTable>
-                </div>
-              </li>
-              <li>
-                配置充值方式（JSON 格式）：
-                <div className="my-4">
-                  <CodeBlock
-                    code={`[
-  {"color":"rgba(var(--semi-blue-5), 1)","name":"支付宝","type":"alipay"},
-  {"color":"rgba(var(--semi-green-5), 1)","name":"微信","type":"wxpay"},
-  {"color":"black","name":"Linux Do Credit","type":"epay"}
-]`}
-                    language="json"
-                  />
-                </div>
-              </li>
-            </ol>
-          </li>
-        </ul>
       </div>
     ),
     children: [
-      { value: "3-1-api", title: "3.1 使用 API 接口" },
-      { value: "3-2-online", title: "3.2 使用在线服务" },
-      { value: "3-3-new-api", title: "3.3 快速集成 New API" },
+      { value: "2-1-login", title: "2.1 常规账号密码认证" },
+      { value: "2-2-oidc", title: "2.2 第三方 OIDC 认证源" },
     ]
   },
   {
-    value: "usage",
-    title: "4. 使用 LINUX DO Credit 积分",
+    value: "access-token",
+    title: "3. 个人访问令牌 (AccessToken) 接口对接",
     content: (
       <div className="space-y-4 text-sm leading-relaxed">
-        <p>您可以在任意支持 LINUX DO Credit 的平台下使用积分。在其他平台点击使用 LINUX DO Credit 积分时，会自动跳转到 LINUX DO Credit 的积分流转服务页面，您只需要确认积分流转信息无误，并选择使用 LINUX DO Credit 进行账户认证，即可完成整个交易服务。</p>
-      </div>
-    )
-  },
-  {
-    value: "fees",
-    title: "5. 服务（手续）费",
-    content: (
-      <div className="space-y-4 text-sm leading-relaxed">
-        <h3 id="5-1-rules" className="text-base md:text-lg font-semibold text-foreground mt-6 md:mt-8 mb-3 md:mb-4">5.1 规则说明</h3>
-        <p>为了更好的维持 LINUX DO Credit 平台的积分服务机制，保证社区积分的生态可持续发展，我们会按照规范进行不同程度的服务（手续）费用收取。</p>
+        <p>为便于开发者或第三方工具直接调用系统 API，平台提供个人访问令牌管理功能。</p>
+        <h3 id="3-1-generation" className="text-base md:text-lg font-semibold text-foreground mt-4 mb-2">3.1 令牌生成与存储规范</h3>
         <ul className="list-disc pl-4 md:pl-5 space-y-2">
-          <li><strong>承担方：</strong>服务（手续）费默认<strong>由服务方承担</strong></li>
-          <li><strong>消费方使用：</strong>不会产生额外费用</li>
-          <li><strong>服务方实收：</strong>订单金额 - 服务（手续）费</li>
+          <li><strong>一次性明文展示：</strong>创建令牌时生成的随机明文 Token 值 (形如 <code className="bg-muted px-1.5 py-0.5 rounded text-xs font-mono">at_xxx</code>) 仅会在弹窗中展示一次。请立即复制保存，关闭弹窗后系统将无法重新获取。</li>
+          <li><strong>安全哈希存储：</strong>数据库仅存储 Token 的 SHA-256 哈希指纹，即使数据库泄漏，攻击者也无法通过摘要逆向恢复令牌原文。</li>
         </ul>
-        <div className="mt-4">
-          <p className="font-mono text-xs mb-2 text-muted-foreground">计算公式：</p>
+
+        <h3 id="3-2-usage" className="text-base md:text-lg font-semibold text-foreground mt-4 mb-2">3.2 携带 Header 进行 API 调用</h3>
+        <p>您可以凭借保存的明文 Token 随时调用系统开放接口，系统认证支持以下两种 Http 请求头携带方式之一：</p>
+        <div className="space-y-2">
+          <p className="font-semibold text-xs text-muted-foreground">方式一：Authorization Bearer 头</p>
           <CodeBlock
-            code={`手续费 = 订单金额 × 当前费率
-商家实际到账 = 订单金额 - 手续费`}
-            language="text"
+            code={`GET /api/v1/user/self HTTP/1.1
+Host: localhost:8000
+Authorization: Bearer at_628d022b7a95e26b...`}
+            language="http"
           />
         </div>
-
-        <h3 id="5-2-dynamic" className="text-base md:text-lg font-semibold text-foreground mt-6 md:mt-8 mb-3 md:mb-4">5.2 动态费率</h3>
-        <p>费率并非固定不变，会根据以下因素动态调整：</p>
-        <ul className="list-disc pl-4 md:pl-5 space-y-1">
-          <li>服务方平台等级</li>
-          <li>服务方平台积分</li>
-          <li>LINUX DO Credit 平台活动</li>
-        </ul>
+        <div className="space-y-2">
+          <p className="font-semibold text-xs text-muted-foreground">方式二：X-Access-Token 自定义头</p>
+          <CodeBlock
+            code={`GET /api/v1/user/self HTTP/1.1
+Host: localhost:8000
+X-Access-Token: at_628d022b7a95e26b...`}
+            language="http"
+          />
+        </div>
       </div>
     ),
     children: [
-      { value: "5-1-rules", title: "5.1 规则说明" },
-      { value: "5-2-dynamic", title: "5.2 动态费率" },
+      { value: "3-1-generation", title: "3.1 令牌生成与存储规范" },
+      { value: "3-2-usage", title: "3.2 携带 Header 进行 API 调用" },
     ]
   },
   {
-    value: "dispute",
-    title: "6. 争议处理",
+    value: "config-system",
+    title: "4. 动态系统配置项",
     content: (
       <div className="space-y-4 text-sm leading-relaxed">
-        <p>为了保障服务方与消费方的合法权益，当积分服务出现纠纷时，可使用争议功能。</p>
+        <p>平台内置了完备的 KV 配置管理模块，允许管理员动态调整系统运行状态：</p>
         <ul className="list-disc pl-4 md:pl-5 space-y-2">
-          <li>作为服务方，您需要及时响应消费方的争议请求：
-            <ol className="list-decimal pl-4 md:pl-5 mt-1 text-muted-foreground">
-              <li>在集市中心或通知中查看到 <strong>待处理的争议</strong></li>
-              <li>查看消费方理由，选择操作：
-                <ul className="list-[circle] pl-5 mt-1">
-                  <li><strong>同意：</strong>认可消费方诉求，积分原路退回给消费方</li>
-                  <li><strong>拒绝：</strong>如果您认为已履约，请提交相关证据</li>
-                </ul>
-              </li>
-            </ol>
-          </li>
-        </ul>
-        <div className="bg-yellow-500/10 border border-yellow-500/20 text-yellow-600 dark:text-yellow-400 px-3 py-2 rounded-lg mt-4">
-          <p className="m-0 text-sm">
-            <strong>重要：</strong>建议服务方与消费方优先沟通解决。长时间未处理的争议会由 LINUX DO Credit 平台介入仲裁，这可能会影响您的服务方信誉。
-          </p>
-        </div>
-      </div>
-    )
-  },
-  {
-    value: "community-balance",
-    title: "7. 社区积分",
-    content: (
-      <div className="space-y-4 text-sm leading-relaxed">
-        <p>您的 LINUX DO Credit 平台基础积分主要由 <strong>社区积分 (Community Balance)</strong> 划转而来。</p>
-        <ul className="list-disc pl-4 md:pl-5 space-y-2">
-          <li><strong>基本获取方式：</strong>通过在 LINUX DO 社区的活跃行为获得：
-            <ul className="list-[circle] pl-4 md:pl-5 mt-1 text-muted-foreground">
-              <li>获赞、解决问题等社区贡献</li>
-              <li>详情可见 <a href="https://linux.do/t/topic/1409175" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">LINUX DO 社区</a></li>
-            </ul>
-          </li>
-          <li><strong>划转规则：</strong>
-            <ul className="list-[circle] pl-4 md:pl-5 mt-1 text-muted-foreground">
-              <li>划转时间：社区积分每日凌晨 <strong>00:00</strong> 自动划转至可用余额</li>
-              <li>限制说明：划转前不可用于任何积分服务</li>
-              <li>服务费用：目前不收取任何划转 <strong>服务费</strong></li>
+          <li><strong>缓存读取加速：</strong>配置加载基于 GORM 读取数据库，并辅以 Redis Hash 结构进行多层缓存加速，大幅降低配置查询耗时。</li>
+          <li><strong>核心系统配置项说明：</strong>
+            <ul className="list-[circle] pl-5 mt-1 space-y-1 text-muted-foreground">
+              <li><code className="bg-muted px-1 rounded text-xs font-mono">site_name</code>：平台展示名称</li>
+              <li><code className="bg-muted px-1 rounded text-xs font-mono">password_login_enabled</code>：密码登录开关</li>
+              <li><code className="bg-muted px-1 rounded text-xs font-mono">registration_enabled</code>：用户自主注册开关</li>
+              <li><code className="bg-muted px-1 rounded text-xs font-mono">max_api_keys_per_user</code>：普通用户创建令牌的最大数限制 (默认5)</li>
             </ul>
           </li>
         </ul>
@@ -283,46 +110,28 @@ export const howToUseSections: PolicySection[] = [
     )
   },
   {
-    value: "settings",
-    title: "8. 账户设置",
+    value: "worker-scheduler",
+    title: "5. 异步任务与定时调度",
     content: (
       <div className="space-y-4 text-sm leading-relaxed">
-        <p>您可以在 <strong>设置 (Settings)</strong> 页面管理您的账户信息。</p>
-        <h3 className="text-base md:text-lg font-semibold text-foreground mt-4 mb-2">功能列表</h3>
-        <ul className="list-disc pl-4 md:pl-5 space-y-1">
-          <li><strong>个人资料：</strong>查看当前的账户信息和会员等级</li>
-          <li><strong>安全设置：</strong>修改认证密码</li>
-          <li><strong>外观设置：</strong>切换页面主题、界面外观</li>
+        <p>项目借助 Cobra 实现多命令入口分发，通过独立部署 Worker 服务解耦复杂计算或高延迟IO：</p>
+        <ul className="list-disc pl-4 md:pl-5 space-y-2">
+          <li><strong>定时任务派发 (CMD scheduler)：</strong>负责按 Cron 表达式配置，定时将待执行任务推送到 Redis 队列中。</li>
+          <li><strong>多优先级 Worker (CMD worker)：</strong>基于 Asynq 驱动，按优先级拉取任务并并发调度执行（如定时清理临时上传目录、同步外部系统日志等）。</li>
         </ul>
       </div>
     )
   },
   {
-    value: "scripts",
-    title: "9. 辅助脚本",
+    value: "tracing-metrics",
+    title: "6. 链路追踪与结构化日志",
     content: (
       <div className="space-y-4 text-sm leading-relaxed">
-        <p>为了方便用户随时查看当前的实时积分收入，我们提供了开源的 Userscript 脚本。</p>
+        <p>为了保障分布式微服务架构下的可观测性，平台接入了高级监控组件：</p>
         <ul className="list-disc pl-4 md:pl-5 space-y-2">
-          <li><strong>功能：</strong>在 LINUX DO 显示实时积分收入，支持拖拽，不影响界面。</li>
-          <li><strong>获取：</strong>仅需安装 Tampermonkey 插件即可使用。</li>
-          <li><strong>安装：</strong>
-            <a
-              href="https://linux.do/t/topic/1365853"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary hover:underline inline-flex items-center gap-1"
-            >
-              「LINUX DO Credit」实时积分收入脚本
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-external-link"><path d="M15 3h6v6" /><path d="M10 14 21 3" /><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /></svg>
-            </a>
-          </li>
+          <li><strong>OpenTelemetry Tracing：</strong>自动传递 Tracing 上下文，所有经由 Gin 中间件、外部请求或 GORM 数据库的事务操作都将带有全局唯一的 Span，用于排查链路耗时或调用异常。</li>
+          <li><strong>Zap 结构化日志：</strong>将后端控制台或日志输出格式统一规范化为 JSON，方便与 ELK、Loki 等日志收集分析工具无缝对接。</li>
         </ul>
-        <div className="bg-muted/50 border border-border/50 rounded-lg px-3 py-2 mt-2">
-          <p className="text-xs text-muted-foreground m-0">
-            注：脚本完全开源且安全，仅通过官方 API 获取公开数据，不涉及任何敏感权限。
-          </p>
-        </div>
       </div>
     )
   }

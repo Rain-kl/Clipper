@@ -49,6 +49,7 @@ import {
   CreditCard,
   FileQuestionMark,
   FileText,
+  FolderOpen,
   Home,
   Layers,
   LogOut,
@@ -64,6 +65,7 @@ import {useUser} from "@/contexts/user-context"
 const data = {
   navMain: [
     { title: "首页", url: "/home", icon: Home },
+    { title: "文件管理", url: "/settings/files", icon: FolderOpen },
   ],
   systemSettings: [
     { title: "系统设置", url: "/settings/security", icon: Settings },

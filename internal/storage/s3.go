@@ -74,8 +74,12 @@ func init() {
 	log.Printf("[Storage] S3 storage initialized (bucket: %s, prefix: %s, cdn: %s)\n", bucket, keyPrefix, cdnURL)
 }
 
-func IsEnabled() bool {
+var IsEnabledFunc = func() bool {
 	return client != nil
+}
+
+func IsEnabled() bool {
+	return IsEnabledFunc()
 }
 
 // BuildKey constructs a full S3 object key with the configured prefix.
@@ -83,8 +87,39 @@ func BuildKey(path string) string {
 	return keyPrefix + path
 }
 
+var (
+	// PutObjectFunc enables mocking S3 uploads in tests.
+	PutObjectFunc = putObjectDefault
+	// GetObjectFunc enables mocking S3 downloads in tests.
+	GetObjectFunc = getObjectDefault
+	// DeleteObjectFunc enables mocking S3 deletion in tests.
+	DeleteObjectFunc = deleteObjectDefault
+)
+
+// MockStorage is a test helper to mock S3 storage operations.
+// It returns a function that restores original implementations.
+func MockStorage(
+	mockPut func(ctx context.Context, key string, body io.Reader, size int64, contentType string) error,
+	mockGet func(ctx context.Context, key string) (*ObjectInfo, error),
+	mockDelete func(ctx context.Context, key string) error,
+) func() {
+	origPut, origGet, origDelete := PutObjectFunc, GetObjectFunc, DeleteObjectFunc
+	PutObjectFunc = mockPut
+	GetObjectFunc = mockGet
+	DeleteObjectFunc = mockDelete
+	return func() {
+		PutObjectFunc = origPut
+		GetObjectFunc = origGet
+		DeleteObjectFunc = origDelete
+	}
+}
+
 // PutObject uploads a file to S3.
 func PutObject(ctx context.Context, key string, body io.Reader, size int64, contentType string) error {
+	return PutObjectFunc(ctx, key, body, size, contentType)
+}
+
+func putObjectDefault(ctx context.Context, key string, body io.Reader, size int64, contentType string) error {
 	ctx, span := otel_trace.Start(ctx, "S3.PutObject", trace.WithSpanKind(trace.SpanKindClient))
 	defer span.End()
 
@@ -125,6 +160,10 @@ type ObjectInfo struct {
 
 // GetObject retrieves a file directly from S3.
 func GetObject(ctx context.Context, key string) (*ObjectInfo, error) {
+	return GetObjectFunc(ctx, key)
+}
+
+func getObjectDefault(ctx context.Context, key string) (*ObjectInfo, error) {
 	ctx, span := otel_trace.Start(ctx, "S3.GetObject", trace.WithSpanKind(trace.SpanKindClient))
 	defer span.End()
 
@@ -206,6 +245,10 @@ func GetObjectViaProxy(ctx context.Context, key string) (*ObjectInfo, error) {
 
 // DeleteObject deletes a file from S3.
 func DeleteObject(ctx context.Context, key string) error {
+	return DeleteObjectFunc(ctx, key)
+}
+
+func deleteObjectDefault(ctx context.Context, key string) error {
 	ctx, span := otel_trace.Start(ctx, "S3.DeleteObject", trace.WithSpanKind(trace.SpanKindClient))
 	defer span.End()
 

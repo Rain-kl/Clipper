@@ -1,110 +1,112 @@
-# LINUX DO Credit
+# Refreshing
 
-🚀 Linux Do 社区 Credit 积分服务平台
+🚀 现代化、生产就绪的全栈应用脚手架
 
 [English](./README.md)
 
 [![License: Apache2.0](https://img.shields.io/badge/License-Apache2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Go Version](https://img.shields.io/badge/Go-1.25.5-blue.svg)](https://golang.org/)
+[![Go Version](https://img.shields.io/badge/Go-1.25+-blue.svg)](https://golang.org/)
 [![Next.js](https://img.shields.io/badge/Next.js-16-black.svg)](https://nextjs.org/)
 [![React](https://img.shields.io/badge/React-19-blue.svg)](https://reactjs.org/)
 
-[![GitHub release](https://img.shields.io/github/v/release/linux-do/credit?include_prereleases)](https://github.com/linux-do/credit/releases)
-[![GitHub stars](https://img.shields.io/github/stars/linux-do/credit)](https://github.com/linux-do/credit/stargazers) 
-[![GitHub forks](https://img.shields.io/github/forks/linux-do/credit)](https://github.com/linux-do/credit/network)
-[![GitHub issues](https://img.shields.io/github/issues/linux-do/credit)](https://github.com/linux-do/credit/issues)
-[![GitHub pull requests](https://img.shields.io/github/issues-pr/linux-do/credit)](https://github.com/linux-do/credit/pulls)
-[![GitHub contributors](https://img.shields.io/github/contributors/linux-do/credit)](https://github.com/linux-do/credit/graphs/contributors)
-
-[![Backend Build](https://github.com/linux-do/credit/actions/workflows/build_backend.yml/badge.svg)](https://github.com/linux-do/credit/actions/workflows/build_backend.yml)
-[![Frontend Build](https://github.com/linux-do/credit/actions/workflows/build_frontend.yml/badge.svg)](https://github.com/linux-do/credit/actions/workflows/build_frontend.yml)
-[![Docker Build](https://github.com/linux-do/credit/actions/workflows/build_image.yml/badge.svg)](https://github.com/linux-do/credit/actions/workflows/build_image.yml)
-[![CodeQL](https://github.com/linux-do/credit/actions/workflows/codeql.yml/badge.svg)](https://github.com/linux-do/credit/actions/workflows/codeql.yml)
-[![ESLint](https://github.com/linux-do/credit/actions/workflows/eslint.yml/badge.svg)](https://github.com/linux-do/credit/actions/workflows/eslint.yml)
-
 ## 📖 项目简介
 
-LINUX DO Credit 是一个为 Linux Do 社区打造的积分服务平台，旨在提供一系列积分相关服务，为社区开发者提供积分流转基础框架。
+**Refreshing** 是一个通用型、生产就绪的现代全栈脚手架，后端采用 **Go（Gin + GORM）**，前端采用 **Next.js（App Router + Shadcn UI）**。项目开箱即用，内置构建现代 SaaS、内部工具或开发者平台所需的核心基础设施。
+
+项目设计理念是 **框架优先、业务中立**：您可以在沿用经过实战检验的底层基础设施的同时，自由接入自己的业务逻辑。
 
 ### ✨ 主要特性
 
-- 🔐 **OAuth2 认证** - 集成 Linux Do 社区账号系统
-- 🛡️ **风险控制** - 完善的信任等级和风险评估系统
-- 📊 **实时监控** - 详细的分发统计和用户行为分析
-- 🎨 **现代化界面** - 基于 Next.js 16 和 React 19 的响应式设计
-- ⚡ **高性能** - Go 后端 + Redis 缓存 + PostgreSQL 数据库
+- 🔐 **多认证方式** — 本地账号密码登录/注册 + 可插拔 OIDC/OAuth2 认证源（支持同时配置多个认证源）
+- 🗝️ **个人访问令牌** — API Key 管理，支持程序化接口访问；兼容 `Authorization: Bearer` 和 `X-Access-Token` 请求头
+- 👤 **用户管理** — 管理后台提供用户列表、搜索筛选、启用/禁用账号等功能
+- ⚙️ **动态系统配置** — KV 系统配置管理，支持实时变更，可通过管理后台界面直接操作
+- 📋 **异步任务队列** — 基于 [Asynq](https://github.com/hibiken/asynq)（Redis 驱动）的后台任务处理系统，含任务调度面板
+- 📁 **S3 文件存储** — 通过 S3 兼容 API 统一处理文件上传/下载，支持本地磁盘缓存
+- 📊 **可观测性** — 结构化日志（Zap）+ 分布式链路追踪（OpenTelemetry）
+- 🎨 **现代化 UI** — 基于 Tailwind CSS 4 和 Shadcn UI 构建的响应式、支持深色模式的设计系统
+- 📖 **内置文档中心** — 集成文档门户，包含使用指南、接口文档、隐私政策和服务条款
 
 ## 🏗️ 架构概览
 
 ```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Frontend      │    │    Backend      │    │   Database      │
-│   (Next.js)     │◄──►│     (Go)        │◄──►│  (PostgreSQL)   │
-│                 │    │                 │    │                 │
-│ • React 19      │    │ • Gin Framework │    │ • PostgreSQL    │
-│ • TypeScript    │    │ • OAuth2        │    │ • Redis Cache   │
-│ • Tailwind CSS  │    │ • Session Store │    │                 │
-│ • Shadcn UI     │    │ • OpenTelemetry │    │                 │
-│                 │    │ • Swagger API   │    │                 │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
+┌─────────────────┐    ┌─────────────────────────────┐    ┌─────────────────┐
+│   前端           │    │            后端              │    │   数据库         │
+│   (Next.js)     │◄──►│           (Go)               │◄──►│  (PostgreSQL)   │
+│                 │    │                              │    │                 │
+│ • React 19      │    │ • Gin HTTP 框架              │    │ • PostgreSQL    │
+│ • TypeScript    │    │ • GORM ORM                   │    │ • Redis 缓存    │
+│ • Tailwind 4    │    │ • 多认证源适配               │    │                 │
+│ • Shadcn UI     │    │ • AccessToken 中间件         │    │                 │
+│                 │    │ • Asynq 任务队列             │    │                 │
+│                 │    │ • OpenTelemetry 链路追踪     │    │                 │
+│                 │    │ • Swagger 接口文档           │    │                 │
+└─────────────────┘    └─────────────────────────────┘    └─────────────────┘
+                                      │
+                           ┌──────────┴──────────┐
+                           │   多进程 CLI 入口    │
+                           │  (Cobra + Viper)     │
+                           │ • api      (HTTP)    │
+                           │ • worker   (队列)    │
+                           │ • scheduler(定时)    │
+                           └─────────────────────┘
 ```
 
 ## 🛠️ 技术栈
 
 ### 后端
-- **[Go 1.25.5](https://go.dev/doc)** - 主要开发语言
-- **[GIN](https://github.com/gin-gonic/gin)** - Web 框架
-- **[GORM](https://github.com/go-gorm/gorm)** - ORM 框架
-- **[Redis](https://github.com/redis/redis)** - 缓存和会话存储
-- **[PostgreSQL](https://www.postgresql.org)** - 主数据库
-- **[OpenTelemetry](https://opentelemetry.io)** - 可观测性
-- **[Swagger](https://github.com/swaggo/swag)** - API 文档
+- **[Go 1.25+](https://go.dev/doc)** — 主语言
+- **[Gin](https://github.com/gin-gonic/gin)** — HTTP Web 框架
+- **[GORM](https://github.com/go-gorm/gorm)** — ORM，支持 PostgreSQL 和 ClickHouse
+- **[Redis](https://github.com/redis/redis)** — 缓存、Session 存储、任务队列后端
+- **[Asynq](https://github.com/hibiken/asynq)** — 分布式任务队列（Redis 驱动）
+- **[Cobra + Viper](https://github.com/spf13/cobra)** — CLI 入口 + 配置管理
+- **[OpenTelemetry](https://opentelemetry.io)** — 分布式链路追踪与可观测性
+- **[Zap](https://github.com/uber-go/zap)** — 结构化高性能日志
+- **[Swagger (Swaggo)](https://github.com/swaggo/swag)** — 自动生成 API 文档
+- **[AWS SDK v2](https://github.com/aws/aws-sdk-go-v2)** — S3 兼容文件存储
+- **[Snowflake](https://github.com/bwmarrin/snowflake)** — 分布式 ID 生成
 
 ### 前端
-- **[Next.js 16](https://github.com/vercel/next.js)** - React 框架
-- **[React 19](https://github.com/facebook/react)** - UI 库
-- **[TypeScript](https://github.com/microsoft/TypeScript)** - 类型安全
-- **[Tailwind CSS 4](https://github.com/tailwindlabs/tailwindcss)** - 样式框架
-- **[Shadcn UI](https://github.com/shadcn-ui/ui)** - 组件库
-- **[Lucide Icons](https://github.com/lucide-icons/lucide)** - 图标库
+- **[Next.js 16](https://github.com/vercel/next.js)** — React 框架（App Router）
+- **[React 19](https://github.com/facebook/react)** — UI 库
+- **[TypeScript](https://github.com/microsoft/TypeScript)** — 类型安全
+- **[Tailwind CSS 4](https://github.com/tailwindlabs/tailwindcss)** — 原子化 CSS 框架
+- **[Shadcn UI](https://github.com/shadcn-ui/ui)** — 可访问、可组合的组件库
+- **[Lucide Icons](https://github.com/lucide-icons/lucide)** — 图标库
 
 ## 📋 环境要求
 
-- **Go** >= 1.25.5
+- **Go** >= 1.25
 - **Node.js** >= 18.0
-- **PostgreSQL** >= 18
+- **PostgreSQL** >= 14
 - **Redis** >= 6.0
-- **pnpm** >= 8.0 (推荐)
+- **pnpm** >= 8.0（推荐）
 
 ## 🚀 快速开始
 
-### 1. 克隆项目
+### 1. 克隆仓库
 
 ```bash
-git clone https://github.com/linux-do/credit.git
-cd credit
+git clone https://github.com/linux-do/credit.git refreshing
+cd refreshing
 ```
 
 ### 2. 配置环境
-
-复制配置文件并编辑：
 
 ```bash
 cp config.example.yaml config.yaml
 ```
 
-编辑 `config.yaml` 文件，配置数据库连接、Redis、OAuth2 等信息。
+编辑 `config.yaml`，配置数据库、Redis，以及至少一个认证源（OIDC 或密码登录）。
 
 ### 3. 初始化数据库
 
 ```bash
 # 创建数据库
-createdb -h <主机> -p 5432 -U postgres linux_do_credit
+createdb -h <主机> -p 5432 -U postgres refreshing
 
-# 如果需要指定字符集，可使用
-# psql -h <主机> -p 5432 -U postgres -c "CREATE DATABASE linux_do_credit WITH ENCODING 'UTF8' LC_COLLATE='zh_CN.UTF-8' LC_CTYPE='zh_CN.UTF-8' TEMPLATE template0;"
-
-# 运行迁移（启动后端时会自动执行）
+# 数据库表结构在首次启动时自动迁移，无需手动执行
 ```
 
 ### 4. 启动后端
@@ -113,12 +115,18 @@ createdb -h <主机> -p 5432 -U postgres linux_do_credit
 # 安装 Go 依赖
 go mod tidy
 
-# 生成 API 文档
+# 生成 Swagger 接口文档
 make swagger
 
-# 启动后端服务
+# 启动 HTTP API 服务器
 go run main.go api
 ```
+
+> 后端也支持独立运行 `scheduler` 和 `worker` 进程来处理异步任务：
+> ```bash
+> go run main.go scheduler   # 定时任务调度器
+> go run main.go worker      # Asynq 任务处理工作进程
+> ```
 
 ### 5. 启动前端
 
@@ -128,84 +136,109 @@ cd frontend
 # 安装依赖
 pnpm install
 
-# 启动开发服务器
+# 启动开发服务器（Turbopack）
 pnpm dev
 ```
 
 ### 6. 访问应用
 
-- **前端界面**: http://localhost:3000
-- **API 文档**: http://localhost:8000/swagger/index.html
-- **健康检查**: http://localhost:8000/api/health
+| 服务 | 地址 |
+|------|------|
+| 前端界面 | http://localhost:3000 |
+| Swagger 接口文档 | http://localhost:8000/swagger/index.html |
+| 健康检查 | http://localhost:8000/api/health |
 
 ## ⚙️ 配置说明
 
-### 主要配置项
+主要配置项（完整说明请参考 `config.example.yaml`）：
 
 | 配置项 | 说明 | 示例 |
 |--------|------|------|
-| `app.addr` | 后端服务监听地址 | `:8000` |
-| `oauth2.client_id` | OAuth2 客户端 ID | `your_client_id` |
-| `database.host` | PostgreSQL 数据库地址 | `127.0.0.1` |
-| `database.port` | PostgreSQL 数据库端口 | `5432` |
-| `database.username` | PostgreSQL 数据库用户名 | `postgres` |
-| `database.password` | PostgreSQL 数据库密码 | `password` |
-| `database.database` | PostgreSQL 数据库名称 | `linux_do_credit` |
-| `database.ssl_mode` | PostgreSQL SSL 模式 | `disable` |
-| `database.application_name` | PostgreSQL 应用标识 | `credit-server` |
-| `database.search_path` | PostgreSQL 搜索路径 | `public` |
-| `database.default_query_exec_mode` | SQL 缓存模式 | `cache_statement` |
-| `redis.host` | Redis 服务器地址 | `127.0.0.1` |
-
-详细配置说明请参考 `config.example.yaml` 文件。
+| `app.addr` | 后端监听地址 | `:8000` |
+| `database.host` | PostgreSQL 主机 | `127.0.0.1` |
+| `database.database` | 数据库名称 | `refreshing` |
+| `redis.host` | Redis 主机 | `127.0.0.1` |
+| `storage.endpoint` | S3 兼容存储端点 | `s3.amazonaws.com` |
+| `oauth2.client_id` | 默认 OIDC 客户端 ID | `your_client_id` |
 
 ## 🔧 开发指南
 
-### 后端开发
+### 后端
 
 ```bash
 # 运行 API 服务器
 go run main.go api
 
-# 运行任务调度器
+# 运行定时任务调度器
 go run main.go scheduler
 
-# 运行工作队列
+# 运行异步任务工作进程
 go run main.go worker
 
-# 生成 Swagger 文档
+# 修改 Controller 后重新生成 Swagger 文档（必须执行）
 make swagger
 
-# 代码格式化和检查
+# 代码格式化与检查
 make tidy
 ```
 
-### 前端开发
+### 前端
 
 ```bash
 cd frontend
 
-# 开发模式（使用 Turbopack）
+# 开发模式（Turbopack）
 pnpm dev
 
 # 构建生产版本
 pnpm build
 
-# 启动生产服务
+# 启动生产服务器
 pnpm start
 
-# 代码检查和格式化
+# 代码 Lint 和格式化
 pnpm lint
 pnpm format
 ```
 
-## 📚 API 文档
+## 📁 项目结构
 
-API 文档通过 Swagger 自动生成，启动后端服务后可访问：
+```
+Refreshing/
+├── main.go                  # 程序入口（委托给 internal/cmd）
+├── config.example.yaml      # 配置模板
+├── Makefile                 # 常用命令（swagger、tidy、license）
+├── Dockerfile               # 容器镜像构建
+├── docs/                    # Swagger 自动生成文档
+├── frontend/                # Next.js 前端应用
+│   ├── app/                 # App Router 页面
+│   ├── components/          # React 组件（ui、common、layout）
+│   ├── lib/services/        # API 服务层
+│   └── types/               # TypeScript 类型定义
+└── internal/                # Go 后端（private）
+    ├── cmd/                 # CLI 命令（api、scheduler、worker）
+    ├── apps/                # 业务模块（oauth、user、admin、upload）
+    ├── model/               # GORM 实体与业务方法
+    ├── router/              # HTTP 路由注册
+    ├── task/                # 异步任务定义与工作进程
+    ├── db/                  # 数据库与 Redis 初始化
+    ├── storage/             # S3 文件存储抽象层
+    └── common/              # 公共工具与响应封装
+```
+
+## 📚 接口文档
+
+Swagger 接口文档在后端启动后自动可用：
 
 ```
 http://localhost:8000/swagger/index.html
 ```
+
+前端文档中心（路径 `/docs`）内置以下内容：
+- **使用指南** — 分步入门教程
+- **接口文档** — 详细接口说明
+- **隐私政策** — 隐私政策模板（请按需自定义）
+- **服务条款** — 服务条款模板
 
 ## 🧪 测试
 
@@ -213,24 +246,25 @@ http://localhost:8000/swagger/index.html
 # 后端测试
 go test ./...
 
-# 前端测试
-cd frontend
-pnpm test
+# 前端 Lint
+cd frontend && pnpm lint
 ```
 
 ## 🚀 部署
 
-### Docker 部署
+### Docker
 
 ```bash
 # 构建镜像
-docker build -t linux-do-credit .
+docker build -t refreshing .
 
-# 运行容器
-docker run -d -p 8000:8000 linux-do-credit
+# 运行（通过卷挂载传入配置文件）
+docker run -d -p 8000:8000 \
+  -v $(pwd)/config.yaml:/app/config.yaml \
+  refreshing api
 ```
 
-### 生产环境部署
+### 生产环境
 
 1. 构建前端资源：
    ```bash
@@ -239,25 +273,27 @@ docker run -d -p 8000:8000 linux-do-credit
 
 2. 编译后端程序：
    ```bash
-   go build -o credit main.go
+   go build -o refreshing main.go
    ```
 
-3. 配置生产环境的 `config.yaml`
+3. 配置生产环境的 `config.yaml`。
 
 4. 启动服务：
    ```bash
-   ./credit api
+   ./refreshing api        # HTTP API
+   ./refreshing scheduler  # 定时调度器（可选）
+   ./refreshing worker     # 任务工作进程（可选）
    ```
 
 ## 🤝 贡献指南
 
-我们欢迎社区贡献！请在提交代码前阅读：
+我们欢迎社区贡献！请在提交代码前阅读以下文档：
 
 - [贡献指南](CONTRIBUTING.md)
 - [行为准则](CODE_OF_CONDUCT.md)
 - [贡献者许可协议](CLA.md)
 
-### 提交流程
+### 贡献流程
 
 1. Fork 本仓库
 2. 创建特性分支 (`git checkout -b feature/your-feature`)
@@ -267,18 +303,4 @@ docker run -d -p 8000:8000 linux-do-credit
 
 ## 📄 许可证
 
-本项目基于 [Apache2.0 许可证](LICENSE) 开源。
-
-## 🔗 相关链接
-
-- [Linux Do 社区](https://linux.do)
-- [问题反馈](https://github.com/linux-do/credit/issues)
-- [功能请求](https://github.com/linux-do/credit/issues/new?template=feature_request.md)
-
-## ❤️ 致谢
-
-感谢所有为本项目做出贡献的开发者和 Linux Do 社区的支持！
-
-## 📈 项目趋势
-
-[![Star History Chart](https://api.star-history.com/svg?repos=linux-do/credit&type=Date)](https://star-history.com/#linux-do/credit&Date)
+本项目基于 [Apache 2.0 许可证](LICENSE) 开源。

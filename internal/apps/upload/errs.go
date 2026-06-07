@@ -18,7 +18,7 @@ package upload
 
 const (
 	ErrNoFileSelected                = "请选择要上传的文件"
-	ErrInvalidCoverType              = "无效的封面类型"
+	ErrInvalidUploadType             = "无效的上传类型"
 	ErrFileTooLarge                  = "图片大小不能超过 2MB"
 	ErrUnsupportedFormat             = "只支持 JPG、PNG、WEBP 格式的图片"
 	ErrInvalidImage                  = "无效的图片文件"
@@ -28,5 +28,5 @@ const (
 	ErrOpenFileFailed                = "打开文件失败"
 	ErrInvalidFilePath               = "非法文件路径"
 	ErrSaveUploadRecordFailed        = "保存上传记录失败"
-	ErrQueryHistoryCoverFailed       = "查询历史封面失败"
+	ErrQueryHistoryUploadFailed      = "查询历史上传记录失败"
 )

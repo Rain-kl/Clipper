@@ -36,6 +36,8 @@
 
 ## 二、顶层目录结构
 
+以下是项目的顶层目录结构及其职责, 如果有新增目录或文件，请务必在此处同步更新：
+
 ```
 Refreshing/                        # 项目根目录（模块名: github.com/linux-do/credit）
 ├── main.go                        # 程序入口，调用 internal/cmd
@@ -56,6 +58,8 @@ Refreshing/                        # 项目根目录（模块名: github.com/lin
 ---
 
 ## 三、后端 `internal/` 目录结构
+
+以下是 `internal/` 目录的结构及其职责, 如果有新增目录或文件，请务必在此处同步更新：
 
 ```
 internal/
@@ -185,6 +189,8 @@ apps/admin/
 
 ## 五、前端 `frontend/` 目录结构
 
+以下是前端 `frontend/` 目录的结构, 如果需要调整请在此处同步更改：
+
 ```
 frontend/
 ├── app/                           # Next.js App Router 页面目录
@@ -197,7 +203,7 @@ frontend/
 │
 ├── components/                    # 可复用 React 组件
 │   ├── ui/                        # shadcn/ui 基础组件（Button/Input/Dialog 等）
-│   ├── common/                    # 通用业务组件（跨页面复用）
+│   ├── common/                    # 通用业务组件（跨页面复用），详见下方说明
 │   ├── layout/                    # 布局组件（Header / Sidebar / Footer）
 │   ├── auth/                      # 认证相关组件
 │   ├── home/                      # 首页专属组件
@@ -215,6 +221,52 @@ frontend/
 ├── tsconfig.json
 ├── .env                           # 环境变量（不提交）
 └── .env.example                   # 环境变量模板（需提交）
+```
+
+---
+
+## 5.1 前端 `components/common/` 通用业务组件详解
+
+`common/` 目录存放跨页面复用的业务组件，按功能域分为五个子目录。以下是每个文件的职责说明：
+
+```
+components/common/
+├── admin/                          # 管理员后台组件
+│   ├── tasks.tsx                   # TaskManager — 异步任务调度管理页面，展示所有可用任务类型，
+│   │                               #   支持通过弹窗配置参数后立即下发任务到后台队列执行
+│   ├── system.tsx                  # SystemConfigs — 系统 KV 配置管理页面，以表格展示系统/业务两类
+│   │                               #   配置项，支持在线编辑（布尔类型自动渲染为 Switch）并保存/删除
+│   └── users.tsx                   # UsersManager — 用户管理页面，提供分页、搜索、筛选的用户列表表格，
+│                                   #   支持在侧边抽屉查看用户详情，以及启用/禁用（封禁/解封）切换
+│
+├── docs/                           # 文档页面组件,包括法律文档（隐私政策/服务条款）和接口文档
+│
+├── general/                        # 通用框架组件
+│   ├── manage-pannel.tsx           # ManagePage（泛型）— 通用管理页面框架，封装"列表 + 详情面板"布局，
+│   │                               #   包含数据加载/错误/空状态处理、表格渲染、选中/悬停交互、
+│   │                               #   编辑/保存/删除逻辑；ManageDetailPanel 为带保存按钮的详情面板；
+│   │                               #   ManageTable 为配置驱动型表格组件
+│   └── password-dialog.tsx         # PasswordDialog — 密码确认弹窗，用于敏感操作前的二次身份验证，
+│                                   #   包含 6 位 OTP 输入框，支持 Enter 快捷确认，带加载状态显示
+│
+├── home/                           # 首页组件
+│   └── home-main.tsx               # HomeMain — 系统首页主内容，展示当前用户的快捷导航卡片
+│                                   #   （个人资料、开发接口文档、使用文档），管理员额外显示后台管理入口
+│
+└── settings/                       # 设置页面组件
+    ├── access-token.tsx            # AccessTokenMain — 个人访问令牌管理页面，展示用户 API 密钥列表，
+    │                               #   支持创建（仅展示一次明文）、轮换、撤销/删除令牌
+    ├── appearance.tsx              # AppearanceMain — 外观设置页面，分为主题模式选择
+    │                               #   （明亮/黑暗/自动）和界面配色方案（可视化色卡网格切换）
+    ├── auth-source-modal.tsx       # AuthSourceModal — OIDC 认证源新增/编辑弹窗，包含标识符、
+    │                               #   Client ID/Secret、Discovery URL、Scopes、图标等表单字段
+    ├── notifications.tsx           # NotificationsMain — 通知设置页面，控制顶部导航栏
+    │                               #   是否显示通知铃铛图标，通过 Context 持久化偏好
+    ├── profile.tsx                 # ProfileMain — 个人资料页面，展示用户基本信息，提供第三方
+    │                               #   账号绑定管理（查看已绑定 OIDC 账号、解除绑定、绑定新认证源）
+    └── security.tsx                # SecurityMain — 系统安全设置页面（管理员专属），包含系统登录与
+                                    #   注册控制（密码登录/注册/密码注册/OIDC 登录四个开关）、
+                                    #   认证源管理（新增、编辑、启用/禁用、删除 OIDC 认证源）
 ```
 
 ---
@@ -258,24 +310,6 @@ func ListUsers(c *gin.Context) {
 - 失败：`util.Err(msg)` + 对应 HTTP 状态码  
 - 通过 `response.RespondSuccess / RespondFailure` 也可（两套工具共存）
 
-### 6.3 Swagger 注释规范
-
-所有对外 Handler 必须添加 Swaggo 注释：
-
-```go
-// ListUsers 获取用户列表
-// @Summary 获取用户列表
-// @Description 分页返回用户列表，支持按用户 ID 和用户名筛选，需要管理员权限
-// @Tags admin
-// @Produce json
-// @Param request query listUsersRequest true "查询参数"
-// @Success 200 {object} util.ResponseAny
-// @Router /api/v1/admin/users [get]
-func ListUsers(c *gin.Context) { ... }
-```
-
-生成文档：`make swagger`（执行 `scripts/swagger.sh`）
-
 ### 6.4 错误处理规范
 
 - **模块内错误消息**：定义在本模块 `errs.go` 中，使用 `const` 字符串。
@@ -317,6 +351,46 @@ func ListUsers(c *gin.Context) { ... }
 
 **队列优先级**（从高到低）：`webhook` > `whitelist_only` > `default`
 
+### 6.9 前端组件样式规范
+
+**基础组件必须遵循系统的色彩主题系统。** 所有基于 shadcn/ui 的基础组件（Button、Dialog、Input 等）应使用组件内置的 `variant` 属性来控制样式，禁止通过 `className` 手写颜色或背景等样式。
+
+**错误示例（禁止）**：
+
+```tsx
+// ❌ 禁止通过 className 手写颜色、背景、阴影等样式
+<Button
+  type="button"
+  size="sm"
+  className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-600/10 transition-colors"
+>
+  <Plus className="mr-1.5 size-3.5" />
+  新增认证源
+</Button>
+```
+
+**正确示例**：
+
+```tsx
+// ✅ 使用 variant 属性，让组件遵循系统主题
+<Button
+  type="button"
+  size="sm"
+  variant="secondary"
+>
+  <Plus className="mr-1.5 size-3.5" />
+  新增认证源
+</Button>
+```
+
+> **原则**：组件的视觉表现由 shadcn/ui 的 variant 系统和全局 CSS 变量统一控制，保持应用内所有页面风格一致。如现有 variant 无法满足需求，应扩展 shadcn/ui 组件的 variant 定义，而非在业务代码中硬编码颜色值。
+
+### 6.10 严格禁止事项
+
+| 禁止行为 | 说明 |
+|----------|------|
+| **禁止删除 `node_modules` 目录** | `node_modules` 为前端依赖安装目录，删除会导致项目无法运行。如需重新安装依赖，使用 `pnpm install` 覆盖更新即可，严禁执行 `rm -rf node_modules`。 |
+
 ---
 
 ## 七、新增功能开发流程
@@ -333,6 +407,31 @@ func ListUsers(c *gin.Context) { ... }
 5. 执行 make swagger 更新文档
 ```
 
+**Handler 文件拆分规则**：
+
+逻辑简单的 CRUD 可以全部放在 `routers.go` 中。但当文件代码行数增长时，必须按以下规则拆分：
+
+| 条件                        | 拆分方式 |
+|---------------------------|----------|
+| 文件超过 **600 行**            | 必须拆分 |
+| 包含复杂业务逻辑（如外部调用、多步校验、事务处理） | 将业务逻辑拆到 `logic.go` 或 `logics.go` |
+| 同一模块有多个独立功能域              | 按功能域拆分多个文件，如 `user_routers.go`、`role_routers.go` |
+
+拆分后的模块文件结构示例：
+
+```
+apps/admin/<module>/
+├── routers.go          # 路由注册入口 + 简单 Handler（参数绑定 → 调用逻辑 → 响应）
+├── logics.go           # 复杂业务逻辑（外部调用、事务、多步处理）
+├── errs.go             # 错误常量
+└── constants.go        # 业务常量（按需）
+```
+
+**职责边界**：
+
+- `routers.go` 只做三件事：参数绑定、调用 logic 函数、返回响应。不包含任何业务判断逻辑。
+- `logics.go` 负责所有业务逻辑，接收已校验的参数，返回处理结果和错误。函数以 `PascalCase` 导出，供 `routers.go` 调用。
+
 以新增 **异步任务** 为例：
 
 ```
@@ -345,20 +444,3 @@ func ListUsers(c *gin.Context) { ... }
 ```
 
 ---
-
-## 八、关键依赖版本
-
-| 依赖 | 版本 |
-|------|------|
-| Go | 1.25+ |
-| Gin | v1.11.0 |
-| GORM | v1.31.1 |
-| go-redis | v9.16.0 |
-| Asynq | v0.25.1 |
-| Cobra | v1.10.1 |
-| Viper | v1.21.0 |
-| Zap | v1.27.0 |
-| Snowflake | v0.3.0 |
-| OpenTelemetry | v1.36.0 |
-| Next.js | (见 frontend/package.json) |
-| pnpm | (见 frontend/pnpm-workspace.yaml) |

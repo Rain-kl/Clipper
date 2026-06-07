@@ -127,13 +127,27 @@ func Serve() {
 				userRouter.POST("/register", user.Register)
 				userRouter.GET("/logout", user.Logout)
 				userRouter.GET("/self", oauth.LoginRequired(), oauth.UserInfo)
+
+				// Access Token
+				tokenRouter := userRouter.Group("/access-tokens")
+				tokenRouter.Use(oauth.LoginRequired())
+				{
+					tokenRouter.GET("", user.ListAccessTokens)
+					tokenRouter.POST("", user.CreateAccessToken)
+					tokenRouter.DELETE("/:id", user.DeleteAccessToken)
+					tokenRouter.POST("/:id/rotate", user.RotateAccessToken)
+				}
 			}
 
 			// Upload
 			uploadRouter := apiV1Router.Group("/upload")
 			uploadRouter.Use(oauth.LoginRequired())
 			{
-				// Keep generic uploads if needed
+				uploadRouter.POST("", upload.UploadFile)
+				uploadRouter.GET("/my", upload.ListMyFiles)
+				uploadRouter.DELETE("/:id", upload.DeleteFile)
+				uploadRouter.GET("/download/:id", upload.DownloadFile)
+				uploadRouter.POST("/download/batch", upload.BatchDownloadFiles)
 			}
 
 			// Config (public)

@@ -6,3 +6,4 @@
  */
 
 export { UserService } from './user.service';
+export type { AccessToken, CreateTokenResponse } from './user.service';

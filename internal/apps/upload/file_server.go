@@ -59,6 +59,11 @@ func ServeFileByID(c *gin.Context) {
 		return
 	}
 
+	if upload.StorageDriver == "local" || (upload.StorageDriver == "" && !storage.IsEnabled()) {
+		c.File(upload.FilePath)
+		return
+	}
+
 	// Retrieve file from S3 (via CDN if configured)
 	obj, err := storage.GetObjectViaCache(c.Request.Context(), upload.FilePath)
 	if err != nil {

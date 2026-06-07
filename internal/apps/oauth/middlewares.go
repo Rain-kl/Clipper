@@ -18,6 +18,7 @@ package oauth
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/linux-do/credit/internal/common"
@@ -44,19 +45,45 @@ func LoginRequired() gin.HandlerFunc {
 		ctx, span := otel_trace.Start(c.Request.Context(), "LoginRequired")
 		defer span.End()
 
-		// load user
-		userId := GetUserIDFromContext(c)
-		if userId <= 0 {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error_msg": common.UnAuthorized, "data": nil})
-			return
+		// check token in headers
+		tokenStr := c.GetHeader("X-Access-Token")
+		if tokenStr == "" {
+			authHeader := c.GetHeader("Authorization")
+			if len(authHeader) > 7 && authHeader[:7] == "Bearer " {
+				tokenStr = authHeader[7:]
+			}
 		}
 
-		// load user from db to make sure is active
 		var user model.User
-		tx := db.DB(ctx).Where("id = ? AND is_active = ?", userId, true).First(&user)
-		if tx.Error != nil {
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error_msg": tx.Error.Error(), "data": nil})
-			return
+		var authenticated bool
+
+		if tokenStr != "" {
+			tokenHash := model.HashToken(tokenStr)
+			var tokenRecord model.AccessToken
+			if err := db.DB(ctx).Where("token_hash = ?", tokenHash).First(&tokenRecord).Error; err == nil {
+				if err := db.DB(ctx).Where("id = ? AND is_active = ?", tokenRecord.UserID, true).First(&user).Error; err == nil {
+					authenticated = true
+					// update token last used time
+					now := time.Now()
+					db.DB(ctx).Model(&tokenRecord).Update("last_used_at", &now)
+				}
+			}
+		}
+
+		if !authenticated {
+			// load user from session
+			userId := GetUserIDFromContext(c)
+			if userId <= 0 {
+				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error_msg": common.UnAuthorized, "data": nil})
+				return
+			}
+
+			// load user from db to make sure is active
+			tx := db.DB(ctx).Where("id = ? AND is_active = ?", userId, true).First(&user)
+			if tx.Error != nil {
+				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error_msg": common.UnAuthorized, "data": nil})
+				return
+			}
 		}
 
 		// log

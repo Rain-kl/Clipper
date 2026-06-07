@@ -27,7 +27,6 @@ type configModel struct {
 	Scheduler   schedulerConfig   `mapstructure:"scheduler"`
 	Worker      workerConfig      `mapstructure:"worker"`
 	ClickHouse  clickHouseConfig  `mapstructure:"clickhouse"`
-	LinuxDo     linuxDoConfig     `mapstructure:"linuxdo"`
 	OpenAPIRisk openAPIRiskConfig `mapstructure:"openapi_risk"`
 	Otel        otelConfig        `mapstructure:"otel"`
 	S3          s3Config          `mapstructure:"s3"`
@@ -42,7 +41,6 @@ type appConfig struct {
 	APIPrefix               string `mapstructure:"api_prefix"`
 	GracefulShutdownTimeout int    `mapstructure:"graceful_shutdown_timeout"`
 	FrontendURL             string `mapstructure:"frontend_url"`
-	FrontendPayURL          string `mapstructure:"frontend_pay_url"`
 	SessionCookieName       string `mapstructure:"session_cookie_name"`
 	SessionSecret           string `mapstructure:"session_secret"`
 	SessionDomain           string `mapstructure:"session_domain"`
@@ -161,11 +159,6 @@ type workerConfig struct {
 type QueueConfig struct {
 	Name     string `mapstructure:"name"`
 	Priority int    `mapstructure:"priority"`
-}
-
-// linuxDoConfig
-type linuxDoConfig struct {
-	ApiKey string `mapstructure:"api_key"`
 }
 
 // openAPIRiskConfig OpenAPI 用户风险配置
