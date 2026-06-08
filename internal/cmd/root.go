@@ -30,8 +30,10 @@ var rootCmd = &cobra.Command{
 		migrator.Migrate()
 	},
 	Run: func(cmd *cobra.Command, args []string) {
+		// 无参数时默认以融合模式启动所有服务
 		if len(args) == 0 {
-			log.Fatalf("[CMD] please provide a command\n")
+			allCmd.Run(allCmd, args)
+			return
 		}
 		appMode := args[0]
 		switch appMode {
@@ -41,6 +43,8 @@ var rootCmd = &cobra.Command{
 			schedulerCmd.Run(schedulerCmd, args)
 		case "worker":
 			workerCmd.Run(workerCmd, args)
+		case "all":
+			allCmd.Run(allCmd, args)
 		default:
 			log.Fatal("[CMD] unknown app mode\n")
 		}

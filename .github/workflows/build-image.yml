@@ -1,4 +1,4 @@
-name: Docker Image
+name: Docker image build (Server)
 
 on:
   workflow_dispatch:
@@ -7,22 +7,8 @@ on:
         description: "Image version/tag to publish, for example v1.0.0-beta"
         required: false
         type: string
-      image_name:
-        description: "Image name without registry. Defaults to owner/repo."
-        required: false
-        type: string
   push:
     tags: ["v*"]
-
-env:
-  REGISTRY: ghcr.io
-  DEFAULT_IMAGE_NAME: ${{ github.repository }}
-  DOCKERFILE: ./docker/Dockerfile
-  BUILD_CONTEXT: .
-  CACHE_SCOPE: docker-image
-  STABLE_FLOATING_TAG: latest
-  PRERELEASE_FLOATING_TAG: beta
-  PRERELEASE_PATTERN: (alpha|beta|rc)
 
 permissions:
   contents: read
@@ -33,116 +19,88 @@ permissions:
 jobs:
   build:
     name: Build (${{ matrix.arch }})
-    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         include:
           - arch: amd64
             platform: linux/amd64
+            runner: ubuntu-24.04
           - arch: arm64
             platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
     steps:
-      - name: Checkout
+      - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
           fetch-tags: true
+          fetch-depth: 0
           persist-credentials: false
 
-      - name: Set build metadata
+      - name: Set image metadata
         shell: bash
         env:
           INPUT_VERSION: ${{ github.event.inputs.version }}
-          INPUT_IMAGE_NAME: ${{ github.event.inputs.image_name }}
         run: |
-          set -euo pipefail
+          POINTED_TAG="$(git tag --points-at HEAD --list 'v*' | sort -V | tail -n1)"
+          INPUT_VERSION="${INPUT_VERSION//[[:space:]]/}"
 
-          pointed_tag="$(git tag --points-at HEAD --list 'v*' | sort -V | tail -n1)"
-          input_version="${INPUT_VERSION//[[:space:]]/}"
-          image_name="${INPUT_IMAGE_NAME:-$DEFAULT_IMAGE_NAME}"
-
-          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
-            version="$GITHUB_REF_NAME"
-          elif [[ -n "$input_version" ]]; then
-            version="$input_version"
-          elif [[ -n "$pointed_tag" ]]; then
-            version="$pointed_tag"
+          echo "IMAGE=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_ENV"
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            VERSION="${GITHUB_REF_NAME}"
+          elif [[ -n "$INPUT_VERSION" ]]; then
+            VERSION="$INPUT_VERSION"
+          elif [[ -n "$POINTED_TAG" ]]; then
+            VERSION="$POINTED_TAG"
           else
-            echo "workflow_dispatch requires a version input when HEAD is not tagged" >&2
+            echo "workflow_dispatch requires an explicit version input when HEAD is not tagged" >&2
             exit 1
           fi
 
-          if [[ ! -f "$DOCKERFILE" ]]; then
-            echo "Dockerfile not found: $DOCKERFILE" >&2
-            exit 1
-          fi
-
-          if [[ ! -d "$BUILD_CONTEXT" ]]; then
-            echo "Docker context not found: $BUILD_CONTEXT" >&2
-            exit 1
-          fi
-
-          {
-            echo "IMAGE=${REGISTRY}/${image_name,,}"
-            echo "VERSION=$version"
-            echo "BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
-            echo "VCS_REF=$GITHUB_SHA"
-          } >> "$GITHUB_ENV"
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
-      - name: Log in to registry
+      - name: Log into registry
         uses: docker/login-action@v3
         with:
-          registry: ${{ env.REGISTRY }}
+          registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push digest
+      - name: Build and push
         id: build
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
-          context: ${{ env.BUILD_CONTEXT }}
-          file: ${{ env.DOCKERFILE }}
+          context: .
+          file: ./docker/Dockerfile
           platforms: ${{ matrix.platform }}
           outputs: type=image,name=${{ env.IMAGE }},push-by-digest=true,name-canonical=true,push=true
           build-args: |
             VERSION=${{ env.VERSION }}
-            BUILD_DATE=${{ env.BUILD_DATE }}
-            VCS_REF=${{ env.VCS_REF }}
-          labels: |
-            org.opencontainers.image.title=${{ github.event.repository.name }}
-            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
-            org.opencontainers.image.revision=${{ github.sha }}
-            org.opencontainers.image.version=${{ env.VERSION }}
-            org.opencontainers.image.created=${{ env.BUILD_DATE }}
-          cache-from: type=gha,scope=${{ env.CACHE_SCOPE }}-${{ matrix.arch }}
-          cache-to: type=gha,mode=max,ignore-error=true,timeout=20m,scope=${{ env.CACHE_SCOPE }}-${{ matrix.arch }}
+          cache-from: type=gha,scope=docker-server-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,ignore-error=true,timeout=20m,scope=docker-server-${{ matrix.arch }}
 
       - name: Export digest
         shell: bash
+        run: |
+          mkdir -p /tmp/server-digests
+          touch "/tmp/server-digests/${DIGEST#sha256:}"
         env:
           DIGEST: ${{ steps.build.outputs.digest }}
-        run: |
-          set -euo pipefail
-          mkdir -p /tmp/image-digests
-          touch "/tmp/image-digests/${DIGEST#sha256:}"
 
       - name: Upload digest
         uses: actions/upload-artifact@v4
         with:
-          name: image-digests-${{ matrix.arch }}
-          path: /tmp/image-digests/*
+          name: server-digests-${{ matrix.arch }}
+          path: /tmp/server-digests/*
           if-no-files-found: error
           retention-days: 1
 
       - name: Generate artifact attestation
-        uses: actions/attest-build-provenance@v2
+        uses: actions/attest-build-provenance@v3
         with:
           subject-name: ${{ env.IMAGE }}
           subject-digest: ${{ steps.build.outputs.digest }}
@@ -150,96 +108,79 @@ jobs:
 
   merge:
     name: Merge multi-arch manifest
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: build
     steps:
-      - name: Checkout
+      - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
           fetch-tags: true
+          fetch-depth: 0
           persist-credentials: false
 
-      - name: Set build metadata
+      - name: Set image metadata
         shell: bash
         env:
           INPUT_VERSION: ${{ github.event.inputs.version }}
-          INPUT_IMAGE_NAME: ${{ github.event.inputs.image_name }}
         run: |
-          set -euo pipefail
+          POINTED_TAG="$(git tag --points-at HEAD --list 'v*' | sort -V | tail -n1)"
+          INPUT_VERSION="${INPUT_VERSION//[[:space:]]/}"
 
-          pointed_tag="$(git tag --points-at HEAD --list 'v*' | sort -V | tail -n1)"
-          input_version="${INPUT_VERSION//[[:space:]]/}"
-          image_name="${INPUT_IMAGE_NAME:-$DEFAULT_IMAGE_NAME}"
-
-          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
-            version="$GITHUB_REF_NAME"
-          elif [[ -n "$input_version" ]]; then
-            version="$input_version"
-          elif [[ -n "$pointed_tag" ]]; then
-            version="$pointed_tag"
+          echo "IMAGE=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_ENV"
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            VERSION="${GITHUB_REF_NAME}"
+          elif [[ -n "$INPUT_VERSION" ]]; then
+            VERSION="$INPUT_VERSION"
+          elif [[ -n "$POINTED_TAG" ]]; then
+            VERSION="$POINTED_TAG"
           else
-            echo "workflow_dispatch requires a version input when HEAD is not tagged" >&2
+            echo "workflow_dispatch requires an explicit version input when HEAD is not tagged" >&2
             exit 1
           fi
 
-          if [[ ! -f "$DOCKERFILE" ]]; then
-            echo "Dockerfile not found: $DOCKERFILE" >&2
-            exit 1
-          fi
-
-          if [[ ! -d "$BUILD_CONTEXT" ]]; then
-            echo "Docker context not found: $BUILD_CONTEXT" >&2
-            exit 1
-          fi
-
-          {
-            echo "IMAGE=${REGISTRY}/${image_name,,}"
-            echo "VERSION=$version"
-          } >> "$GITHUB_ENV"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
 
       - name: Download digests
         uses: actions/download-artifact@v4
         with:
-          path: /tmp/image-digests
-          pattern: image-digests-*
+          path: /tmp/server-digests
+          pattern: server-digests-*
           merge-multiple: true
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
-      - name: Log in to registry
+      - name: Log into registry
         uses: docker/login-action@v3
         with:
-          registry: ${{ env.REGISTRY }}
+          registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create and push manifest list
-        working-directory: /tmp/image-digests
+        working-directory: /tmp/server-digests
         shell: bash
         run: |
-          set -euo pipefail
           shopt -s nullglob
-
           references=()
           for digest in *; do
             references+=("${IMAGE}@sha256:${digest}")
           done
 
-          if [[ ${#references[@]} -eq 0 ]]; then
-            echo "No digests found in /tmp/image-digests" >&2
+          if [ ${#references[@]} -eq 0 ]; then
+            echo "No digests found in /tmp/server-digests" >&2
             exit 1
           fi
 
-          floating_tag="$STABLE_FLOATING_TAG"
-          if [[ "$VERSION" =~ $PRERELEASE_PATTERN ]]; then
-            floating_tag="$PRERELEASE_FLOATING_TAG"
+          if [[ "${VERSION}" =~ (alpha|beta|rc) ]]; then
+            FLOATING_TAG="beta"
+          else
+            FLOATING_TAG="latest"
           fi
 
           docker buildx imagetools create \
             -t "${IMAGE}:${VERSION}" \
-            -t "${IMAGE}:${floating_tag}" \
+            -t "${IMAGE}:${FLOATING_TAG}" \
             "${references[@]}"
 
       - name: Inspect image
