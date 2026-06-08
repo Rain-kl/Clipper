@@ -1,4 +1,25 @@
 services:
+
+  wavelet:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: wavelet-app
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      TZ: ${TZ:-Asia/Shanghai}
+    ports:
+      - "${APP_PORT:-8000}:8000"
+    volumes:
+      - ./config.docker.yaml:/app/config.yaml:ro
+      - ./uploads:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
   postgres:
     image: postgres:17-alpine
     container_name: wavelet-postgres
@@ -18,23 +39,23 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
-#
-#  redis:
-#    image: redis:7-alpine
-#    container_name: wavelet-redis
-#    restart: unless-stopped
-#    command: ["redis-server", "--appendonly", "yes"]
-#    ports:
-#      - "${REDIS_PORT:-6379}:6379"
-#    volumes:
-#      - ./data/redis_data:/data
-#    healthcheck:
-#      test: ["CMD", "redis-cli", "ping"]
-#      interval: 10s
-#      timeout: 5s
-#      retries: 5
-#      start_period: 5s
-#
+
+  redis:
+    image: redis:7-alpine
+    container_name: wavelet-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - ./data/redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
 #  clickhouse:
 #    image: clickhouse/clickhouse-server:25.3-alpine
 #    container_name: wavelet-clickhouse

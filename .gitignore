@@ -11,6 +11,7 @@
 
 # config
 config.yaml
+.env
 
 # frontend
 frontend/build
@@ -48,3 +49,4 @@ s3_cache
 /internal/router/dist/
 /frontend/out/
 /.idea/
+/uploads/

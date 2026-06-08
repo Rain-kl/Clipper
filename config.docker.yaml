@@ -1,0 +1,120 @@
+# wavelet — Docker Compose 专用配置
+# 此文件供 docker-compose 挂载使用，主机名指向 Docker 服务名
+# 如需自定义，请复制此文件并修改，然后在 docker-compose.yml 中更新挂载路径
+
+# ─── Application ────────────────────────────────────────────────────────────────
+app:
+  app_name: "wavelet"
+  env: "production"
+  addr: ":8000"
+  node_id: 1
+  graceful_shutdown_timeout: 30
+  session_cookie_name: "wavelet_session_id"
+  session_secret: "change-me-to-a-random-string-in-production"
+  session_domain: ""
+  session_age: 86400
+  session_secure: true
+  session_http_only: true
+  api_prefix: "/api"
+
+# ─── PostgreSQL ─────────────────────────────────────────────────────────────────
+database:
+  enabled: true
+  host: "postgres"              # Docker 服务名
+  port: 5432
+  username: "postgres"
+  password: "postgres"
+  database: "wavelet"
+  max_idle_conn: 16
+  max_open_conn: 128
+  conn_max_lifetime: 1800
+  conn_max_idle_time: 600
+  log_level: "info"
+  ssl_mode: "disable"
+  time_zone: "Asia/Shanghai"
+  application_name: "wavelet-server"
+  prefer_simple_protocol: false
+  search_path: "public"
+  statement_cache_capacity: 256
+  default_query_exec_mode: "cache_statement"
+  slow_threshold: 200ms
+
+# ─── Redis ──────────────────────────────────────────────────────────────────────
+redis:
+  enabled: true
+  addrs:
+    - "redis:6379"              # Docker 服务名
+  username: ""
+  password: ""
+  db: 0
+  cluster_mode: false
+  master_name: ""
+  key_prefix: "wavelet:"
+  pool_size: 100
+  min_idle_conn: 10
+  dial_timeout: 5
+  read_timeout: 3
+  write_timeout: 3
+  max_retries: 3
+  pool_timeout: 4
+  conn_max_idle_time: 300
+
+# ─── ClickHouse (optional) ──────────────────────────────────────────────────────
+clickhouse:
+  enabled: false
+  hosts:
+    - "clickhouse:9000"
+  username: "default"
+  password: ""
+  database: "wavelet"
+  max_idle_conn: 10
+  max_open_conn: 100
+  conn_max_lifetime: 3600
+  dial_timeout: 5
+  block_buffer_size: 10
+
+# ─── Logging ────────────────────────────────────────────────────────────────────
+log:
+  level: "info"
+  format: "json"
+  output: "stdout"
+  file_path: ""
+  max_size: 100
+  max_age: 30
+  max_backups: 10
+  compress: true
+
+# ─── Task Scheduler (Cron) ──────────────────────────────────────────────────────
+scheduler:
+  cleanup_unused_uploads_task_cron: "0 */2 * * *"
+
+# ─── Async Task Worker ──────────────────────────────────────────────────────────
+worker:
+  concurrency: 20
+  strict_priority: false
+  queues:
+    - name: webhook
+      priority: 10
+    - name: whitelist_only
+      priority: 5
+    - name: default
+      priority: 3
+
+# ─── OpenTelemetry Tracing ──────────────────────────────────────────────────────
+otel:
+  sampling_rate: 0.0            # Docker 环境默认关闭 tracing，避免无 Collector 时报错
+
+# ─── S3-Compatible File Storage ─────────────────────────────────────────────────
+s3:
+  enabled: false
+  endpoint: ""
+  region: "auto"
+  bucket: ""
+  access_key_id: ""
+  secret_access_key: ""
+  path_style: false
+  key_prefix: ""
+  cdn_url: ""
+  local_cache:
+    enabled: false
+    cache_dir: "./s3_cache"
