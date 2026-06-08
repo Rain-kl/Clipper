@@ -31,6 +31,16 @@ const (
 	TaskTypeSendEmail      = "send_email"
 )
 
+// TaskParam 任务参数定义
+type TaskParam struct {
+	Name        string `json:"Name"`        // 参数键名
+	Label       string `json:"Label"`       // 显示名称
+	Type        string `json:"Type"`        // 类型：string, text, number
+	Required    bool   `json:"Required"`    // 是否必填
+	Placeholder string `json:"Placeholder"` // 占位符
+	Description string `json:"Description"` // 描述
+}
+
 // TaskMeta 任务元数据
 type TaskMeta struct {
 	Type         string
@@ -41,6 +51,7 @@ type TaskMeta struct {
 	MaxRetry     int
 	Queue        string
 	Retryable    bool // 是否支持手动重试
+	Params       []TaskParam
 }
 
 // DispatchableTasks 可下发的任务列表
@@ -64,6 +75,32 @@ var DispatchableTasks = []TaskMeta{
 		MaxRetry:     3,
 		Queue:        QueueDefault,
 		Retryable:    true,
+		Params: []TaskParam{
+			{
+				Name:        "to",
+				Label:       "接收邮箱 (To)",
+				Type:        "string",
+				Required:    true,
+				Placeholder: "receiver@example.com",
+				Description: "接收邮件的目标邮箱地址",
+			},
+			{
+				Name:        "subject",
+				Label:       "邮件主题 (Subject)",
+				Type:        "string",
+				Required:    true,
+				Placeholder: "请输入邮件主题",
+				Description: "发送邮件的主题标题",
+			},
+			{
+				Name:        "body",
+				Label:       "邮件内容 (Body)",
+				Type:        "text",
+				Required:    true,
+				Placeholder: "请输入邮件内容（支持 HTML 格式）",
+				Description: "发送邮件的内容主体",
+			},
+		},
 	},
 }
 

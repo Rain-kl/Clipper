@@ -17,6 +17,7 @@ limitations under the License.
 package task
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -49,6 +50,7 @@ type DispatchTaskRequest struct {
 	StartTime *time.Time `json:"start_time"`
 	EndTime   *time.Time `json:"end_time"`
 	UserID    *uint64    `json:"user_id"`
+	Payload   string     `json:"payload"`
 }
 
 // DispatchTask 下发任务
@@ -78,7 +80,45 @@ func DispatchTask(c *gin.Context) {
 		return
 	}
 
-	taskID, err := task.DispatchTask(c.Request.Context(), req.TaskType, nil, "manual")
+	var payloadBytes []byte
+	if req.TaskType == task.TaskTypeSendEmail {
+		if strings.TrimSpace(req.Payload) == "" {
+			c.JSON(http.StatusBadRequest, util.Err("任务参数 Payload 不能为空"))
+			return
+		}
+
+		var mailPayload struct {
+			To      string `json:"to"`
+			Subject string `json:"subject"`
+			Body    string `json:"body"`
+		}
+		if err := json.Unmarshal([]byte(req.Payload), &mailPayload); err != nil {
+			c.JSON(http.StatusBadRequest, util.Err("无效的 JSON 格式: "+err.Error()))
+			return
+		}
+
+		mailPayload.To = strings.TrimSpace(mailPayload.To)
+		mailPayload.Subject = strings.TrimSpace(mailPayload.Subject)
+		mailPayload.Body = strings.TrimSpace(mailPayload.Body)
+
+		if mailPayload.To == "" || mailPayload.Subject == "" || mailPayload.Body == "" {
+			c.JSON(http.StatusBadRequest, util.Err("收件人地址 (to)、邮件主题 (subject) 和邮件内容 (body) 不能为空"))
+			return
+		}
+
+		var err error
+		payloadBytes, err = json.Marshal(mailPayload)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, util.Err("构造邮件任务载荷失败"))
+			return
+		}
+	} else {
+		if req.Payload != "" {
+			payloadBytes = []byte(req.Payload)
+		}
+	}
+
+	taskID, err := task.DispatchTask(c.Request.Context(), req.TaskType, payloadBytes, "manual")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, util.Err(fmt.Sprintf("%s: %v", TaskDispatchFailed, err)))
 		return

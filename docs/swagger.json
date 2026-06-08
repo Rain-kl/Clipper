@@ -633,6 +633,63 @@
                 }
             }
         },
+        "/api/v1/admin/system-configs/smtp/test": {
+            "post": {
+                "security": [
+                    {
+                        "SessionCookie": []
+                    }
+                ],
+                "description": "使用传入的配置进行 SMTP 邮件发送测试，支持使用 ****** 占位符使用保存的数据库密码",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin"
+                ],
+                "summary": "测试 SMTP 邮件发送",
+                "parameters": [
+                    {
+                        "description": "测试请求参数",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/system_config.TestSMTPRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "测试执行完毕",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/util.ResponseAny"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/system_config.TestSMTPResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "参数错误",
+                        "schema": {
+                            "$ref": "#/definitions/util.ResponseAny"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/admin/system-configs/{key}": {
             "get": {
                 "security": [
@@ -2640,6 +2697,46 @@
                 }
             }
         },
+        "/api/v1/user/send-email-code": {
+            "post": {
+                "description": "向指定邮箱发送验证码（用于注册场景）",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "user"
+                ],
+                "summary": "发送邮箱验证码",
+                "parameters": [
+                    {
+                        "description": "发送验证码请求参数",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/user.sendEmailCodeRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "发送成功",
+                        "schema": {
+                            "$ref": "#/definitions/util.ResponseAny"
+                        }
+                    },
+                    "400": {
+                        "description": "参数错误",
+                        "schema": {
+                            "$ref": "#/definitions/util.ResponseAny"
+                        }
+                    }
+                }
+            }
+        },
         "/f/{id}": {
             "get": {
                 "description": "根据文件 ID 获取并提供已上传的临时或正式文件，若配置了缓存则优先走本地缓存，否则从 S3 等后端存储读取并流式返回",
@@ -3319,6 +3416,50 @@
                 }
             }
         },
+        "system_config.TestSMTPRequest": {
+            "type": "object",
+            "required": [
+                "smtp_host",
+                "smtp_password",
+                "smtp_port",
+                "smtp_username",
+                "to"
+            ],
+            "properties": {
+                "smtp_host": {
+                    "type": "string",
+                    "maxLength": 255
+                },
+                "smtp_password": {
+                    "type": "string",
+                    "maxLength": 255
+                },
+                "smtp_port": {
+                    "type": "integer"
+                },
+                "smtp_username": {
+                    "type": "string",
+                    "maxLength": 255
+                },
+                "to": {
+                    "type": "string"
+                }
+            }
+        },
+        "system_config.TestSMTPResponse": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string"
+                },
+                "log": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
         "system_config.UpdateSystemConfigRequest": {
             "type": "object",
             "required": [
@@ -3342,6 +3483,9 @@
             ],
             "properties": {
                 "end_time": {
+                    "type": "string"
+                },
+                "payload": {
                     "type": "string"
                 },
                 "start_time": {
@@ -3370,6 +3514,12 @@
                 "name": {
                     "type": "string"
                 },
+                "params": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/task.TaskParam"
+                    }
+                },
                 "queue": {
                     "type": "string"
                 },
@@ -3381,6 +3531,35 @@
                     "type": "boolean"
                 },
                 "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "task.TaskParam": {
+            "type": "object",
+            "properties": {
+                "Description": {
+                    "description": "描述",
+                    "type": "string"
+                },
+                "Label": {
+                    "description": "显示名称",
+                    "type": "string"
+                },
+                "Name": {
+                    "description": "参数键名",
+                    "type": "string"
+                },
+                "Placeholder": {
+                    "description": "占位符",
+                    "type": "string"
+                },
+                "Required": {
+                    "description": "是否必填",
+                    "type": "boolean"
+                },
+                "Type": {
+                    "description": "类型：string, text, number",
                     "type": "string"
                 }
             }
@@ -3485,6 +3664,9 @@
         "user.loginRequest": {
             "type": "object",
             "properties": {
+                "code": {
+                    "type": "string"
+                },
                 "password": {
                     "type": "string"
                 },
@@ -3496,7 +3678,13 @@
         "user.registerRequest": {
             "type": "object",
             "properties": {
+                "code": {
+                    "type": "string"
+                },
                 "display_name": {
+                    "type": "string"
+                },
+                "email": {
                     "type": "string"
                 },
                 "nickname": {
@@ -3506,6 +3694,21 @@
                     "type": "string"
                 },
                 "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "user.sendEmailCodeRequest": {
+            "type": "object",
+            "required": [
+                "email",
+                "scene"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "scene": {
                     "type": "string"
                 }
             }

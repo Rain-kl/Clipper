@@ -6,6 +6,7 @@ import {toast} from "sonner"
 import {Button} from "@/components/ui/button"
 import {Input} from "@/components/ui/input"
 import {Label} from "@/components/ui/label"
+import {Textarea} from "@/components/ui/textarea"
 import {Spinner} from "@/components/ui/spinner"
 import {Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle} from "@/components/ui/dialog"
 import {Calendar as CalendarIcon, Clock, FileText, Info, Layers, Play} from "lucide-react"
@@ -140,6 +141,7 @@ export function TaskManager() {
   const [startTime, setStartTime] = useState<Date | undefined>(undefined)
   const [endTime, setEndTime] = useState<Date | undefined>(undefined)
   const [userId, setUserId] = useState("")
+  const [paramValues, setParamValues] = useState<Record<string, string>>({})
 
   const fetchTaskTypes = useCallback(async () => {
     try {
@@ -158,6 +160,21 @@ export function TaskManager() {
     fetchTaskTypes()
   }, [fetchTaskTypes])
 
+  useEffect(() => {
+    if (selectedTaskType) {
+      const targetTask = taskTypes.find(t => t.type === selectedTaskType)
+      if (targetTask?.params) {
+        const initialValues: Record<string, string> = {}
+        targetTask.params.forEach(p => {
+          initialValues[p.name] = ""
+        })
+        setParamValues(initialValues)
+      } else {
+        setParamValues({})
+      }
+    }
+  }, [selectedTaskType, taskTypes])
+
   const handleDispatch = async () => {
     if (!selectedTaskType) return
 
@@ -170,13 +187,28 @@ export function TaskManager() {
         task_type: selectedTaskType
       }
 
-      if (targetTask?.type === 'order_sync') {
+      if (targetTask?.supports_time) {
         if (startTime) params.start_time = startTime.toISOString()
         if (endTime) params.end_time = endTime.toISOString()
       }
 
       if (targetTask?.type === 'user_gamification') {
         if (userId) params.user_id = userId
+      }
+
+      // Handle dynamic parameters
+      if (targetTask?.params && targetTask.params.length > 0) {
+        const payloadData: Record<string, string> = {}
+        for (const param of targetTask.params) {
+          const val = (paramValues[param.name] || "").trim()
+          if (param.required && !val) {
+            toast.error(`${param.label}不能为空`)
+            setDispatching(false)
+            return
+          }
+          payloadData[param.name] = val
+        }
+        params.payload = JSON.stringify(payloadData)
       }
 
       const taskID = await AdminService.dispatchTask(params)
@@ -189,6 +221,7 @@ export function TaskManager() {
       setStartTime(undefined)
       setEndTime(undefined)
       setUserId("")
+      setParamValues({})
     } catch (err) {
       toast.error('任务下发失败', {
         description: err instanceof Error ? err.message : '未知错误'
@@ -318,42 +351,81 @@ export function TaskManager() {
               </div>
             </div>
 
-            {selectedTaskType === 'order_sync' && (
-              <>
-                <div className="grid gap-2">
-                  <Label>开始时间</Label>
-                  <DatePickerWithTime date={startTime} setDate={setStartTime} />
-                  <p className="text-xs text-muted-foreground">选择同步的起始时间点</p>
-                </div>
-                <div className="grid gap-2">
-                  <Label>结束时间</Label>
-                  <DatePickerWithTime date={endTime} setDate={setEndTime} />
-                  <p className="text-xs text-muted-foreground">选择同步的结束时间点</p>
-                </div>
-              </>
-            )}
+            {(() => {
+              const targetTask = getSelectedTaskMeta()
+              if (targetTask?.supports_time) {
+                return (
+                  <>
+                    <div className="grid gap-2">
+                      <Label>开始时间</Label>
+                      <DatePickerWithTime date={startTime} setDate={setStartTime} />
+                      <p className="text-xs text-muted-foreground">选择同步的起始时间点</p>
+                    </div>
+                    <div className="grid gap-2">
+                      <Label>结束时间</Label>
+                      <DatePickerWithTime date={endTime} setDate={setEndTime} />
+                      <p className="text-xs text-muted-foreground">选择同步的结束时间点</p>
+                    </div>
+                  </>
+                )
+              }
+              return null
+            })()}
 
-            {selectedTaskType === 'user_gamification' && (
-              <div className="grid gap-2">
-                <Label htmlFor="user-id">用户 ID</Label>
-                <Input
-                  id="user-id"
-                  type="number"
-                  placeholder="e.g. 10086"
-                  className="font-mono text-xs"
-                  value={userId}
-                  onChange={(e) => setUserId(e.target.value)}
-                />
-                <p className="text-xs text-muted-foreground">指定需要更新积分数据的用户 ID</p>
-              </div>
-            )}
+            {(() => {
+              const targetTask = getSelectedTaskMeta()
+              if (!targetTask || !targetTask.params || targetTask.params.length === 0) {
+                return null
+              }
+              return (
+                <div className="space-y-4">
+                  {targetTask.params.map((param) => (
+                    <div key={param.name} className="grid gap-2">
+                      <Label htmlFor={`param-${param.name}`} className="flex items-center gap-1">
+                        {param.label}
+                        {param.required && <span className="text-destructive font-bold">*</span>}
+                      </Label>
+                      {param.type === 'text' ? (
+                        <Textarea
+                          id={`param-${param.name}`}
+                          placeholder={param.placeholder}
+                          className="text-xs min-h-[80px]"
+                          value={paramValues[param.name] || ""}
+                          onChange={(e) => setParamValues(prev => ({ ...prev, [param.name]: e.target.value }))}
+                        />
+                      ) : (
+                        <Input
+                          id={`param-${param.name}`}
+                          type={param.type === 'number' ? 'number' : 'text'}
+                          placeholder={param.placeholder}
+                          className="text-xs"
+                          value={paramValues[param.name] || ""}
+                          onChange={(e) => setParamValues(prev => ({ ...prev, [param.name]: e.target.value }))}
+                        />
+                      )}
+                      {param.description && (
+                        <p className="text-[10px] text-muted-foreground">{param.description}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )
+            })()}
 
-            {!['order_sync', 'user_gamification'].includes(selectedTaskType || '') && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 p-3 rounded-md border border-dashed">
-                <Info className="h-4 w-4" />
-                <span>此任务无需额外配置参数，确认后将直接下发。</span>
-              </div>
-            )}
+            {(() => {
+              const targetTask = getSelectedTaskMeta()
+              const hasTime = targetTask?.supports_time
+              const hasParams = targetTask?.params && targetTask.params.length > 0
+              if (!hasTime && !hasParams) {
+                return (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 p-3 rounded-md border border-dashed">
+                    <Info className="h-4 w-4" />
+                    <span>此任务无需额外配置参数，确认后将直接下发。</span>
+                  </div>
+                )
+              }
+              return null
+            })()}
           </div>
 
           <DialogFooter>

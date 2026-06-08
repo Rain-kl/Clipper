@@ -193,6 +193,14 @@ export class AdminService extends BaseService {
       supports_time: item.SupportsTime ?? item.supports_time ?? false,
       max_retry: item.MaxRetry ?? item.max_retry ?? 0,
       queue: item.Queue || item.queue || '',
+      params: (item.Params || item.params || []).map(p => ({
+        name: p.Name || p.name || '',
+        label: p.Label || p.label || '',
+        type: p.Type || p.type || '',
+        required: p.Required ?? p.required ?? false,
+        placeholder: p.Placeholder || p.placeholder || '',
+        description: p.Description || p.description || '',
+      })),
     }));
   }
 

@@ -424,6 +424,37 @@ definitions:
     - type
     - value
     type: object
+  system_config.TestSMTPRequest:
+    properties:
+      smtp_host:
+        maxLength: 255
+        type: string
+      smtp_password:
+        maxLength: 255
+        type: string
+      smtp_port:
+        type: integer
+      smtp_username:
+        maxLength: 255
+        type: string
+      to:
+        type: string
+    required:
+    - smtp_host
+    - smtp_password
+    - smtp_port
+    - smtp_username
+    - to
+    type: object
+  system_config.TestSMTPResponse:
+    properties:
+      error:
+        type: string
+      log:
+        type: string
+      success:
+        type: boolean
+    type: object
   system_config.UpdateSystemConfigRequest:
     properties:
       description:
@@ -438,6 +469,8 @@ definitions:
   task.DispatchTaskRequest:
     properties:
       end_time:
+        type: string
+      payload:
         type: string
       start_time:
         type: string
@@ -458,6 +491,10 @@ definitions:
         type: integer
       name:
         type: string
+      params:
+        items:
+          $ref: '#/definitions/task.TaskParam'
+        type: array
       queue:
         type: string
       retryable:
@@ -466,6 +503,27 @@ definitions:
       supportsTime:
         type: boolean
       type:
+        type: string
+    type: object
+  task.TaskParam:
+    properties:
+      Description:
+        description: 描述
+        type: string
+      Label:
+        description: 显示名称
+        type: string
+      Name:
+        description: 参数键名
+        type: string
+      Placeholder:
+        description: 占位符
+        type: string
+      Required:
+        description: 是否必填
+        type: boolean
+      Type:
+        description: 类型：string, text, number
         type: string
     type: object
   upload.batchDownloadRequest:
@@ -535,6 +593,8 @@ definitions:
     type: object
   user.loginRequest:
     properties:
+      code:
+        type: string
       password:
         type: string
       username:
@@ -542,7 +602,11 @@ definitions:
     type: object
   user.registerRequest:
     properties:
+      code:
+        type: string
       display_name:
+        type: string
+      email:
         type: string
       nickname:
         type: string
@@ -550,6 +614,16 @@ definitions:
         type: string
       username:
         type: string
+    type: object
+  user.sendEmailCodeRequest:
+    properties:
+      email:
+        type: string
+      scene:
+        type: string
+    required:
+    - email
+    - scene
     type: object
   user.tokenResponse:
     properties:
@@ -1109,6 +1183,39 @@ paths:
       security:
       - SessionCookie: []
       summary: 更新系统配置
+      tags:
+      - admin
+  /api/v1/admin/system-configs/smtp/test:
+    post:
+      consumes:
+      - application/json
+      description: 使用传入的配置进行 SMTP 邮件发送测试，支持使用 ****** 占位符使用保存的数据库密码
+      parameters:
+      - description: 测试请求参数
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/system_config.TestSMTPRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 测试执行完毕
+          schema:
+            allOf:
+            - $ref: '#/definitions/util.ResponseAny'
+            - properties:
+                data:
+                  $ref: '#/definitions/system_config.TestSMTPResponse'
+              type: object
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      security:
+      - SessionCookie: []
+      summary: 测试 SMTP 邮件发送
       tags:
       - admin
   /api/v1/admin/tasks/dispatch:
@@ -2174,6 +2281,32 @@ paths:
           schema:
             $ref: '#/definitions/util.ResponseAny'
       summary: 用户注册
+      tags:
+      - user
+  /api/v1/user/send-email-code:
+    post:
+      consumes:
+      - application/json
+      description: 向指定邮箱发送验证码（用于注册场景）
+      parameters:
+      - description: 发送验证码请求参数
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/user.sendEmailCodeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 发送成功
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      summary: 发送邮箱验证码
       tags:
       - user
   /f/{id}:

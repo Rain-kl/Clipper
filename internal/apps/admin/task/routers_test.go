@@ -125,6 +125,59 @@ func TestDispatchTask(t *testing.T) {
 		assert.NotEmpty(t, taskID)
 	})
 
+	t.Run("dispatch send_email task successfully with valid payload", func(t *testing.T) {
+		payload := DispatchTaskRequest{
+			TaskType: task.TaskTypeSendEmail,
+			Payload:  `{"to":"receiver@example.com","subject":"Test Subject","body":"Test Body"}`,
+		}
+		body, _ := json.Marshal(payload)
+		req, _ := http.NewRequest("POST", "/api/v1/admin/tasks/dispatch", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code, "Body: %s", w.Body.String())
+
+		var resp util.ResponseAny
+		json.Unmarshal(w.Body.Bytes(), &resp)
+		assert.Empty(t, resp.ErrorMsg)
+		assert.NotNil(t, resp.Data)
+	})
+
+	t.Run("dispatch send_email task failure with invalid payload json", func(t *testing.T) {
+		payload := DispatchTaskRequest{
+			TaskType: task.TaskTypeSendEmail,
+			Payload:  `{"to":`,
+		}
+		body, _ := json.Marshal(payload)
+		req, _ := http.NewRequest("POST", "/api/v1/admin/tasks/dispatch", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+		var resp util.ResponseAny
+		json.Unmarshal(w.Body.Bytes(), &resp)
+		assert.Contains(t, resp.ErrorMsg, "无效的 JSON 格式")
+	})
+
+	t.Run("dispatch send_email task failure with missing fields", func(t *testing.T) {
+		payload := DispatchTaskRequest{
+			TaskType: task.TaskTypeSendEmail,
+			Payload:  `{"to":"","subject":"Test","body":"Test"}`,
+		}
+		body, _ := json.Marshal(payload)
+		req, _ := http.NewRequest("POST", "/api/v1/admin/tasks/dispatch", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+		var resp util.ResponseAny
+		json.Unmarshal(w.Body.Bytes(), &resp)
+		assert.Contains(t, resp.ErrorMsg, "不能为空")
+	})
+
 	t.Run("dispatch invalid task type failure", func(t *testing.T) {
 		payload := DispatchTaskRequest{
 			TaskType: "invalid_task_type",

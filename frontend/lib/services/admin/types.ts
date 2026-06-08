@@ -47,6 +47,24 @@ export interface UpdateSystemConfigRequest {
 // ==================== 任务管理 ====================
 
 /**
+ * 任务参数响应
+ */
+export interface TaskParamResponse {
+  Name?: string;
+  name?: string;
+  Label?: string;
+  label?: string;
+  Type?: string;
+  type?: string;
+  Required?: boolean;
+  required?: boolean;
+  Placeholder?: string;
+  placeholder?: string;
+  Description?: string;
+  description?: string;
+}
+
+/**
  * 任务类型响应
  */
 export interface TaskTypeResponse {
@@ -64,6 +82,20 @@ export interface TaskTypeResponse {
   max_retry?: number;
   Queue?: string;
   queue?: string;
+  Params?: TaskParamResponse[];
+  params?: TaskParamResponse[];
+}
+
+/**
+ * 任务参数定义
+ */
+export interface TaskParam {
+  name: string;
+  label: string;
+  type: string;
+  required: boolean;
+  placeholder: string;
+  description: string;
 }
 
 /**
@@ -84,6 +116,8 @@ export interface TaskMeta {
   max_retry: number;
   /** 队列名称 */
   queue: string;
+  /** 任务所需的自定义参数定义 */
+  params?: TaskParam[];
 }
 
 /**
@@ -98,6 +132,8 @@ export interface DispatchTaskRequest {
   end_time?: string;
   /** 用户 ID（可选，仅部分任务需要） */
   user_id?: string;
+  /** 任务自定义参数 JSON 字符串 */
+  payload?: string;
 }
 
 export type TaskExecutionStatus = 'pending' | 'running' | 'succeeded' | 'failed';
