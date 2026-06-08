@@ -47,3 +47,4 @@ s3_cache
 /data/
 /internal/router/dist/
 /frontend/out/
+/.idea/
