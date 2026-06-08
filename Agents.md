@@ -453,6 +453,8 @@ func (m *Manager) VerifyMiddleware(...) gin.HandlerFunc { ... }
 
 ## 七、新增功能开发流程
 
+新增 **异步任务** ：使用项目专属 SKILL: new-async-task 进行开发
+
 以新增 **管理员功能模块** 为例：
 
 ```
@@ -490,27 +492,6 @@ apps/admin/<module>/
 - `routers.go` 只做三件事：参数绑定、调用 logic 函数、返回响应。不包含任何业务判断逻辑。
 - `logics.go` 负责所有业务逻辑，接收已校验的参数，返回处理结果和错误。函数以 `PascalCase` 导出，供 `routers.go` 调用。
 
-以新增 **异步任务** 为例：
-
-```
-1. 在 internal/task/constants.go 定义任务类型常量 + TaskMeta（含 Retryable）
-2. 在 apps/<module>/ 下创建 tasks.go，定义 struct 实现 TaskHandler 接口：
-   type MyTaskHandler struct{}
-   func (h *MyTaskHandler) Execute(ctx context.Context, payload []byte) (*task.TaskResult, error) {
-       task.AppendLog(ctx, "开始执行任务...")
-       // ... 业务逻辑 ...
-       return &task.TaskResult{Message: "执行完成"}, nil
-   }
-3. 在 internal/task/worker/worker.go 的 init() 中注册：
-   task.RegisterHandler(task.MyTask, &mymodule.MyTaskHandler{})
-   并在 StartWorker 的 mux 中添加路由：
-   mux.HandleFunc(task.MyTask, task.ProcessTask)
-4.（可选）在 internal/task/scheduler/ 添加 Cron 调度
-5.（可选）在 config.example.yaml 的 scheduler 段添加 Cron 配置项
-6.（可选）在 internal/config/model.go 添加配置字段
-```
-
-> **框架运行机制**：开发者只需实现 `TaskHandler.Execute` 方法编写业务逻辑，通过 `task.AppendLog(ctx, ...)` 追加执行日志。任务的创建（`TaskExecution` 记录）、状态流转（pending → running → succeeded/failed）、日志写入、耗时统计、错误记录、重试计数全部由 `task.ProcessTask` 框架层透明处理。管理端可通过 API 查询执行记录、查看日志、手动重试失败任务。
 
 ---
 
