@@ -56,6 +56,7 @@ import {
   Palette,
   Settings,
   ShieldCheck,
+  Terminal,
   UserRound,
 } from "lucide-react"
 
@@ -71,6 +72,7 @@ const data = {
     { title: "文件管理", url: "/admin/files", icon: FolderOpen },
     { title: "任务管理", url: "/admin/tasks", icon: Layers },
     { title: "系统配置", url: "/admin/system", icon: ShieldCheck },
+    { title: "系统日志", url: "/admin/logs", icon: Terminal },
     { title: "系统设置", url: "/admin/settings", icon: Settings },
 
   ],

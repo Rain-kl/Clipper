@@ -347,4 +347,19 @@ export class AdminService extends BaseService {
   static async getSystemStatus(): Promise<SystemStatus> {
     return this.get<SystemStatus>('/status');
   }
+
+  // ==================== 系统日志 ====================
+
+  /**
+   * 获取系统历史日志
+   * @param cursor - 日志游标，0=获取最新，>0=获取更早
+   * @param limit - 每页条数，默认 200
+   */
+  static async getLogs(cursor: number = 0, limit: number = 200): Promise<{
+    lines: Array<{ index: number; data: string }>;
+    has_more: boolean;
+    next_cursor: number;
+  }> {
+    return this.get('/logs', { cursor, limit });
+  }
 }

@@ -29,6 +29,7 @@ import (
 
 	"github.com/linux-do/credit/internal/apps/admin"
 	admin_auth_source "github.com/linux-do/credit/internal/apps/admin/auth_source"
+	admin_logs "github.com/linux-do/credit/internal/apps/admin/logs"
 	admin_status "github.com/linux-do/credit/internal/apps/admin/status"
 	admin_task "github.com/linux-do/credit/internal/apps/admin/task"
 	admin_user "github.com/linux-do/credit/internal/apps/admin/user"
@@ -183,6 +184,10 @@ func Serve() {
 			{
 				// System status
 				adminRouter.GET("/status", admin_status.GetSystemStatus)
+
+				// System logs
+				adminRouter.GET("/logs", admin_logs.GetLogs)
+				adminRouter.GET("/logs/ws", admin_logs.HandleLogWebSocket)
 
 				// Task dispatch
 				adminRouter.GET("/tasks/types", admin_task.ListTaskTypes)

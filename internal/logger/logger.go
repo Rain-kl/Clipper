@@ -28,14 +28,26 @@ import (
 
 var logger *otelzap.Logger
 
+// GlobalRingBuffer 全局日志环形缓冲区，供 Admin 日志查询和 WebSocket 推送使用
+var GlobalRingBuffer *LogRingBuffer
+
 func init() {
 	logWriter, err := GetLogWriter()
 	if err != nil {
 		log.Fatalf("[Logger] get log writer err: %v\n", err)
 	}
 
+	// 初始化 ring buffer（保留最近 5000 行日志）
+	GlobalRingBuffer = NewLogRingBuffer(5000)
+
+	// 使用 multi writer 同时写入原始输出和 ring buffer
+	multiWriter := zapcore.NewMultiWriteSyncer(
+		logWriter,
+		zapcore.AddSync(GlobalRingBuffer),
+	)
+
 	zapLogger := zap.New(
-		zapcore.NewCore(getEncoder(), logWriter, getLogLevel()),
+		zapcore.NewCore(getEncoder(), multiWriter, getLogLevel()),
 		zap.AddCaller(),
 		zap.AddCallerSkip(1),
 	)

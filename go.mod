@@ -16,6 +16,7 @@ require (
 	github.com/glebarez/sqlite v1.11.0
 	github.com/go-jose/go-jose/v4 v4.1.3
 	github.com/google/uuid v1.6.0
+	github.com/gorilla/websocket v1.5.3
 	github.com/hibiken/asynq v0.25.1
 	github.com/redis/go-redis/extra/redisotel/v9 v9.16.0
 	github.com/redis/go-redis/v9 v9.16.0
