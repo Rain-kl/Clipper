@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"github.com/Rain-kl/Wavelet/internal/config"
+	"github.com/glebarez/sqlite"
 	"go.opentelemetry.io/otel/attribute"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -39,10 +40,39 @@ var (
 
 func init() {
 	if !config.Config.Database.Enabled {
-		log.Println("[PostgreSQL] is disabled, skipping initialization")
+		// PostgreSQL 禁用，使用 SQLite
+		initSQLite()
 		return
 	}
 
+	initPostgres()
+}
+
+// initSQLite 初始化 SQLite 数据库（PostgreSQL 禁用时的后备方案）
+func initSQLite() {
+	sqlitePath := config.Config.Database.SQLitePath
+	if sqlitePath == "" {
+		sqlitePath = "./data/wavelet.db"
+	}
+
+	var err error
+	db, err = gorm.Open(sqlite.Open(sqlitePath), &gorm.Config{
+		DisableForeignKeyConstraintWhenMigrating: true,
+		Logger: &gormZapLogger{
+			logLevel:                  parseLogLevel(config.Config.Database.LogLevel),
+			slowThreshold:             config.Config.Database.SlowThreshold,
+			ignoreRecordNotFoundError: config.Config.App.IsProduction(),
+		},
+	})
+	if err != nil {
+		log.Fatalf("[SQLite] init connection failed: %v\n", err)
+	}
+
+	log.Printf("[SQLite] initialized (path: %s)\n", sqlitePath)
+}
+
+// initPostgres 初始化 PostgreSQL 数据库
+func initPostgres() {
 	var err error
 	dbConfig := config.Config.Database
 

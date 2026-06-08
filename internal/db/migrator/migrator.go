@@ -29,11 +29,15 @@ import (
 	"github.com/Rain-kl/Wavelet/internal/db/idgen"
 )
 
-func Migrate() {
+// dbType 返回当前数据库类型名称（用于日志输出）
+func dbType() string {
 	if !config.Config.Database.Enabled {
-		return
+		return "SQLite"
 	}
+	return "PostgreSQL"
+}
 
+func Migrate() {
 	if err := db.DB(context.Background()).AutoMigrate(
 		&model.User{},
 		&model.AuthSource{},
@@ -44,9 +48,9 @@ func Migrate() {
 		&model.TaskExecution{},
 		&model.Template{},
 	); err != nil {
-		log.Fatalf("[PostgreSQL] auto migrate failed: %v\n", err)
+		log.Fatalf("[%s] auto migrate failed: %v\n", dbType(), err)
 	}
-	log.Printf("[PostgreSQL] auto migrate success\n")
+	log.Printf("[%s] auto migrate success\n", dbType())
 
 	// 初始化系统配置数据
 	initSystemConfigs()
@@ -68,9 +72,9 @@ func ensureConfigKeyExists(key, value, configType, description string) {
 			Description: description,
 		}
 		if err := tx.Create(&newConfig).Error; err != nil {
-			log.Printf("[PostgreSQL] failed to create system config key %s: %v\n", key, err)
+			log.Printf("[%s] failed to create system config key %s: %v\n", dbType(), key, err)
 		} else {
-			log.Printf("[PostgreSQL] initialized system config key %s\n", key)
+			log.Printf("[%s] initialized system config key %s\n", dbType(), key)
 		}
 	}
 }
@@ -81,7 +85,7 @@ func initSystemConfigs() {
 
 	var count int64
 	if err := tx.Model(&model.SystemConfig{}).Count(&count).Error; err != nil {
-		log.Printf("[PostgreSQL] failed to check system_config table: %v\n", err)
+		log.Printf("[%s] failed to check system_config table: %v\n", dbType(), err)
 		return
 	}
 
@@ -240,9 +244,9 @@ func initSystemConfigs() {
 	}
 
 	if err := tx.Create(&defaultConfigs).Error; err != nil {
-		log.Printf("[PostgreSQL] failed to create default system configs: %v\n", err)
+		log.Printf("[%s] failed to create default system configs: %v\n", dbType(), err)
 	} else {
-		log.Printf("[PostgreSQL] initialized %d default system configs\n", len(defaultConfigs))
+		log.Printf("[%s] initialized %d default system configs\n", dbType(), len(defaultConfigs))
 	}
 }
 
@@ -252,7 +256,7 @@ func initDefaultAdmin() {
 
 	var count int64
 	if err := tx.Model(&model.User{}).Where("username = ?", "admin").Count(&count).Error; err != nil {
-		log.Printf("[PostgreSQL] failed to check default admin user: %v\n", err)
+		log.Printf("[%s] failed to check default admin user: %v\n", dbType(), err)
 		return
 	}
 
@@ -272,9 +276,9 @@ func initDefaultAdmin() {
 	}
 
 	if err := tx.Create(&adminUser).Error; err != nil {
-		log.Printf("[PostgreSQL] failed to create default admin user: %v\n", err)
+		log.Printf("[%s] failed to create default admin user: %v\n", dbType(), err)
 	} else {
-		log.Printf("[PostgreSQL] default admin user created successfully (username: admin, password: 12345678)\n")
+		log.Printf("[%s] default admin user created successfully (username: admin, password: 12345678)\n", dbType())
 	}
 }
 
@@ -283,7 +287,7 @@ func initTemplates() {
 	tx := db.DB(context.Background())
 	var count int64
 	if err := tx.Model(&model.Template{}).Count(&count).Error; err != nil {
-		log.Printf("[PostgreSQL] failed to check templates table: %v\n", err)
+		log.Printf("[%s] failed to check templates table: %v\n", dbType(), err)
 		return
 	}
 
@@ -314,9 +318,9 @@ func initTemplates() {
 			var t model.Template
 			if err := tx.Where("key = ?", dt.Key).First(&t).Error; err != nil {
 				if err := tx.Create(&dt).Error; err != nil {
-					log.Printf("[PostgreSQL] failed to create template key %s: %v\n", dt.Key, err)
+					log.Printf("[%s] failed to create template key %s: %v\n", dbType(), dt.Key, err)
 				} else {
-					log.Printf("[PostgreSQL] initialized template key %s\n", dt.Key)
+					log.Printf("[%s] initialized template key %s\n", dbType(), dt.Key)
 				}
 			}
 		}
@@ -324,8 +328,8 @@ func initTemplates() {
 	}
 
 	if err := tx.Create(&defaultTemplates).Error; err != nil {
-		log.Printf("[PostgreSQL] failed to create default templates: %v\n", err)
+		log.Printf("[%s] failed to create default templates: %v\n", dbType(), err)
 	} else {
-		log.Printf("[PostgreSQL] initialized %d default templates\n", len(defaultTemplates))
+		log.Printf("[%s] initialized %d default templates\n", dbType(), len(defaultTemplates))
 	}
 }

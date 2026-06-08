@@ -70,9 +70,19 @@ func init() {
 	viper.SetConfigFile(configPath)
 	viper.AutomaticEnv()
 
-	// 读取配置文件
+	// 读取配置文件（可选：找不到文件时使用空默认值 + 环境变量）
 	if err := viper.ReadInConfig(); err != nil {
-		log.Fatalf("[Config] read config failed: %v\n", err)
+		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
+			// 文件存在但读取/解析失败
+			if _, statErr := os.Stat(configPath); statErr == nil {
+				log.Fatalf("[Config] read config failed: %v\n", err)
+			}
+		}
+		log.Println("[Config] no config file found, using environment variables only")
+		viper.SetConfigType("yaml")
+		if err := viper.ReadConfig(strings.NewReader("")); err != nil {
+			log.Fatalf("[Config] failed to init empty config: %v\n", err)
+		}
 	}
 
 	// 解析配置到结构体
@@ -81,8 +91,11 @@ func init() {
 		log.Fatalf("[Config] parse config failed: %v\n", err)
 	}
 
+	applyDefaults(&c)
+
 	// 环境变量覆盖（优先级高于 config.yaml）
 	applyEnvOverrides(&c)
+	applyDefaults(&c)
 
 	// Disable standard DB/Redis initializations during tests to prevent connection attempts.
 	if isTest() {
@@ -96,6 +109,12 @@ func init() {
 
 	// 打印配置
 	printConfig(&c)
+}
+
+func applyDefaults(c *configModel) {
+	if c.App.SessionAge <= 0 {
+		c.App.SessionAge = 86400
+	}
 }
 
 // ─── 环境变量覆盖层 ────────────────────────────────────────────────────────────
@@ -171,11 +190,19 @@ func applyEnvOverrides(c *configModel) {
 	c.Database.LogLevel = envStr("DB_LOG_LEVEL", c.Database.LogLevel)
 	c.Database.MaxIdleConn = envInt("DB_MAX_IDLE_CONN", c.Database.MaxIdleConn)
 	c.Database.MaxOpenConn = envInt("DB_MAX_OPEN_CONN", c.Database.MaxOpenConn)
+	// 当 DB_HOST 环境变量已设置时自动启用数据库
+	if _, ok := os.LookupEnv("DB_HOST"); ok {
+		c.Database.Enabled = true
+	}
+	c.Database.Enabled = envBool("DB_ENABLED", c.Database.Enabled)
+	c.Database.SQLitePath = envStr("SQLITE_PATH", c.Database.SQLitePath)
 
 	// ─── Redis ───
 	if v, ok := os.LookupEnv("REDIS_ADDR"); ok {
 		c.Redis.Addrs = []string{v}
+		c.Redis.Enabled = true // 当 REDIS_ADDR 已设置时自动启用
 	}
+	c.Redis.Enabled = envBool("REDIS_ENABLED", c.Redis.Enabled)
 	c.Redis.Username = envStr("REDIS_USERNAME", c.Redis.Username)
 	c.Redis.Password = envStr("REDIS_PASSWORD", c.Redis.Password)
 	c.Redis.DB = envInt("REDIS_DB", c.Redis.DB)
@@ -185,7 +212,9 @@ func applyEnvOverrides(c *configModel) {
 	// ─── ClickHouse ───
 	if v, ok := os.LookupEnv("CLICKHOUSE_HOST"); ok {
 		c.ClickHouse.Hosts = []string{v}
+		c.ClickHouse.Enabled = true
 	}
+	c.ClickHouse.Enabled = envBool("CLICKHOUSE_ENABLED", c.ClickHouse.Enabled)
 	c.ClickHouse.Username = envStr("CLICKHOUSE_USERNAME", c.ClickHouse.Username)
 	c.ClickHouse.Password = envStr("CLICKHOUSE_PASSWORD", c.ClickHouse.Password)
 	c.ClickHouse.Database = envStr("CLICKHOUSE_NAME", c.ClickHouse.Database)
@@ -206,14 +235,28 @@ func applyEnvOverrides(c *configModel) {
 	c.S3.SecretAccessKey = envStr("S3_SECRET_ACCESS_KEY", c.S3.SecretAccessKey)
 	c.S3.CdnURL = envStr("S3_CDN_URL", c.S3.CdnURL)
 	c.S3.PathStyle = envBool("S3_PATH_STYLE", c.S3.PathStyle)
+	c.S3.Enabled = envBool("S3_ENABLED", c.S3.Enabled)
 
 	// ─── Worker ───
 	c.Worker.Concurrency = envInt("WORKER_CONCURRENCY", c.Worker.Concurrency)
+	c.Worker.StrictPriority = envBool("WORKER_STRICT_PRIORITY", c.Worker.StrictPriority)
+
+	// 无 yaml 且无环境变量时，使用代码级默认队列
+	if len(c.Worker.Queues) == 0 {
+		c.Worker.Queues = []QueueConfig{
+			{Name: "webhook", Priority: 10},
+			{Name: "whitelist_only", Priority: 5},
+			{Name: "default", Priority: 3},
+		}
+	}
 
 	// ─── Scheduler ───
 	c.Scheduler.CleanupUnusedUploadsTaskCron = envStr(
 		"SCHEDULER_CLEANUP_CRON", c.Scheduler.CleanupUnusedUploadsTaskCron,
 	)
+	if c.Scheduler.CleanupUnusedUploadsTaskCron == "" {
+		c.Scheduler.CleanupUnusedUploadsTaskCron = "@daily"
+	}
 }
 
 // printConfig 打印配置内容

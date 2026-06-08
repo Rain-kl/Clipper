@@ -12,8 +12,8 @@ services:
     ports:
       - "${APP_PORT:-8000}:8000"
     volumes:
-      - ./config.docker.yaml:/app/config.yaml:ro
       - ./uploads:/app/uploads
+      - ./data/sqlite:/app/data
     depends_on:
       postgres:
         condition: service_healthy

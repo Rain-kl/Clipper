@@ -55,6 +55,7 @@ func (a *appConfig) IsProduction() bool {
 // databaseConfig 数据库配置
 type databaseConfig struct {
 	Enabled                bool                    `mapstructure:"enabled"`
+	SQLitePath             string                  `mapstructure:"sqlite_path"` // PostgreSQL 禁用时的 SQLite 文件路径
 	Host                   string                  `mapstructure:"host"`
 	Port                   int                     `mapstructure:"port"`
 	Username               string                  `mapstructure:"username"`

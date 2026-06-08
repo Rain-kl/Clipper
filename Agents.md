@@ -511,3 +511,116 @@ apps/admin/<module>/
 | POST | `/api/v1/admin/tasks/executions/:id/retry` | 重试失败任务（校验 Retryable && RetryCount < MaxRetry） |
 
 ---
+
+
+## 代码规范
+
+### 后端
+
+**基础检查**
+
+需要通过 CodeQL 扫描，较长的代码建议增加 Copilot 检查。
+
+**API 文档**
+
+所有接口需要写 Swagger 文档，提交前通过 make swagger 更新文档后再提交。
+
+**响应格式**
+
+```json
+# 响应数据最外层有两个字段，error_msg 和 data
+{
+    "error_msg": "",
+    "data": null
+}
+
+# 如果是非列表数据
+{
+    "error_msg": "",
+    "data": {}
+}
+
+# 如果是分页数据
+{
+    "error_msg": "",
+    "data": {
+        "total": 0,
+        "results": []
+    }
+}
+```
+
+**数据库**
+
+- 禁止使用外键，但需要保留对应字段的索引；
+- 字段如有默认值，需要与 struct 默认值相同，如 nil，0，false，空字符串等，避免初始化时未填写或漏填写导致的数据异常。
+
+### 前端
+
+**基础检查**
+
+代码需要通过 ESLint 检查和 CodeQL 扫描。
+
+**类型安全**
+
+- 禁止使用 `any` 类型，`any` 类型绕过了 TypeScript 的类型检查系统，会导致潜在的运行时错误；
+- `unknown` 是类型安全的 `any`，但必须立即进行类型断言或类型收窄；
+- `never` 类型表示永远不会发生的值类型，必须谨慎使用，并提供清晰的注释说明。
+
+**组件规范**
+
+- 组件应按功能分类
+- 公共组件放在 `components/common` 目录
+- ShadcnUI 组件放在 `components/ui` 目录
+- 自定义图标应放置在 `/components/icons/` 目录下以命名导出形式管理，对于常规的图标，我们使用 Lucide 库
+
+**服务层**
+
+服务层架构是前端与API交互的统一入口，基于以下原则：
+1. 关注点分离 - 每个服务负责一个业务领域
+2. 统一入口 - 通过services对象导出所有服务
+3. 类型安全 - 所有请求和响应有明确类型定义
+
+
+**如何新建接口服务**
+
+1. **创建目录结构**:
+   ```
+   /services/新服务名/
+     - types.ts       // 类型定义
+     - 服务名.service.ts  // 服务实现
+     - index.ts       // 导出服务
+   ```
+
+2. **实现服务类**:
+   ```typescript
+   // 新服务名/服务名.service.ts
+   import {BaseService} from '../core/base.service';
+
+   export class 新服务类 extends BaseService {
+     protected static readonly basePath = '/api/v1/路径';
+
+     static async 方法名(参数): Promise<返回类型> {
+       return this.get<返回类型>('/endpoint');
+     }
+   }
+   ```
+
+3. **在services/index.ts注册**:
+   ```typescript
+   import {新服务类} from './新服务名';
+
+   const services = {
+     auth: AuthService,
+     新服务名: 新服务类
+   };
+   ```
+
+**使用方法**
+
+```typescript
+import services from '@/lib/services';
+
+// 调用服务方法
+const 结果 = await services.新服务名.方法名(参数);
+```
