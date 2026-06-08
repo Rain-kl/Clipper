@@ -60,6 +60,18 @@ const SECURITY_KEYS = [
     description: "关闭后所有的第三方 OIDC 认证登录入口都会被隐藏。",
     icon: Globe,
   },
+  {
+    key: "email_login_verification_enabled",
+    title: "邮箱登录验证",
+    description: "开启后，使用账号密码登录时需要通过邮箱接收并验证 6 位验证码。",
+    icon: Mail,
+  },
+  {
+    key: "email_register_verification_enabled",
+    title: "邮箱注册验证",
+    description: "开启后，用户注册账号时需要通过邮箱接收并验证 6 位验证码。",
+    icon: Mail,
+  },
 ] as const
 
 type SecurityKey = (typeof SECURITY_KEYS)[number]["key"]

@@ -1,9 +1,9 @@
 "use client"
 
-import {useMemo, useRef, useState} from "react"
+import {useEffect, useMemo, useRef, useState} from "react"
 import {useMutation, useQuery} from "@tanstack/react-query"
 import {useRouter, useSearchParams} from "next/navigation"
-import {KeyRound, ShieldCheck, UserPlus} from "lucide-react"
+import {KeyRound, UserPlus} from "lucide-react"
 import {toast} from "sonner"
 
 import {useAuth} from "@/components/providers/auth-provider"
@@ -44,7 +44,27 @@ export function LoginForm() {
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
   const [nickname, setNickname] = useState("")
+  const [email, setEmail] = useState("")
+  const [code, setCode] = useState("")
+  const [showLoginCodeInput, setShowLoginCodeInput] = useState(false)
+  const [maskedEmail, setMaskedEmail] = useState("")
+  const [loginCooldown, setLoginCooldown] = useState(0)
+  const [registerCooldown, setRegisterCooldown] = useState(0)
   const [errorMessage, setErrorMessage] = useState("")
+
+  useEffect(() => {
+    if (loginCooldown > 0) {
+      const timer = setTimeout(() => setLoginCooldown(loginCooldown - 1), 1000)
+      return () => clearTimeout(timer)
+    }
+  }, [loginCooldown])
+
+  useEffect(() => {
+    if (registerCooldown > 0) {
+      const timer = setTimeout(() => setRegisterCooldown(registerCooldown - 1), 1000)
+      return () => clearTimeout(timer)
+    }
+  }, [registerCooldown])
 
   // Cap token management — ref to hold latest token without triggering re-render
   const capTokenRef = useRef<string | null>(null)
@@ -87,7 +107,22 @@ export function LoginForm() {
       router.replace(redirectTarget)
     },
     onError: (error: Error) => {
-      toast.error(error.message || "登录失败，请重试")
+      const errorMsg = error.message || ""
+      if (errorMsg.startsWith("need_email_code:")) {
+        const emailMasked = errorMsg.substring("need_email_code:".length)
+        setMaskedEmail(emailMasked)
+        setShowLoginCodeInput(true)
+        setLoginCooldown(60)
+        toast.success("登录验证码已发送至您的邮箱，请注意查收")
+        if (capEnabled) {
+          capTokenRef.current = null
+          setCapReady(false)
+          setCapResetKey((key) => key + 1)
+        }
+        return
+      }
+
+      toast.error(errorMsg || "登录失败，请重试")
       if (capEnabled) {
         capTokenRef.current = null
         setCapReady(false)
@@ -106,6 +141,31 @@ export function LoginForm() {
       setErrorMessage(error.message || "注册失败，请重试")
     },
   })
+
+  const sendRegisterCodeMutation = useMutation({
+    mutationFn: (targetEmail: string) => services.auth.sendEmailCode(targetEmail, "register"),
+    onSuccess: () => {
+      setRegisterCooldown(60)
+      toast.success("验证码已发送至您的邮箱，请查收")
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "发送验证码失败，请重试")
+    },
+  })
+
+  const handleSendRegisterCode = () => {
+    const trimmedEmail = email.trim()
+    if (!trimmedEmail) {
+      toast.error("请先输入邮箱地址")
+      return
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(trimmedEmail)) {
+      toast.error("请输入有效的邮箱地址")
+      return
+    }
+    sendRegisterCodeMutation.mutate(trimmedEmail)
+  }
 
   const handlePasswordLogin = () => {
     setErrorMessage("")
@@ -127,15 +187,33 @@ export function LoginForm() {
     loginMutation.mutate({
       username: trimmedUsername,
       password,
+      code: showLoginCodeInput ? code.trim() : undefined,
+    })
+  }
+
+  const handleResendLoginCode = () => {
+    setCode("")
+    loginMutation.mutate({
+      username: username.trim(),
+      password,
     })
   }
 
   const handleRegister = () => {
     setErrorMessage("")
+    const emailRegisterEnabled = publicConfigQuery.data?.email_register_verification_enabled ?? false
+    if (emailRegisterEnabled) {
+      if (!email.trim() || !code.trim()) {
+        toast.error("邮箱和验证码不能为空")
+        return
+      }
+    }
     registerMutation.mutate({
       username: username.trim(),
       password,
       nickname: nickname.trim() || undefined,
+      email: email.trim() || undefined,
+      code: code.trim() || undefined,
     })
   }
 
@@ -215,6 +293,33 @@ export function LoginForm() {
                   autoComplete="current-password"
                   onKeyDown={(e) => e.key === "Enter" && handlePasswordLogin()}
                 />
+
+                {showLoginCodeInput && (
+                  <div className="space-y-1.5 pt-1">
+                    <p className="text-[11px] text-muted-foreground leading-normal">
+                      已向您的安全邮箱 <span className="font-medium text-foreground">{maskedEmail}</span> 发送了登录验证码。
+                    </p>
+                    <div className="flex gap-2">
+                      <Input
+                        value={code}
+                        onChange={(e) => setCode(e.target.value)}
+                        placeholder="6 位邮箱验证码"
+                        maxLength={6}
+                        className="flex-1"
+                        onKeyDown={(e) => e.key === "Enter" && handlePasswordLogin()}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleResendLoginCode}
+                        disabled={loginCooldown > 0 || loginMutation.isPending}
+                        className="w-[120px] text-xs"
+                      >
+                        {loginCooldown > 0 ? `${loginCooldown}秒后重发` : "重新发送"}
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Cap 人机验证 */}
@@ -271,6 +376,32 @@ export function LoginForm() {
                   placeholder="密码（至少 8 位）"
                   autoComplete="new-password"
                 />
+                <Input
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder={publicConfigQuery.data?.email_register_verification_enabled ? "电子邮箱" : "电子邮箱（可选）"}
+                  autoComplete="email"
+                />
+                {publicConfigQuery.data?.email_register_verification_enabled && (
+                  <div className="flex gap-2">
+                    <Input
+                      value={code}
+                      onChange={(e) => setCode(e.target.value)}
+                      placeholder="6 位邮箱验证码"
+                      maxLength={6}
+                      className="flex-1"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleSendRegisterCode}
+                      disabled={registerCooldown > 0 || sendRegisterCodeMutation.isPending}
+                      className="w-[120px] text-xs"
+                    >
+                      {registerCooldown > 0 ? `${registerCooldown}秒后重发` : "获取验证码"}
+                    </Button>
+                  </div>
+                )}
               </div>
 
               {errorMessage ? (
@@ -307,20 +438,16 @@ export function LoginForm() {
         {authSources.length > 0 ? (
           authSources.map((source) => (
             <div className="space-y-3" key={source.id}>
-              <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-                <ShieldCheck className="size-4" />
-                第三方认证源
-              </div>
               <div className="grid gap-2">
-            <Button
-              key={source.id}
-              type="button"
-              variant="outline"
-              className="justify-start"
-              onClick={() => void handleOAuthLogin(source.name)}
-            >
-              {source.display_name || source.name} 登录
-            </Button>
+                <Button
+                  key={source.id}
+                  type="button"
+                  variant="outline"
+                  className="justify-start"
+                  onClick={() => void handleOAuthLogin(source.name)}
+                >
+                  {source.display_name || source.name} 登录
+                </Button>
               </div>
             </div>
           ))

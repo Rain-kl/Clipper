@@ -2,6 +2,10 @@ package user
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/json"
+	"fmt"
+	"math/big"
 	"net/http"
 	"strings"
 	"time"
@@ -12,12 +16,14 @@ import (
 	"github.com/linux-do/credit/internal/common"
 	"github.com/linux-do/credit/internal/db"
 	"github.com/linux-do/credit/internal/model"
+	"github.com/linux-do/credit/internal/task"
 	"github.com/linux-do/credit/internal/util"
 )
 
 type loginRequest struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
+	Code     string `json:"code"`
 }
 
 type registerRequest struct {
@@ -25,6 +31,34 @@ type registerRequest struct {
 	Password    string `json:"password"`
 	Nickname    string `json:"nickname"`
 	DisplayName string `json:"display_name"`
+	Email       string `json:"email"`
+	Code        string `json:"code"`
+}
+
+type sendEmailCodeRequest struct {
+	Email string `json:"email" binding:"required,email"`
+	Scene string `json:"scene" binding:"required"`
+}
+
+func isEmailLoginVerificationEnabled() bool {
+	enabled, err := model.GetBoolByKey(context.Background(), model.ConfigKeyEmailLoginVerificationEnabled)
+	if err != nil {
+		return false
+	}
+	return enabled
+}
+
+func isEmailRegisterVerificationEnabled() bool {
+	enabled, err := model.GetBoolByKey(context.Background(), model.ConfigKeyEmailRegisterVerificationEnabled)
+	if err != nil {
+		return false
+	}
+	return enabled
+}
+
+func generateVerificationCode() string {
+	n, _ := rand.Int(rand.Reader, big.NewInt(900000))
+	return fmt.Sprintf("%06d", n.Int64()+100000)
 }
 
 func isPasswordLoginEnabled() bool {
@@ -107,6 +141,65 @@ func Login(c *gin.Context) {
 		return
 	}
 
+	if isEmailLoginVerificationEnabled() {
+		if user.Email == "" {
+			c.JSON(http.StatusOK, util.Err("该账号未绑定邮箱，请联系管理员绑定邮箱后再登录"))
+			return
+		}
+
+		if req.Code == "" {
+			// 校验 Redis 发送冷却时间
+			cooldownKey := fmt.Sprintf("email_code:cooldown:%s", user.Email)
+			var temp string
+			err := db.GetJSON(ctx, cooldownKey, &temp)
+			if err != nil {
+				// 没有冷却，触发验证码发送
+				code := generateVerificationCode()
+				codeKey := fmt.Sprintf("email_code:login:%s", user.Email)
+				// 存验证码，5分钟有效
+				if err := db.SetJSON(ctx, codeKey, code, 5*time.Minute); err != nil {
+					c.JSON(http.StatusOK, util.Err("生成验证码失败，请重试"))
+					return
+				}
+				// 存冷却，60秒有效
+				_ = db.SetJSON(ctx, cooldownKey, "1", 60*time.Second)
+
+				// 构建异步邮件发送任务
+				payload := SendEmailPayload{
+					To:      user.Email,
+					Subject: "Wavelet 登录验证码",
+					Body:    fmt.Sprintf("<h3>Wavelet 登录验证</h3><p>您的登录验证码为：<strong>%s</strong>，5分钟内有效，请勿将验证码泄露给他人。</p>", code),
+				}
+				payloadBytes, _ := json.Marshal(payload)
+				_, err = task.DispatchTask(ctx, task.TaskTypeSendEmail, payloadBytes, "system")
+				if err != nil {
+					c.JSON(http.StatusOK, util.Err("投递验证邮件发送任务失败，请重试"))
+					return
+				}
+			}
+
+			// 脱敏邮箱并返回错误，提示前端需要输入验证码
+			maskedEmail := util.MaskEmail(user.Email)
+			c.JSON(http.StatusOK, util.Err("need_email_code:"+maskedEmail))
+			return
+		}
+
+		// 校验验证码
+		codeKey := fmt.Sprintf("email_code:login:%s", user.Email)
+		var storedCode string
+		if err := db.GetJSON(ctx, codeKey, &storedCode); err != nil {
+			c.JSON(http.StatusOK, util.Err("验证码错误或已过期"))
+			return
+		}
+		if storedCode != req.Code {
+			c.JSON(http.StatusOK, util.Err("验证码错误或已过期"))
+			return
+		}
+
+		// 验证成功，删除验证码
+		_ = db.Redis.Del(ctx, db.PrefixedKey(codeKey)).Err()
+	}
+
 	session := sessions.Default(c)
 	needChangePassword := false
 
@@ -163,6 +256,8 @@ func Register(c *gin.Context) {
 	req.Password = strings.TrimSpace(req.Password)
 	req.Nickname = strings.TrimSpace(req.Nickname)
 	req.DisplayName = strings.TrimSpace(req.DisplayName)
+	req.Email = strings.TrimSpace(req.Email)
+	req.Code = strings.TrimSpace(req.Code)
 
 	if req.Username == "" || req.Password == "" {
 		c.JSON(http.StatusOK, util.Err("无效的参数"))
@@ -174,6 +269,29 @@ func Register(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
+
+	// 邮箱注册验证校验
+	if isEmailRegisterVerificationEnabled() {
+		if req.Email == "" || req.Code == "" {
+			c.JSON(http.StatusOK, util.Err("邮箱或验证码未填写"))
+			return
+		}
+
+		codeKey := fmt.Sprintf("email_code:register:%s", req.Email)
+		var storedCode string
+		if err := db.GetJSON(ctx, codeKey, &storedCode); err != nil {
+			c.JSON(http.StatusOK, util.Err("验证码错误或已过期"))
+			return
+		}
+		if storedCode != req.Code {
+			c.JSON(http.StatusOK, util.Err("验证码错误或已过期"))
+			return
+		}
+
+		// 验证通过，删除 Redis 中的验证码
+		_ = db.Redis.Del(ctx, db.PrefixedKey(codeKey)).Err()
+	}
+
 	var count int64
 	if err := db.DB(ctx).Model(&model.User{}).Where("username = ?", req.Username).Count(&count).Error; err != nil {
 		c.JSON(http.StatusOK, util.Err(err.Error()))
@@ -184,9 +302,23 @@ func Register(c *gin.Context) {
 		return
 	}
 
+	// 校验邮箱是否已被其他用户使用
+	if req.Email != "" {
+		var emailCount int64
+		if err := db.DB(ctx).Model(&model.User{}).Where("email = ?", req.Email).Count(&emailCount).Error; err != nil {
+			c.JSON(http.StatusOK, util.Err(err.Error()))
+			return
+		}
+		if emailCount > 0 {
+			c.JSON(http.StatusOK, util.Err("该邮箱已被其他账号绑定"))
+			return
+		}
+	}
+
 	user := model.User{
 		Username:    req.Username,
 		Nickname:    req.Nickname,
+		Email:       req.Email,
 		AvatarUrl:   "",
 		IsActive:    true,
 		IsAdmin:     false,
@@ -307,4 +439,79 @@ func ChangePassword(c *gin.Context) {
 	_ = session.Save()
 
 	c.JSON(http.StatusOK, util.OK("密码修改成功"))
+}
+
+// SendEmailCode 发送邮箱验证码
+// @Summary 发送邮箱验证码
+// @Description 向指定邮箱发送验证码（用于注册场景）
+// @Tags user
+// @Accept json
+// @Produce json
+// @Param request body user.sendEmailCodeRequest true "发送验证码请求参数"
+// @Success 200 {object} util.ResponseAny "发送成功"
+// @Failure 400 {object} util.ResponseAny "参数错误"
+// @Router /api/v1/user/send-email-code [post]
+func SendEmailCode(c *gin.Context) {
+	var req sendEmailCodeRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, util.Err(err.Error()))
+		return
+	}
+
+	req.Email = strings.TrimSpace(req.Email)
+	if req.Email == "" {
+		c.JSON(http.StatusOK, util.Err("邮箱地址不能为空"))
+		return
+	}
+
+	if req.Scene != "register" {
+		c.JSON(http.StatusOK, util.Err("不支持的验证场景"))
+		return
+	}
+
+	ctx := c.Request.Context()
+
+	// 1. 检查邮箱是否已被注册
+	var count int64
+	if err := db.DB(ctx).Model(&model.User{}).Where("email = ?", req.Email).Count(&count).Error; err != nil {
+		c.JSON(http.StatusOK, util.Err(err.Error()))
+		return
+	}
+	if count > 0 {
+		c.JSON(http.StatusOK, util.Err("该邮箱已被注册"))
+		return
+	}
+
+	// 2. 校验 Redis 发送冷却时间
+	cooldownKey := fmt.Sprintf("email_code:cooldown:%s", req.Email)
+	var temp string
+	err := db.GetJSON(ctx, cooldownKey, &temp)
+	if err == nil {
+		c.JSON(http.StatusOK, util.Err("验证码发送频繁，请稍后再试"))
+		return
+	}
+
+	// 3. 生成并缓存验证码
+	code := generateVerificationCode()
+	codeKey := fmt.Sprintf("email_code:register:%s", req.Email)
+	if err := db.SetJSON(ctx, codeKey, code, 5*time.Minute); err != nil {
+		c.JSON(http.StatusOK, util.Err("生成验证码失败，请重试"))
+		return
+	}
+	_ = db.SetJSON(ctx, cooldownKey, "1", 60*time.Second)
+
+	// 4. 投递异步邮件发送任务
+	payload := SendEmailPayload{
+		To:      req.Email,
+		Subject: "Wavelet 注册验证码",
+		Body:    fmt.Sprintf("<h3>Wavelet 注册验证</h3><p>您的注册验证码为：<strong>%s</strong>，5分钟内有效，请勿泄露给他人。</p>", code),
+	}
+	payloadBytes, _ := json.Marshal(payload)
+	_, err = task.DispatchTask(ctx, task.TaskTypeSendEmail, payloadBytes, "system")
+	if err != nil {
+		c.JSON(http.StatusOK, util.Err("投递验证邮件发送任务失败，请重试"))
+		return
+	}
+
+	c.JSON(http.StatusOK, util.OKNil())
 }

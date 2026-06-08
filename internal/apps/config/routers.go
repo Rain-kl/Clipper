@@ -26,15 +26,17 @@ import (
 
 // PublicConfigResponse 公共配置响应
 type PublicConfigResponse struct {
-	UploadAllowedExtensions string `json:"upload_allowed_extensions"` // 允许上传的图片扩展名
-	SiteName                string `json:"site_name"`                 // 站点名称
-	PasswordLoginEnabled    bool   `json:"password_login_enabled"`    // 是否允许密码登录
-	RegistrationEnabled     bool   `json:"registration_enabled"`      // 是否允许注册
-	PasswordRegisterEnabled bool   `json:"password_register_enabled"` // 是否允许密码注册
-	OIDCLoginEnabled        bool   `json:"oidc_login_enabled"`        // 是否允许 OIDC 登录
-	MaxAPIKeysPerUser       int    `json:"max_api_keys_per_user"`     // 每个用户最大 API Key 数量
-	CapLoginEnabled         bool   `json:"cap_login_enabled"`         // 是否启用人机验证
-	CapAutoSolve            bool   `json:"cap_auto_solve"`            // 打开页面后是否自动开始计算
+	UploadAllowedExtensions          string `json:"upload_allowed_extensions"`           // 允许上传的图片扩展名
+	SiteName                         string `json:"site_name"`                           // 站点名称
+	PasswordLoginEnabled             bool   `json:"password_login_enabled"`              // 是否允许密码登录
+	RegistrationEnabled              bool   `json:"registration_enabled"`                // 是否允许注册
+	PasswordRegisterEnabled          bool   `json:"password_register_enabled"`           // 是否允许密码注册
+	OIDCLoginEnabled                 bool   `json:"oidc_login_enabled"`                  // 是否允许 OIDC 登录
+	MaxAPIKeysPerUser                int    `json:"max_api_keys_per_user"`               // 每个用户最大 API Key 数量
+	CapLoginEnabled                  bool   `json:"cap_login_enabled"`                   // 是否启用人机验证
+	CapAutoSolve                     bool   `json:"cap_auto_solve"`                      // 打开页面后是否自动开始计算
+	EmailLoginVerificationEnabled    bool   `json:"email_login_verification_enabled"`    // 是否启用邮箱登录验证
+	EmailRegisterVerificationEnabled bool   `json:"email_register_verification_enabled"` // 是否启用邮箱注册验证
 }
 
 // GetPublicConfig 获取公共配置
@@ -103,16 +105,28 @@ func GetPublicConfig(c *gin.Context) {
 		maxAPIKeys = val
 	}
 
+	var emailLoginVerificationEnabled bool
+	if val, err := model.GetBoolByKey(ctx, model.ConfigKeyEmailLoginVerificationEnabled); err == nil {
+		emailLoginVerificationEnabled = val
+	}
+
+	var emailRegisterVerificationEnabled bool
+	if val, err := model.GetBoolByKey(ctx, model.ConfigKeyEmailRegisterVerificationEnabled); err == nil {
+		emailRegisterVerificationEnabled = val
+	}
+
 	response := PublicConfigResponse{
-		UploadAllowedExtensions: uploadExtensions,
-		SiteName:                siteName,
-		PasswordLoginEnabled:    passwordLoginEnabled,
-		RegistrationEnabled:     registrationEnabled,
-		PasswordRegisterEnabled: passwordRegisterEnabled,
-		OIDCLoginEnabled:        oidcLoginEnabled,
-		MaxAPIKeysPerUser:       maxAPIKeys,
-		CapLoginEnabled:         capLoginEnabled,
-		CapAutoSolve:            capAutoSolve,
+		UploadAllowedExtensions:          uploadExtensions,
+		SiteName:                         siteName,
+		PasswordLoginEnabled:             passwordLoginEnabled,
+		RegistrationEnabled:              registrationEnabled,
+		PasswordRegisterEnabled:          passwordRegisterEnabled,
+		OIDCLoginEnabled:                 oidcLoginEnabled,
+		MaxAPIKeysPerUser:                maxAPIKeys,
+		CapLoginEnabled:                  capLoginEnabled,
+		CapAutoSolve:                     capAutoSolve,
+		EmailLoginVerificationEnabled:    emailLoginVerificationEnabled,
+		EmailRegisterVerificationEnabled: emailRegisterVerificationEnabled,
 	}
 
 	c.JSON(http.StatusOK, util.OK(response))

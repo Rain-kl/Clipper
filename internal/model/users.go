@@ -58,6 +58,7 @@ type User struct {
 	Username    string    `json:"username" gorm:"size:64;uniqueIndex"`
 	Password    string    `json:"password,omitempty" gorm:"size:255"`
 	Nickname    string    `json:"nickname" gorm:"size:255"`
+	Email       string    `json:"email" gorm:"size:255;index"`
 	AvatarUrl   string    `json:"avatar_url" gorm:"size:255"`
 	IsActive    bool      `json:"is_active" gorm:"default:true;index"`
 	IsAdmin     bool      `json:"is_admin" gorm:"default:false"`
@@ -106,6 +107,7 @@ func (u *User) GetByID(tx *gorm.DB, id uint64) error {
 func (u *User) UpdateFromOAuthInfo(oauthInfo *OAuthUserInfo) {
 	u.Username = oauthInfo.Username
 	u.Nickname = oauthInfo.Name
+	u.Email = oauthInfo.Email
 	u.AvatarUrl = oauthInfo.AvatarUrl
 	u.IsActive = oauthInfo.Active
 	u.LastLoginAt = time.Now()
@@ -126,6 +128,7 @@ func (u *User) CreateUser(tx *gorm.DB, oauthInfo *OAuthUserInfo) error {
 		ID:          oauthInfo.GetID(),
 		Username:    oauthInfo.Username,
 		Nickname:    oauthInfo.Name,
+		Email:       oauthInfo.Email,
 		AvatarUrl:   oauthInfo.AvatarUrl,
 		IsActive:    oauthInfo.Active,
 		LastLoginAt: now,

@@ -16,10 +16,26 @@ limitations under the License.
 
 package util
 
+import "strings"
+
 // DerefString 安全地解引用字符串指针，nil 返回空字符串
 func DerefString(s *string) string {
 	if s == nil {
 		return ""
 	}
 	return *s
+}
+
+// MaskEmail 安全脱敏用户的邮箱地址（例如 us***@example.com）
+func MaskEmail(email string) string {
+	parts := strings.Split(email, "@")
+	if len(parts) != 2 {
+		return email
+	}
+	local := parts[0]
+	domain := parts[1]
+	if len(local) <= 2 {
+		return "**@" + domain
+	}
+	return local[:2] + "***" + local[len(local)-1:] + "@" + domain
 }

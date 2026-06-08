@@ -18,6 +18,7 @@ package task
 
 const (
 	CleanupUnusedUploadsTask = "upload:cleanup_unused"
+	SendEmailTask            = "mail:send"
 )
 
 const (
@@ -27,6 +28,7 @@ const (
 // 管理员可下发的任务类型标识
 const (
 	TaskTypeCleanupUploads = "cleanup_unused_uploads"
+	TaskTypeSendEmail      = "send_email"
 )
 
 // TaskMeta 任务元数据
@@ -48,6 +50,16 @@ var DispatchableTasks = []TaskMeta{
 		AsynqTask:    CleanupUnusedUploadsTask,
 		Name:         "清理未使用上传",
 		Description:  "清理超过1小时未使用的上传文件",
+		SupportsTime: false,
+		MaxRetry:     3,
+		Queue:        QueueDefault,
+		Retryable:    true,
+	},
+	{
+		Type:         TaskTypeSendEmail,
+		AsynqTask:    SendEmailTask,
+		Name:         "发送邮件",
+		Description:  "异步发送系统邮件",
 		SupportsTime: false,
 		MaxRetry:     3,
 		Queue:        QueueDefault,

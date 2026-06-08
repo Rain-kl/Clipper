@@ -206,6 +206,18 @@ func seedDefaultConfigs(t *testing.T, tx *gorm.DB) {
 			Type:        "system",
 			Description: "SMTP 访问凭证（授权码/密码）",
 		},
+		{
+			Key:         model.ConfigKeyEmailLoginVerificationEnabled,
+			Value:       "false",
+			Type:        "system",
+			Description: "是否开启邮箱登录验证（true/false）",
+		},
+		{
+			Key:         model.ConfigKeyEmailRegisterVerificationEnabled,
+			Value:       "false",
+			Type:        "system",
+			Description: "是否开启邮箱注册验证（true/false）",
+		},
 	}
 
 	if err := tx.Create(&defaultConfigs).Error; err != nil {

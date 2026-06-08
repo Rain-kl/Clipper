@@ -35,12 +35,15 @@ export interface OAuthCallbackRequest {
 export interface LoginRequest {
   username: string;
   password: string;
+  code?: string;
 }
 
 export interface RegisterRequest {
   username: string;
   password: string;
   nickname?: string;
+  email?: string;
+  code?: string;
 }
 
 export interface OAuthAuthorizeResponse {

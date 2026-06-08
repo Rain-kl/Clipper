@@ -20,4 +20,8 @@ export interface PublicConfigResponse {
   cap_login_enabled: boolean;
   /** 是否自动解题 */
   cap_auto_solve: boolean;
+  /** 是否启用邮箱登录验证 */
+  email_login_verification_enabled: boolean;
+  /** 是否启用邮箱注册验证 */
+  email_register_verification_enabled: boolean;
 }

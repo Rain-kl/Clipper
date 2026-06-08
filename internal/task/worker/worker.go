@@ -21,6 +21,7 @@ import (
 
 	"github.com/hibiken/asynq"
 	"github.com/linux-do/credit/internal/apps/upload"
+	"github.com/linux-do/credit/internal/apps/user"
 	"github.com/linux-do/credit/internal/config"
 	"github.com/linux-do/credit/internal/task"
 )
@@ -28,6 +29,7 @@ import (
 func init() {
 	// 注册所有任务处理器
 	task.RegisterHandler(task.CleanupUnusedUploadsTask, &upload.CleanupUnusedUploadsHandler{})
+	task.RegisterHandler(task.SendEmailTask, &user.SendEmailHandler{})
 }
 
 // StartWorker 启动任务处理服务器
@@ -49,6 +51,7 @@ func StartWorker() error {
 	// 统一使用 task.ProcessTask 处理所有任务类型
 	// 框架内部自动分发到对应的 TaskHandler 实现
 	mux.HandleFunc(task.CleanupUnusedUploadsTask, task.ProcessTask)
+	mux.HandleFunc(task.SendEmailTask, task.ProcessTask)
 
 	// 启动服务器
 	return asynqServer.Run(mux)

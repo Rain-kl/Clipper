@@ -94,6 +94,8 @@ func initSystemConfigs() {
 		ensureConfigKeyExists(model.ConfigKeySMTPPort, "587", "system", "SMTP 端口（例如 587 或 465）")
 		ensureConfigKeyExists(model.ConfigKeySMTPUsername, "", "system", "SMTP 账户（如 sender@example.com）")
 		ensureConfigKeyExists(model.ConfigKeySMTPPassword, "", "system", "SMTP 访问凭证（授权码/密码）")
+		ensureConfigKeyExists(model.ConfigKeyEmailLoginVerificationEnabled, "false", "system", "是否开启邮箱登录验证（true/false）")
+		ensureConfigKeyExists(model.ConfigKeyEmailRegisterVerificationEnabled, "false", "system", "是否开启邮箱注册验证（true/false）")
 		return
 	}
 
@@ -211,6 +213,18 @@ func initSystemConfigs() {
 			Value:       "5",
 			Type:        "business",
 			Description: "限制每个普通用户可以创建的 API Key 最大数量",
+		},
+		{
+			Key:         model.ConfigKeyEmailLoginVerificationEnabled,
+			Value:       "false",
+			Type:        "system",
+			Description: "是否开启邮箱登录验证（true/false）",
+		},
+		{
+			Key:         model.ConfigKeyEmailRegisterVerificationEnabled,
+			Value:       "false",
+			Type:        "system",
+			Description: "是否开启邮箱注册验证（true/false）",
 		},
 	}
 

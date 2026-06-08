@@ -146,9 +146,9 @@ func TestListSystemConfigs(t *testing.T) {
 		var configs []model.SystemConfig
 		json.Unmarshal(dataBytes, &configs)
 
-		// Defaults seed 19 configurations
-		if len(configs) != 19 {
-			t.Errorf("expected 19 default configs, got %d", len(configs))
+		// Defaults seed 21 configurations
+		if len(configs) != 21 {
+			t.Errorf("expected 21 default configs, got %d", len(configs))
 		}
 	})
 
@@ -193,8 +193,8 @@ func TestGetSystemConfig(t *testing.T) {
 		var cfg model.SystemConfig
 		json.Unmarshal(dataBytes, &cfg)
 
-		if cfg.Value != "Antigravity Project" {
-			t.Errorf("expected 'Antigravity Project', got '%s'", cfg.Value)
+		if cfg.Value != "Wavelet" {
+			t.Errorf("expected 'Wavelet', got '%s'", cfg.Value)
 		}
 	})
 

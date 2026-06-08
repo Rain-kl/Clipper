@@ -111,6 +111,10 @@ export class AuthService extends BaseService {
     return this.post<User>('/user/register', request);
   }
 
+  static async sendEmailCode(email: string, scene: 'register' | 'login'): Promise<void> {
+    return this.post<void>('/user/send-email-code', { email, scene });
+  }
+
   static async changePassword(request: ChangePasswordRequest): Promise<void> {
     return this.post<void>('/user/change-password', request);
   }

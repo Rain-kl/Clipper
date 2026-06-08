@@ -144,6 +144,7 @@ func Serve() {
 					return enabled
 				}), user.Login)
 				userRouter.POST("/register", user.Register)
+				userRouter.POST("/send-email-code", user.SendEmailCode)
 				userRouter.GET("/logout", user.Logout)
 				userRouter.GET("/self", oauth.LoginRequired(), oauth.UserInfo)
 				userRouter.POST("/change-password", oauth.LoginRequired(), user.ChangePassword)
