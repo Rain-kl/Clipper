@@ -55,7 +55,7 @@ func SetHTTPClient(c *http.Client) {
 func Request(ctx context.Context, method, url string, body io.Reader, headers, cookies map[string]string) (*http.Response, error) {
 	req, err := http.NewRequestWithContext(ctx, method, url, body)
 	if err != nil {
-		return nil, fmt.Errorf("创建HTTP请求失败: %w", err)
+		return nil, fmt.Errorf(errCreateHTTPRequestFailed, err)
 	}
 
 	if cookies != nil {
@@ -72,7 +72,7 @@ func Request(ctx context.Context, method, url string, body io.Reader, headers, c
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("请求%s接口失败: %w", url, err)
+		return nil, fmt.Errorf(errHTTPRequestFailed, url, err)
 	}
 
 	return resp, nil

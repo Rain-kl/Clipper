@@ -29,7 +29,7 @@ type StringArray []string
 func (sa *StringArray) Scan(value interface{}) error {
 	bytesValue, ok := value.([]byte)
 	if !ok {
-		return fmt.Errorf("invalid value: %v", value)
+		return fmt.Errorf(errInvalidCustomValue, value)
 	}
 	return json.Unmarshal(bytesValue, sa)
 }

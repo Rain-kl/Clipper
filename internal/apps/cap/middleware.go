@@ -35,13 +35,13 @@ func VerifyMiddleware(mgr *caputil.Manager, scope string, enabledFunc func() boo
 
 		token := c.GetHeader("X-Cap-Token")
 		if token == "" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, util.Err("验证码验证失败，缺少验证码凭证"))
+			c.AbortWithStatusJSON(http.StatusUnauthorized, util.Err(errCapTokenMissing))
 			return
 		}
 
 		valid, err := mgr.VerifyToken(c.Request.Context(), token, scope)
 		if err != nil || !valid {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, util.Err("验证码校验失败或已过期，请重试"))
+			c.AbortWithStatusJSON(http.StatusUnauthorized, util.Err(errCapTokenInvalidOrExpired))
 			return
 		}
 

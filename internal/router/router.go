@@ -215,7 +215,6 @@ func Serve() {
 				{
 					systemConfigRouter.GET("", system_config.GetSystemConfig)
 					systemConfigRouter.PUT("", system_config.UpdateSystemConfig)
-					systemConfigRouter.DELETE("", system_config.DeleteSystemConfig)
 				}
 
 				// Templates

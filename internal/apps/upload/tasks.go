@@ -53,7 +53,7 @@ func (h *CleanupUnusedUploadsHandler) Execute(ctx context.Context, payload []byt
 			Limit(batchSize).
 			Find(&unusedUploads).Error; err != nil {
 			task.AppendLog(ctx, "查询未使用的上传文件失败: %v", err)
-			return nil, fmt.Errorf("查询未使用的上传文件失败: %w", err)
+			return nil, fmt.Errorf(ErrQueryUnusedUploadsFailed, err)
 		}
 
 		// 没有更多数据，退出循环

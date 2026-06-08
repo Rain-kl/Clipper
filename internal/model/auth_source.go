@@ -91,19 +91,19 @@ func (source *AuthSource) Normalize() {
 func (source *AuthSource) Validate() error {
 	source.Normalize()
 	if source.Name == "" {
-		return errors.New("认证源名称不能为空")
+		return errors.New(errAuthSourceNameRequired)
 	}
 	if !authSourceNamePattern.MatchString(source.Name) {
-		return errors.New("认证源名称只能包含字母、数字、短横线或下划线，且必须以字母或数字开头")
+		return errors.New(errAuthSourceNameInvalid)
 	}
 	if source.Type != AuthSourceTypeOIDC {
-		return errors.New("认证源类型仅支持 oidc")
+		return errors.New(errAuthSourceTypeUnsupported)
 	}
 	if source.OpenIDDiscoveryURL == "" {
-		return errors.New("OIDC 认证源必须配置 Discovery URL")
+		return errors.New(errAuthSourceDiscoveryURLRequired)
 	}
 	if source.IsActive && (source.ClientID == "" || source.ClientSecret == "") {
-		return errors.New("启用认证源前必须配置 Client ID 和 Client Secret")
+		return errors.New(errAuthSourceClientCredentialsRequired)
 	}
 	return nil
 }
@@ -137,7 +137,7 @@ func GetActiveAuthSources() ([]AuthSource, error) {
 
 func GetAuthSourceByID(id uint64) (*AuthSource, error) {
 	if id == 0 {
-		return nil, errors.New("认证源 ID 不能为空")
+		return nil, errors.New(errAuthSourceIDRequired)
 	}
 	var source AuthSource
 	if err := db.DB(context.Background()).First(&source, "id = ?", id).Error; err != nil {
@@ -150,7 +150,7 @@ func GetAuthSourceByID(id uint64) (*AuthSource, error) {
 func GetAuthSourceByName(name string) (*AuthSource, error) {
 	name = strings.TrimSpace(name)
 	if name == "" {
-		return nil, errors.New("认证源名称不能为空")
+		return nil, errors.New(errAuthSourceNameRequired)
 	}
 	var source AuthSource
 	if err := db.DB(context.Background()).First(&source, "name = ?", name).Error; err != nil {
@@ -169,7 +169,7 @@ func CreateAuthSource(source *AuthSource) error {
 
 func UpdateAuthSource(source *AuthSource, keepSecret bool) error {
 	if source.ID == 0 {
-		return errors.New("认证源 ID 不能为空")
+		return errors.New(errAuthSourceIDRequired)
 	}
 	var current AuthSource
 	if err := db.DB(context.Background()).First(&current, "id = ?", source.ID).Error; err != nil {
@@ -208,7 +208,7 @@ func ToggleAuthSource(id uint64, isActive bool) error {
 
 func DeleteAuthSource(id uint64) error {
 	if id == 0 {
-		return errors.New("认证源 ID 不能为空")
+		return errors.New(errAuthSourceIDRequired)
 	}
 	return db.DB(context.Background()).Transaction(func(tx *gorm.DB) error {
 		if err := tx.Where("auth_source_id = ?", id).Delete(&ExternalAccount{}).Error; err != nil {
@@ -228,7 +228,7 @@ func FindExternalAccount(sourceID uint64, externalID string) (*ExternalAccount, 
 
 func BindExternalAccount(account *ExternalAccount) error {
 	if account.UserID == 0 || strings.TrimSpace(account.ExternalID) == "" {
-		return errors.New("外部账号绑定信息不完整")
+		return errors.New(errExternalAccountBindingIncomplete)
 	}
 	account.ExternalID = strings.TrimSpace(account.ExternalID)
 	account.ExternalUsername = strings.TrimSpace(account.ExternalUsername)
@@ -239,7 +239,7 @@ func BindExternalAccount(account *ExternalAccount) error {
 		err := tx.Where("auth_source_id = ? AND external_id = ?", account.AuthSourceID, account.ExternalID).First(&current).Error
 		if err == nil {
 			if current.UserID != account.UserID {
-				return errors.New("该外部账号已绑定到其他用户")
+				return errors.New(errExternalAccountAlreadyBoundToAnother)
 			}
 			return tx.Model(&current).Updates(map[string]any{
 				"external_username": account.ExternalUsername,
@@ -255,7 +255,7 @@ func BindExternalAccount(account *ExternalAccount) error {
 
 func ListExternalAccountsByUserID(userID uint64) ([]ExternalAccountView, error) {
 	if userID == 0 {
-		return nil, errors.New("用户 ID 不能为空")
+		return nil, errors.New(errUserIDRequired)
 	}
 	var accounts []ExternalAccount
 	if err := db.DB(context.Background()).Where("user_id = ?", userID).Order("id asc").Find(&accounts).Error; err != nil {
@@ -296,7 +296,7 @@ func ListExternalAccountsByUserID(userID uint64) ([]ExternalAccountView, error) 
 
 func DeleteExternalAccountForUser(id uint64, userID uint64) error {
 	if id == 0 || userID == 0 {
-		return errors.New("绑定记录 ID 不能为空")
+		return errors.New(errExternalAccountBindingIDRequired)
 	}
 	return db.DB(context.Background()).Where("id = ? AND user_id = ?", id, userID).Delete(&ExternalAccount{}).Error
 }

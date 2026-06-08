@@ -69,38 +69,38 @@ func SendMailHTML(cfg Config, to string, subject, body string) error {
 		dialer := &net.Dialer{Timeout: 5 * time.Second}
 		conn, err := tls.DialWithDialer(dialer, "tcp", addr, tlsConfig)
 		if err != nil {
-			return fmt.Errorf("dial tls failed: %w", err)
+			return fmt.Errorf(errDialTLSFailed, err)
 		}
 		defer conn.Close()
 		_ = conn.SetDeadline(time.Now().Add(10 * time.Second))
 
 		client, err := smtp.NewClient(conn, cfg.Host)
 		if err != nil {
-			return fmt.Errorf("smtp client creation failed: %w", err)
+			return fmt.Errorf(errSMTPClientCreationFailed, err)
 		}
 		defer client.Close()
 
 		if err = client.Auth(auth); err != nil {
-			return fmt.Errorf("smtp auth failed: %w", err)
+			return fmt.Errorf(errSMTPAuthFailed, err)
 		}
 
 		if err = client.Mail(cfg.Username); err != nil {
-			return fmt.Errorf("smtp mail command failed: %w", err)
+			return fmt.Errorf(errSMTPMailCommandFailed, err)
 		}
 
 		if err = client.Rcpt(to); err != nil {
-			return fmt.Errorf("smtp rcpt command failed: %w", err)
+			return fmt.Errorf(errSMTPRcptCommandFailed, err)
 		}
 
 		w, err := client.Data()
 		if err != nil {
-			return fmt.Errorf("smtp data command failed: %w", err)
+			return fmt.Errorf(errSMTPDataCommandFailed, err)
 		}
 		defer w.Close()
 
 		_, err = w.Write([]byte(message))
 		if err != nil {
-			return fmt.Errorf("smtp writing body failed: %w", err)
+			return fmt.Errorf(errSMTPWritingBodyFailed, err)
 		}
 
 		return nil
@@ -109,7 +109,7 @@ func SendMailHTML(cfg Config, to string, subject, body string) error {
 	// For standard port (587 / 25), use smtp.SendMail directly (handles STARTTLS automatically if server supports it)
 	err := smtp.SendMail(addr, auth, cfg.Username, []string{to}, []byte(message))
 	if err != nil {
-		return fmt.Errorf("send mail failed: %w", err)
+		return fmt.Errorf(errSendMailFailed, err)
 	}
 
 	return nil

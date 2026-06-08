@@ -274,9 +274,8 @@ components/common/
     │                               #   是否显示通知铃铛图标，通过 Context 持久化偏好
     ├── profile.tsx                 # ProfileMain — 个人资料页面，展示用户基本信息，提供第三方
     │                               #   账号绑定管理（查看已绑定 OIDC 账号、解除绑定、绑定新认证源）
-    └── security.tsx                # SecurityMain — 系统安全设置页面（管理员专属），包含系统登录与
-                                    #   注册控制（密码登录/注册/密码注册/OIDC 登录四个开关）、
-                                    #   认证源管理（新增、编辑、启用/禁用、删除 OIDC 认证源）
+    ├── system-settings.tsx         # SystemSettingsMain — 系统设置主页面（管理员专属），包含系统安全与登录控制、
+                                    #   认证源管理、人机验证配置、邮件服务 (SMTP) 设置以及菜单显示控制
 ```
 
 ---

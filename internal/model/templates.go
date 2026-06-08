@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 	"text/template"
 	"time"
@@ -55,13 +56,13 @@ func (t *Template) Normalize() {
 func (t *Template) Validate() error {
 	t.Normalize()
 	if t.Key == "" {
-		return errors.New("模板标识符不能为空")
+		return errors.New(errTemplateKeyRequired)
 	}
 	if t.Name == "" {
-		return errors.New("模板名称不能为空")
+		return errors.New(errTemplateNameRequired)
 	}
 	if t.Content == "" {
-		return errors.New("模板内容不能为空")
+		return errors.New(errTemplateContentRequired)
 	}
 	return nil
 }
@@ -94,26 +95,16 @@ func (t *Template) Render(data any) (string, string, error) {
 	return subject, bodyBuf.String(), nil
 }
 
-// RenderTemplate 渲染模板的高级包装。如果读取或渲染失败，将使用 fallbackSubject 和 fallbackBody 进行解析和返回。
-func RenderTemplate(ctx context.Context, key string, data any, fallbackSubject, fallbackBody string) (string, string) {
+// RenderTemplate 渲染指定模板。模板不存在或渲染失败时返回错误，由调用方决定如何处理。
+func RenderTemplate(ctx context.Context, key string, data any) (string, string, error) {
 	var t Template
-	if err := db.DB(ctx).Where("key = ?", key).First(&t).Error; err == nil {
-		subject, body, err := t.Render(data)
-		if err == nil {
-			return subject, body
-		}
+	if err := db.DB(ctx).Where("key = ?", key).First(&t).Error; err != nil {
+		return "", "", fmt.Errorf(errTemplateUnavailable, key, err)
 	}
 
-	// 降级使用传入的默认模板内容渲染
-	tFallback := Template{
-		Key:     key + "_fallback",
-		Subject: fallbackSubject,
-		Content: fallbackBody,
+	subject, body, err := t.Render(data)
+	if err != nil {
+		return "", "", fmt.Errorf(errTemplateRenderFailed, key, err)
 	}
-	subject, body, err := tFallback.Render(data)
-	if err == nil {
-		return subject, body
-	}
-
-	return fallbackSubject, fallbackBody
+	return subject, body, nil
 }

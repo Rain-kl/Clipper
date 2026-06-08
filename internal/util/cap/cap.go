@@ -105,10 +105,10 @@ func jwtSign(payload []byte, secret []byte) string {
 func jwtVerify(token string, secret []byte) ([]byte, error) {
 	parts := strings.Split(token, ".")
 	if len(parts) != 3 {
-		return nil, errors.New("invalid token format")
+		return nil, errors.New(errInvalidTokenFormat)
 	}
 	if parts[0] != jwtHeaderB64 {
-		return nil, errors.New("invalid header")
+		return nil, errors.New(errInvalidHeader)
 	}
 
 	sigInput := parts[0] + "." + parts[1]
@@ -122,7 +122,7 @@ func jwtVerify(token string, secret []byte) ([]byte, error) {
 	}
 
 	if !hmac.Equal(expectedSig, actualSig) {
-		return nil, errors.New("signature mismatch")
+		return nil, errors.New(errSignatureMismatch)
 	}
 
 	payload, err := b64urlDecode(parts[1])
@@ -195,25 +195,25 @@ func GenerateChallenge(secret []byte, conf ChallengeConfig, scope string) (*Chal
 func VerifyChallengeSolutions(token string, solutions []int, secret []byte, expectedScope string) (*ChallengePayload, error) {
 	payloadBytes, err := jwtVerify(token, secret)
 	if err != nil {
-		return nil, errors.New("invalid_token")
+		return nil, errors.New(errInvalidToken)
 	}
 
 	var payload ChallengePayload
 	if err := json.Unmarshal(payloadBytes, &payload); err != nil {
-		return nil, errors.New("invalid_token")
+		return nil, errors.New(errInvalidToken)
 	}
 
 	if expectedScope != "" && payload.Scope != expectedScope {
-		return nil, errors.New("scope_mismatch")
+		return nil, errors.New(errScopeMismatch)
 	}
 
 	now := time.Now().UnixNano() / int64(time.Millisecond)
 	if payload.Expires < now {
-		return nil, errors.New("expired")
+		return nil, errors.New(errExpired)
 	}
 
 	if len(solutions) != payload.Count {
-		return nil, errors.New("invalid_solutions")
+		return nil, errors.New(errInvalidSolutions)
 	}
 
 	tokenFnv := fnv1a(token)
@@ -229,7 +229,7 @@ func VerifyChallengeSolutions(token string, solutions []int, secret []byte, expe
 		hashHex := hex.EncodeToString(hashBytes[:])
 
 		if !strings.HasPrefix(hashHex, target) {
-			return nil, errors.New("invalid_solution")
+			return nil, errors.New(errInvalidSolution)
 		}
 	}
 

@@ -146,7 +146,7 @@ func putObjectDefault(ctx context.Context, key string, body io.Reader, size int6
 	_, err := client.PutObject(ctx, input)
 	if err != nil {
 		span.SetStatus(codes.Error, fmt.Sprintf("S3 put object failed: %v", err))
-		return fmt.Errorf("s3 put object failed: %w", err)
+		return fmt.Errorf(errS3PutObjectFailed, err)
 	}
 	return nil
 }
@@ -181,7 +181,7 @@ func getObjectDefault(ctx context.Context, key string) (*ObjectInfo, error) {
 	})
 	if err != nil {
 		span.SetStatus(codes.Error, fmt.Sprintf("S3 get object failed: %v", err))
-		return nil, fmt.Errorf("s3 get object failed: %w", err)
+		return nil, fmt.Errorf(errS3GetObjectFailed, err)
 	}
 
 	contentType := "application/octet-stream"
@@ -223,13 +223,13 @@ func GetObjectViaProxy(ctx context.Context, key string) (*ObjectInfo, error) {
 	resp, err := util.Request(ctx, http.MethodGet, url, nil, nil, nil)
 	if err != nil {
 		span.SetStatus(codes.Error, fmt.Sprintf("cdn request failed: %v", err))
-		return nil, fmt.Errorf("cdn request failed: %w", err)
+		return nil, fmt.Errorf(errCDNRequestFailed, err)
 	}
 
 	if resp.StatusCode != http.StatusOK {
 		resp.Body.Close()
 		span.SetStatus(codes.Error, fmt.Sprintf("cdn returned status %d", resp.StatusCode))
-		return nil, fmt.Errorf("cdn returned status %d", resp.StatusCode)
+		return nil, fmt.Errorf(errCDNStatusFailed, resp.StatusCode)
 	}
 
 	contentType := resp.Header.Get("Content-Type")
@@ -265,7 +265,7 @@ func deleteObjectDefault(ctx context.Context, key string) error {
 	})
 	if err != nil {
 		span.SetStatus(codes.Error, fmt.Sprintf("S3 delete object failed: %v", err))
-		return fmt.Errorf("s3 delete object failed: %w", err)
+		return fmt.Errorf(errS3DeleteObjectFailed, err)
 	}
 	return nil
 }

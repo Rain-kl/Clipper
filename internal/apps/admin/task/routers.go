@@ -24,6 +24,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Rain-kl/Wavelet/internal/apps/admin"
 	"github.com/Rain-kl/Wavelet/internal/model"
 	"github.com/Rain-kl/Wavelet/internal/task"
 	taskhandlers "github.com/Rain-kl/Wavelet/internal/task/handlers"
@@ -156,7 +157,7 @@ func ListTaskExecutions(c *gin.Context) {
 func GetTaskExecution(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, util.Err("无效的任务执行记录 ID"))
+		c.JSON(http.StatusBadRequest, util.Err(admin.InvalidTaskExecutionID))
 		return
 	}
 
@@ -186,7 +187,7 @@ func GetTaskExecution(c *gin.Context) {
 func RetryTask(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, util.Err("无效的任务执行记录 ID"))
+		c.JSON(http.StatusBadRequest, util.Err(admin.InvalidTaskExecutionID))
 		return
 	}
 

@@ -85,7 +85,7 @@ func (sc *SystemConfig) GetByKey(ctx context.Context, key string) error {
 	// 查数据库
 	database := db.DB(ctx)
 	if database == nil {
-		return errors.New("database not initialized")
+		return errors.New(errDatabaseNotInitialized)
 	}
 
 	if err := database.Where("key = ?", key).First(sc).Error; err != nil {
@@ -109,7 +109,7 @@ func GetIntByKey(ctx context.Context, key string) (int, error) {
 
 	value, err := strconv.Atoi(sc.Value)
 	if err != nil {
-		return 0, fmt.Errorf("配置 %s 的值 '%s' 无法转换为整数: %w", key, sc.Value, err)
+		return 0, fmt.Errorf(errConfigIntParseFailed, key, sc.Value, err)
 	}
 
 	return value, nil
@@ -125,7 +125,7 @@ func GetDecimalByKey(ctx context.Context, key string, precision int32) (decimal.
 
 	value, err := decimal.NewFromString(sc.Value)
 	if err != nil {
-		return decimal.Zero, fmt.Errorf("配置 %s 的值 '%s' 无法转换为decimal: %w", key, sc.Value, err)
+		return decimal.Zero, fmt.Errorf(errConfigDecimalParseFailed, key, sc.Value, err)
 	}
 
 	// 裁剪到指定小数位数
@@ -141,7 +141,7 @@ func GetBoolByKey(ctx context.Context, key string) (bool, error) {
 
 	value, err := strconv.ParseBool(sc.Value)
 	if err != nil {
-		return false, fmt.Errorf("配置 %s 的值 '%s' 无法转换为布尔值: %w", key, sc.Value, err)
+		return false, fmt.Errorf(errConfigBoolParseFailed, key, sc.Value, err)
 	}
 
 	return value, nil
@@ -160,7 +160,7 @@ func GetMenuDisplayConfig(ctx context.Context) (map[string]bool, error) {
 	}
 
 	if err := json.Unmarshal([]byte(sc.Value), &config); err != nil {
-		return nil, fmt.Errorf("解析目录显示配置失败: %w", err)
+		return nil, fmt.Errorf(errParseMenuDisplayConfigFailed, err)
 	}
 
 	return config, nil

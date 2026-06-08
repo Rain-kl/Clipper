@@ -87,7 +87,7 @@ func resolveAuthSource(sourceName string) (*model.AuthSource, error) {
 			return nil, err
 		}
 		if len(sources) == 0 {
-			return nil, errors.New("未配置可用认证源")
+			return nil, errors.New(NoActiveAuthSource)
 		}
 		return &sources[0], nil
 	}
@@ -122,18 +122,18 @@ func activeLoginSources() []AuthSourceView {
 func getFrontendLoginRedirectURL(ctx context.Context) (string, error) {
 	var sc model.SystemConfig
 	if err := sc.GetByKey(ctx, model.ConfigKeyServerAddress); err != nil || strings.TrimSpace(sc.Value) == "" {
-		return "", errors.New("服务器地址 (server_address) 未配置或配置为空，请在后台系统设置中配置后再试")
+		return "", errors.New(ServerAddressMissing)
 	}
 	return strings.TrimRight(sc.Value, "/") + "/login", nil
 }
 
 func buildOAuthConfig(ctx context.Context, source *model.AuthSource, redirectURL string) (*oauth2.Config, *oidc.IDTokenVerifier, error) {
 	if source == nil {
-		return nil, nil, errors.New("认证源不能为空")
+		return nil, nil, errors.New(AuthSourceRequired)
 	}
 
 	if source.OpenIDDiscoveryURL == "" {
-		return nil, nil, errors.New("OIDC 认证源必须配置 Discovery URL")
+		return nil, nil, errors.New(DiscoveryURLRequired)
 	}
 
 	// Clean the issuer URL (trim /.well-known/openid-configuration if configured by mistake)
@@ -194,7 +194,7 @@ func uniqueUsername(ctx context.Context, base string) (string, error) {
 		}
 		candidate = fmt.Sprintf("%s-%d", base, i+1)
 	}
-	return "", errors.New("无法生成可用用户名")
+	return "", errors.New(UsernameGenerateFailed)
 }
 
 func buildOAuthUserInfo(ctx context.Context, source *model.AuthSource, code string, nonce string, redirectURL string) (*model.OAuthUserInfo, error) {
@@ -213,7 +213,7 @@ func buildOAuthUserInfo(ctx context.Context, source *model.AuthSource, code stri
 		if rawIDToken, ok := token.Extra("id_token").(string); ok {
 			idToken, verifyErr := verifier.Verify(ctx, rawIDToken)
 			if verifyErr != nil {
-				return nil, fmt.Errorf("%s: %w", IDTokenVerifyFailed, verifyErr)
+				return nil, fmt.Errorf(IDTokenVerifyFailedFormat, IDTokenVerifyFailed, verifyErr)
 			}
 			if nonce != "" && idToken.Nonce != nonce {
 				return nil, errors.New(NonceMismatch)
@@ -257,7 +257,7 @@ func normalizeOAuthUserInfo(userInfo *model.OAuthUserInfo) error {
 		userInfo.Username = userInfo.Sub
 	}
 	if userInfo.Username == "" {
-		return errors.New("无法从认证源获取用户名")
+		return errors.New(UsernameFromSourceFailed)
 	}
 	if userInfo.Name == "" {
 		userInfo.Name = userInfo.Username
@@ -359,7 +359,7 @@ func Authorize(c *gin.Context) {
 		return
 	}
 	if !source.IsActive {
-		c.JSON(http.StatusBadRequest, util.Err("认证源未启用"))
+		c.JSON(http.StatusBadRequest, util.Err(AuthSourceDisabled))
 		return
 	}
 	purpose := strings.ToLower(strings.TrimSpace(c.Query("purpose")))
@@ -490,10 +490,10 @@ func Callback(c *gin.Context) {
 		if !registrationEnabled {
 			// 如果不允许注册，临时记录到 session 并向前端返回 "need_bind" 状态
 			session := sessions.Default(c)
-			session.Set("pending_oauth_source_id", source.ID)
-			session.Set("pending_oauth_external_id", userInfo.Sub)
-			session.Set("pending_oauth_external_username", userInfo.Username)
-			session.Set("pending_oauth_email", userInfo.Email)
+			session.Set(PendingOAuthSourceIDKey, source.ID)
+			session.Set(PendingOAuthExternalIDKey, userInfo.Sub)
+			session.Set(PendingOAuthExternalUsernameKey, userInfo.Username)
+			session.Set(PendingOAuthEmailKey, userInfo.Email)
 			if err := session.Save(); err != nil {
 				c.JSON(http.StatusInternalServerError, util.Err(err.Error()))
 				return
@@ -577,7 +577,7 @@ func DeleteExternalAccount(c *gin.Context) {
 	rawID := strings.TrimSpace(c.Param("id"))
 	id, err := strconv.ParseUint(rawID, 10, 64)
 	if err != nil || id == 0 {
-		c.JSON(http.StatusBadRequest, util.Err("绑定记录 ID 无效"))
+		c.JSON(http.StatusBadRequest, util.Err(InvalidExternalAccountBindingID))
 		return
 	}
 	if err := model.DeleteExternalAccountForUser(id, userID); err != nil {

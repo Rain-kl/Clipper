@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/Rain-kl/Wavelet/internal/apps/admin"
 	"github.com/Rain-kl/Wavelet/internal/logger"
 	"github.com/Rain-kl/Wavelet/internal/util"
 	"github.com/gin-gonic/gin"
@@ -53,7 +54,7 @@ func GetLogs(c *gin.Context) {
 
 	var cursor, limit int
 	if _, err := parsePositiveInt(cursorStr, &cursor); err != nil {
-		c.JSON(http.StatusBadRequest, util.Err("无效的 cursor 参数"))
+		c.JSON(http.StatusBadRequest, util.Err(admin.InvalidCursorParam))
 		return
 	}
 	if _, err := parsePositiveInt(limitStr, &limit); err != nil || limit <= 0 {

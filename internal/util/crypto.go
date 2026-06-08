@@ -54,28 +54,28 @@ func encryptBytes(signKey string, plaintext []byte) (string, error) {
 	// 将 hex 编码的密钥转换为字节
 	key, err := hex.DecodeString(signKey)
 	if err != nil {
-		return "", fmt.Errorf("invalid sign key: %w", err)
+		return "", fmt.Errorf(errInvalidSignKey, err)
 	}
 	if len(key) != 32 {
-		return "", errors.New("sign key must be 32 bytes (64 hex characters)")
+		return "", errors.New(errSignKeyLengthInvalid)
 	}
 
 	// 创建 AES cipher
 	block, err := aes.NewCipher(key)
 	if err != nil {
-		return "", fmt.Errorf("failed to create cipher: %w", err)
+		return "", fmt.Errorf(errCreateCipherFailed, err)
 	}
 
 	// 使用 GCM 模式（Galois/Counter Mode）
 	gcm, err := cipher.NewGCM(block)
 	if err != nil {
-		return "", fmt.Errorf("failed to create GCM: %w", err)
+		return "", fmt.Errorf(errCreateGCMFailed, err)
 	}
 
 	// 生成随机 nonce
 	nonce := make([]byte, gcm.NonceSize())
 	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
-		return "", fmt.Errorf("failed to generate nonce: %w", err)
+		return "", fmt.Errorf(errGenerateNonceFailed, err)
 	}
 
 	// 加密数据
@@ -90,34 +90,34 @@ func decryptBytes(signKey string, ciphertext string) ([]byte, error) {
 	// 将 hex 编码的密钥转换为字节
 	key, err := hex.DecodeString(signKey)
 	if err != nil {
-		return nil, fmt.Errorf("invalid sign key: %w", err)
+		return nil, fmt.Errorf(errInvalidSignKey, err)
 	}
 	if len(key) != 32 {
-		return nil, errors.New("sign key must be 32 bytes (64 hex characters)")
+		return nil, errors.New(errSignKeyLengthInvalid)
 	}
 
 	// 解码 base64 密文
 	data, err := Base64Decode(ciphertext)
 	if err != nil {
-		return nil, fmt.Errorf("failed to decode ciphertext: %w", err)
+		return nil, fmt.Errorf(errDecodeCiphertextFailed, err)
 	}
 
 	// 创建 AES cipher
 	block, err := aes.NewCipher(key)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create cipher: %w", err)
+		return nil, fmt.Errorf(errCreateCipherFailed, err)
 	}
 
 	// 使用 GCM 模式
 	gcm, err := cipher.NewGCM(block)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create GCM: %w", err)
+		return nil, fmt.Errorf(errCreateGCMFailed, err)
 	}
 
 	// 提取 nonce
 	nonceSize := gcm.NonceSize()
 	if len(data) < nonceSize {
-		return nil, errors.New("ciphertext too short")
+		return nil, errors.New(errCiphertextTooShort)
 	}
 
 	nonce, ciphertextBytes := data[:nonceSize], data[nonceSize:]
@@ -125,7 +125,7 @@ func decryptBytes(signKey string, ciphertext string) ([]byte, error) {
 	// 解密数据
 	plaintext, err := gcm.Open(nil, nonce, ciphertextBytes, nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to decrypt: %w", err)
+		return nil, fmt.Errorf(errDecryptFailed, err)
 	}
 
 	return plaintext, nil

@@ -92,7 +92,7 @@ func UploadFile(c *gin.Context) {
 
 	// 校验大小
 	if header.Size > maxUploadSize {
-		c.JSON(http.StatusOK, util.Err("文件大小不能超过 32MB"))
+		c.JSON(http.StatusOK, util.Err(ErrGenericFileTooLarge))
 		return
 	}
 
@@ -145,7 +145,7 @@ func UploadFile(c *gin.Context) {
 		}
 	}
 	if isImageExt && !strings.HasPrefix(mimeType, "image/") {
-		c.JSON(http.StatusOK, util.Err("文件内容与扩展名不匹配，可能包含安全风险"))
+		c.JSON(http.StatusOK, util.Err(ErrFileContentExtensionMismatch))
 		return
 	}
 
@@ -179,7 +179,7 @@ func UploadFile(c *gin.Context) {
 		c.JSON(http.StatusOK, util.OK(newUpload))
 		return
 	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
-		c.JSON(http.StatusOK, util.Err("文件校验失败"))
+		c.JSON(http.StatusOK, util.Err(ErrFileValidationFailed))
 		return
 	}
 
@@ -188,7 +188,7 @@ func UploadFile(c *gin.Context) {
 	var meta model.UploadMetadata
 	if metadataStr != "" {
 		if err := json.Unmarshal([]byte(metadataStr), &meta); err != nil {
-			c.JSON(http.StatusOK, util.Err("元数据 JSON 格式不合法"))
+			c.JSON(http.StatusOK, util.Err(ErrInvalidMetadataJSON))
 			return
 		}
 	}
@@ -281,7 +281,7 @@ func DownloadFile(c *gin.Context) {
 	idStr := c.Param("id")
 	uploadID, err := strconv.ParseUint(idStr, 10, 64)
 	if err != nil {
-		c.JSON(http.StatusOK, util.Err("无效的文件 ID"))
+		c.JSON(http.StatusOK, util.Err(ErrInvalidFileID))
 		return
 	}
 
@@ -291,7 +291,7 @@ func DownloadFile(c *gin.Context) {
 			c.AbortWithStatus(http.StatusNotFound)
 			return
 		}
-		c.JSON(http.StatusOK, util.Err("查询文件记录失败"))
+		c.JSON(http.StatusOK, util.Err(ErrQueryUploadRecordFailed))
 		return
 	}
 
@@ -339,7 +339,7 @@ func BatchDownloadFiles(c *gin.Context) {
 
 	var req batchDownloadRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusOK, util.Err("参数绑定失败，请传入有效的文件 ID 数组"))
+		c.JSON(http.StatusOK, util.Err(ErrInvalidBatchDownloadRequest))
 		return
 	}
 
@@ -348,7 +348,7 @@ func BatchDownloadFiles(c *gin.Context) {
 	for _, idStr := range req.IDs {
 		id, err := strconv.ParseUint(idStr, 10, 64)
 		if err != nil {
-			c.JSON(http.StatusOK, util.Err(fmt.Sprintf("无效的 ID 值: %s", idStr)))
+			c.JSON(http.StatusOK, util.Err(fmt.Sprintf(ErrInvalidIDValueFormat, idStr)))
 			return
 		}
 		ids = append(ids, id)
@@ -357,12 +357,12 @@ func BatchDownloadFiles(c *gin.Context) {
 	// 查库获取所有匹配且正常的文件记录
 	var uploads []model.Upload
 	if err := db.DB(ctx).Where("id IN ? AND status IN (?, ?)", ids, model.UploadStatusPending, model.UploadStatusUsed).Find(&uploads).Error; err != nil {
-		c.JSON(http.StatusOK, util.Err("检索文件记录失败"))
+		c.JSON(http.StatusOK, util.Err(ErrRetrieveUploadRecordsFailed))
 		return
 	}
 
 	if len(uploads) == 0 {
-		c.JSON(http.StatusOK, util.Err("没有找到任何有效的文件记录进行打包"))
+		c.JSON(http.StatusOK, util.Err(ErrNoValidFilesForArchive))
 		return
 	}
 
@@ -458,7 +458,7 @@ func ListMyFiles(c *gin.Context) {
 
 	var req listMyFilesRequest
 	if err := c.ShouldBindQuery(&req); err != nil {
-		c.JSON(http.StatusOK, util.Err("参数错误"))
+		c.JSON(http.StatusOK, util.Err(ErrInvalidParams))
 		return
 	}
 	if req.Page <= 0 {
@@ -483,14 +483,14 @@ func ListMyFiles(c *gin.Context) {
 
 	var total int64
 	if err := query.Count(&total).Error; err != nil {
-		c.JSON(http.StatusOK, util.Err("查询文件数量失败"))
+		c.JSON(http.StatusOK, util.Err(ErrQueryFileCountFailed))
 		return
 	}
 
 	var items []model.Upload
 	offset := (req.Page - 1) * req.PageSize
 	if err := query.Order("created_at DESC").Offset(offset).Limit(req.PageSize).Find(&items).Error; err != nil {
-		c.JSON(http.StatusOK, util.Err("查询文件列表失败"))
+		c.JSON(http.StatusOK, util.Err(ErrQueryFileListFailed))
 		return
 	}
 
@@ -520,7 +520,7 @@ func DeleteFile(c *gin.Context) {
 	idStr := c.Param("id")
 	uploadID, err := strconv.ParseUint(idStr, 10, 64)
 	if err != nil {
-		c.JSON(http.StatusOK, util.Err("无效的文件 ID"))
+		c.JSON(http.StatusOK, util.Err(ErrInvalidFileID))
 		return
 	}
 
@@ -530,7 +530,7 @@ func DeleteFile(c *gin.Context) {
 			c.AbortWithStatus(http.StatusNotFound)
 			return
 		}
-		c.JSON(http.StatusOK, util.Err("查询文件记录失败"))
+		c.JSON(http.StatusOK, util.Err(ErrQueryUploadRecordFailed))
 		return
 	}
 
@@ -541,7 +541,7 @@ func DeleteFile(c *gin.Context) {
 	}
 
 	if err := db.DB(ctx).Model(&upload).Update("status", model.UploadStatusDeleted).Error; err != nil {
-		c.JSON(http.StatusOK, util.Err("删除文件失败"))
+		c.JSON(http.StatusOK, util.Err(ErrDeleteFileFailed))
 		return
 	}
 

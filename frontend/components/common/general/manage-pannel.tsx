@@ -1,11 +1,11 @@
-import { useState } from "react"
-import { toast } from "sonner"
-import { Button } from "@/components/ui/button"
-import { Spinner } from "@/components/ui/spinner"
-import { ErrorInline } from "@/components/layout/error"
-import { EmptyStateWithBorder } from "@/components/layout/empty"
-import { LoadingStateWithBorder } from "@/components/layout/loading"
-import { ListRestart, Layers, LucideIcon, Trash2 } from "lucide-react"
+import {useState} from "react"
+import {toast} from "sonner"
+import {Button} from "@/components/ui/button"
+import {Spinner} from "@/components/ui/spinner"
+import {ErrorInline} from "@/components/layout/error"
+import {EmptyStateWithBorder} from "@/components/layout/empty"
+import {LoadingStateWithBorder} from "@/components/layout/loading"
+import {Layers, ListRestart, LucideIcon, Trash2} from "lucide-react"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,8 +16,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table"
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
+import {TableBody, TableCell, TableHead, TableHeader, TableRow} from "@/components/ui/table"
+import {ScrollArea, ScrollBar} from "@/components/ui/scroll-area"
 
 
 interface ManagePageProps<T> {
@@ -30,7 +30,7 @@ interface ManagePageProps<T> {
   /** 获取初始编辑数据 */
   getInitialEditData: (item: T) => Partial<T>
   onSave: (item: T, editData: Partial<T>) => Promise<void>
-  onDelete: (item: T) => Promise<void>
+  onDelete?: (item: T) => Promise<void>
 
   /** 渲染表格 (Config-Driven) */
   columns: {
@@ -134,7 +134,7 @@ export function ManagePage<T>({
   }
 
   const handleConfirmDelete = async () => {
-    if (!deletingItem) return
+    if (!deletingItem || !onDelete) return
     try {
       await onDelete(deletingItem)
       toast.success('删除成功')
@@ -191,7 +191,7 @@ export function ManagePage<T>({
         hovered={hoveredItem}
         onSelect={handleSelect}
         onHover={handleHover}
-        onDelete={handleDeleteClick}
+        onDelete={onDelete ? handleDeleteClick : undefined}
         getId={getId}
       />
     )
@@ -322,7 +322,7 @@ export function ManageTable<T>({
   hovered: T | null
   onSelect: (item: T) => void
   onHover: (item: T | null) => void
-  onDelete: (item: T) => void
+  onDelete?: (item: T) => void
   getId: (item: T) => string | number
 }) {
   return (
@@ -340,7 +340,7 @@ export function ManageTable<T>({
                     {col.header}
                   </TableHead>
                 ))}
-                <TableHead className="whitespace-nowrap text-center w-[120px]">操作</TableHead>
+                {onDelete && <TableHead className="whitespace-nowrap text-center w-[120px]">操作</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody className="animate-in fade-in duration-200">
@@ -370,19 +370,21 @@ export function ManageTable<T>({
                         {col.cell(item)}
                       </TableCell>
                     ))}
-                    <TableCell className="text-xs py-1 text-center">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6 text-muted-foreground hover:text-red-600 hover:bg-red-50"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          onDelete(item)
-                        }}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </TableCell>
+                    {onDelete && (
+                      <TableCell className="text-xs py-1 text-center">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 text-muted-foreground hover:text-red-600 hover:bg-red-50"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onDelete(item)
+                          }}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </TableCell>
+                    )}
                   </TableRow>
                 )
               })}

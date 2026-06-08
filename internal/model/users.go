@@ -92,12 +92,15 @@ func (u *User) SetEncryptedPassword(password string) error {
 	return nil
 }
 
+func (u *User) IsPasswordEncrypted() bool {
+	return strings.HasPrefix(u.Password, "$2a$") || strings.HasPrefix(u.Password, "$2b$") || strings.HasPrefix(u.Password, "$2y$")
+}
+
 func (u *User) CheckPassword(password string) bool {
 	if u.Password == "" || password == "" {
 		return false
 	}
-	isBcrypt := strings.HasPrefix(u.Password, "$2a$") || strings.HasPrefix(u.Password, "$2b$") || strings.HasPrefix(u.Password, "$2y$")
-	if isBcrypt {
+	if u.IsPasswordEncrypted() {
 		return util.CheckPasswordHash(u.Password, password)
 	}
 	return u.Password == password
@@ -132,7 +135,7 @@ func (u *User) CheckActive() error {
 func (u *User) CreateUser(ctx context.Context, tx *gorm.DB, oauthInfo *OAuthUserInfo) error {
 	enabled, err := GetBoolByKey(ctx, ConfigKeyRegistrationEnabled)
 	if err == nil && !enabled {
-		return errors.New("注册已关闭")
+		return errors.New(errRegistrationDisabled)
 	}
 
 	now := time.Now()
@@ -158,7 +161,7 @@ func (u *User) CreateUser(ctx context.Context, tx *gorm.DB, oauthInfo *OAuthUser
 func (u *User) RegisterUser(ctx context.Context, tx *gorm.DB) error {
 	enabled, err := GetBoolByKey(ctx, ConfigKeyRegistrationEnabled)
 	if err == nil && !enabled {
-		return errors.New("注册已关闭")
+		return errors.New(errRegistrationDisabled)
 	}
 
 	// 检查用户名冲突
@@ -167,7 +170,7 @@ func (u *User) RegisterUser(ctx context.Context, tx *gorm.DB) error {
 		return err
 	}
 	if count > 0 {
-		return errors.New("用户名已存在")
+		return errors.New(errUsernameExists)
 	}
 
 	// 检查邮箱冲突
@@ -177,7 +180,7 @@ func (u *User) RegisterUser(ctx context.Context, tx *gorm.DB) error {
 			return err
 		}
 		if emailCount > 0 {
-			return errors.New("该邮箱已被其他账号绑定")
+			return errors.New(errEmailAlreadyBound)
 		}
 	}
 

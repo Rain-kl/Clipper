@@ -355,15 +355,27 @@ definitions:
     properties:
       avatar_url:
         type: string
+      bio:
+        type: string
+      email:
+        type: string
+      gender:
+        type: string
       id:
         type: integer
       is_admin:
         type: boolean
+      location:
+        type: string
       need_change_password:
         type: boolean
       nickname:
         type: string
+      phone:
+        type: string
       username:
+        type: string
+      website:
         type: string
     type: object
   oauth.CallbackRequest:
@@ -720,6 +732,25 @@ definitions:
       record:
         $ref: '#/definitions/model.AccessToken'
       token:
+        type: string
+    type: object
+  user.updateProfileRequest:
+    properties:
+      avatar_url:
+        type: string
+      bio:
+        type: string
+      email:
+        type: string
+      gender:
+        type: string
+      location:
+        type: string
+      nickname:
+        type: string
+      phone:
+        type: string
+      website:
         type: string
     type: object
   user.updateUserStatusRequest:
@@ -1186,47 +1217,6 @@ paths:
       tags:
       - admin
   /api/v1/admin/system-configs/{key}:
-    delete:
-      description: 根据配置键删除对应配置，同时从 Redis 中移除对应缓存，需要管理员权限
-      parameters:
-      - description: 配置键
-        in: path
-        name: key
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 删除成功
-          schema:
-            allOf:
-            - $ref: '#/definitions/util.ResponseAny'
-            - properties:
-                data:
-                  type: string
-              type: object
-        "401":
-          description: 未登录
-          schema:
-            $ref: '#/definitions/util.ResponseAny'
-        "403":
-          description: 无管理员权限
-          schema:
-            $ref: '#/definitions/util.ResponseAny'
-        "404":
-          description: 配置不存在
-          schema:
-            $ref: '#/definitions/util.ResponseAny'
-        "500":
-          description: 内部错误
-          schema:
-            $ref: '#/definitions/util.ResponseAny'
-      security:
-      - SessionCookie: []
-      summary: 删除系统配置
-      tags:
-      - admin
     get:
       description: 根据配置键获取对应的系统配置详情，需要管理员权限
       parameters:
@@ -2600,6 +2590,41 @@ paths:
       security:
       - SessionCookie: []
       summary: 用户退出登录
+      tags:
+      - user
+  /api/v1/user/profile:
+    put:
+      consumes:
+      - application/json
+      description: 修改当前登录用户的昵称、邮箱、头像、简介、电话、性别、个人网站和所在地。
+      parameters:
+      - description: 更新请求参数
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/user.updateProfileRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 修改成功，返回更新后的用户信息
+          schema:
+            allOf:
+            - $ref: '#/definitions/util.ResponseAny'
+            - properties:
+                data:
+                  $ref: '#/definitions/oauth.BasicUserInfo'
+              type: object
+        "400":
+          description: 邮箱已被占用或参数错误
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+        "401":
+          description: 未登录
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      summary: 修改当前登录用户的个人资料
       tags:
       - user
   /api/v1/user/register:

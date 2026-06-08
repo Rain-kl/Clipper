@@ -27,19 +27,19 @@ const maxS3KeyLength = 1024
 // ValidateS3Key validates an S3 object key for safety.
 func ValidateS3Key(key string) error {
 	if key == "" {
-		return fmt.Errorf("s3 key must not be empty")
+		return fmt.Errorf(ErrS3KeyRequired)
 	}
 
 	if len(key) > maxS3KeyLength {
-		return fmt.Errorf("s3 key exceeds maximum length of %d", maxS3KeyLength)
+		return fmt.Errorf(ErrS3KeyTooLongFormat, maxS3KeyLength)
 	}
 
 	if strings.HasPrefix(key, "/") {
-		return fmt.Errorf("s3 key must not start with /")
+		return fmt.Errorf(ErrS3KeyStartsWithSlash)
 	}
 
 	if strings.Contains(key, "\x00") {
-		return fmt.Errorf("s3 key must not contain null bytes")
+		return fmt.Errorf(ErrS3KeyContainsNullBytes)
 	}
 
 	return nil

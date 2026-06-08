@@ -130,22 +130,7 @@ export class AdminService extends BaseService {
     return this.post<{ success: boolean; log: string; error: string }>('/system-configs/smtp/test', request);
   }
 
-  /**
-   * 删除系统配置
-   * @param key - 配置键
-   * @returns void
-   * @throws {UnauthorizedError} 当未登录时
-   * @throws {ForbiddenError} 当无管理员权限时
-   * @throws {NotFoundError} 当配置不存在时
-   *
-   * @example
-   * ```typescript
-   * await AdminService.deleteSystemConfig('app.version');
-   * ```
-   */
-  static async deleteSystemConfig(key: string): Promise<void> {
-    return this.delete<void>(`/system-configs/${ key }`);
-  }
+
 
   // ==================== 认证源管理 ====================
 

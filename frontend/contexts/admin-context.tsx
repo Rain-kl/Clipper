@@ -1,11 +1,11 @@
 "use client"
 
 import * as React from "react"
-import { createContext, useContext, useState, useRef, useCallback } from "react"
+import {createContext, useCallback, useContext, useRef, useState} from "react"
 
+import type {SystemConfig, UpdateSystemConfigRequest} from "@/lib/services"
 import services from "@/lib/services"
-import type { SystemConfig, UpdateSystemConfigRequest } from "@/lib/services"
-import { handleContextError } from "@/lib/utils/error-handling"
+import {handleContextError} from "@/lib/utils/error-handling"
 
 
 /** Admin 上下文状态接口 */
@@ -15,7 +15,6 @@ export interface AdminContextState {
   systemConfigsError: Error | null
   refetchSystemConfigs: (type?: 'system' | 'business') => Promise<void>
   updateSystemConfig: (key: string, data: UpdateSystemConfigRequest) => Promise<void>
-  deleteSystemConfig: (key: string) => Promise<void>
 }
 
 const AdminContext = createContext<AdminContextState | null>(null)
@@ -23,7 +22,7 @@ const AdminContext = createContext<AdminContextState | null>(null)
 /**
  * Admin Provider
  * 提供 admin 相关的数据状态管理
- * 
+ *
  * @example
  * ```tsx
  * <AdminProvider>
@@ -78,19 +77,12 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
     }
   }, [refetchSystemConfigs])
 
-  /** 删除系统配置 */
-  const deleteSystemConfig = useCallback(async (key: string) => {
-    await services.admin.deleteSystemConfig(key)
-    await refetchSystemConfigs(lastConfigTypeRef.current)
-  }, [refetchSystemConfigs])
-
   const value: AdminContextState = {
     systemConfigs,
     systemConfigsLoading,
     systemConfigsError,
     refetchSystemConfigs,
     updateSystemConfig,
-    deleteSystemConfig,
   }
 
   return (
@@ -102,7 +94,7 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
 
 /**
  * 使用 Admin 上下文
- * 
+ *
  * @example
  * ```tsx
  * const { systemConfigs } = useAdmin()

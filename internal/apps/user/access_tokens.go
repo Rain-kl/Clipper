@@ -78,13 +78,13 @@ func CreateAccessToken(c *gin.Context) {
 
 	var req createTokenRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusOK, util.Err("参数绑定失败"))
+		c.JSON(http.StatusOK, util.Err(errBindParamsFailed))
 		return
 	}
 
 	req.Name = strings.TrimSpace(req.Name)
 	if req.Name == "" {
-		c.JSON(http.StatusOK, util.Err("令牌名称不能为空"))
+		c.JSON(http.StatusOK, util.Err(errTokenNameRequired))
 		return
 	}
 
@@ -101,14 +101,14 @@ func CreateAccessToken(c *gin.Context) {
 	}
 
 	if int(count) >= maxLimit {
-		c.JSON(http.StatusOK, util.Err("已达到访问令牌最大创建数量限制"))
+		c.JSON(http.StatusOK, util.Err(errAccessTokenLimitReached))
 		return
 	}
 
 	// 生成 Token
 	tokenStr, err := model.GenerateTokenString()
 	if err != nil {
-		c.JSON(http.StatusOK, util.Err("生成令牌失败"))
+		c.JSON(http.StatusOK, util.Err(errGenerateTokenFailed))
 		return
 	}
 
@@ -150,7 +150,7 @@ func DeleteAccessToken(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 64)
 	if err != nil {
-		c.JSON(http.StatusOK, util.Err("无效的令牌ID"))
+		c.JSON(http.StatusOK, util.Err(errInvalidTokenID))
 		return
 	}
 
@@ -161,7 +161,7 @@ func DeleteAccessToken(c *gin.Context) {
 	}
 
 	if tx.RowsAffected == 0 {
-		c.JSON(http.StatusOK, util.Err("令牌不存在或无权操作"))
+		c.JSON(http.StatusOK, util.Err(errTokenNotFoundOrForbidden))
 		return
 	}
 
@@ -185,20 +185,20 @@ func RotateAccessToken(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 64)
 	if err != nil {
-		c.JSON(http.StatusOK, util.Err("无效的令牌ID"))
+		c.JSON(http.StatusOK, util.Err(errInvalidTokenID))
 		return
 	}
 
 	var tokenRecord model.AccessToken
 	if err := db.DB(ctx).Where("id = ? AND user_id = ?", id, currUser.ID).First(&tokenRecord).Error; err != nil {
-		c.JSON(http.StatusOK, util.Err("令牌不存在或无权操作"))
+		c.JSON(http.StatusOK, util.Err(errTokenNotFoundOrForbidden))
 		return
 	}
 
 	// 生成新的 Token
 	newTokenStr, err := model.GenerateTokenString()
 	if err != nil {
-		c.JSON(http.StatusOK, util.Err("生成令牌失败"))
+		c.JSON(http.StatusOK, util.Err(errGenerateTokenFailed))
 		return
 	}
 

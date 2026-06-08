@@ -1,6 +1,5 @@
 /*
-Copyright 2025 linux.do
-Modified by Arctel.net, 2026
+Copyright 2026 Arctel.net
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -15,11 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package admin
+package cap
 
 const (
-	AdminRequired          = "未经授权访问"
-	InvalidAuthSourceID    = "认证源 ID 无效"
-	InvalidCursorParam     = "无效的 cursor 参数"
-	InvalidTaskExecutionID = "无效的任务执行记录 ID"
+	errCapTokenMissing          = "验证码验证失败，缺少验证码凭证"
+	errCapTokenInvalidOrExpired = "验证码校验失败或已过期，请重试"
 )

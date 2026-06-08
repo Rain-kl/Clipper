@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/Rain-kl/Wavelet/internal/apps/admin"
 	"github.com/Rain-kl/Wavelet/internal/model"
 	"github.com/Rain-kl/Wavelet/internal/util"
 	"github.com/gin-gonic/gin"
@@ -217,7 +218,7 @@ func DeleteAuthSource(c *gin.Context) {
 func parseSourceID(c *gin.Context) (uint64, error) {
 	raw := c.Param("id")
 	if raw == "" {
-		return 0, errors.New("认证源 ID 无效")
+		return 0, errors.New(admin.InvalidAuthSourceID)
 	}
 	source, err := model.GetAuthSourceByName(raw)
 	if err == nil {
@@ -225,7 +226,7 @@ func parseSourceID(c *gin.Context) (uint64, error) {
 	}
 	var id uint64
 	if _, scanErr := fmt.Sscanf(raw, "%d", &id); scanErr != nil || id == 0 {
-		return 0, errors.New("认证源 ID 无效")
+		return 0, errors.New(admin.InvalidAuthSourceID)
 	}
 	return id, nil
 }

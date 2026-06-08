@@ -227,52 +227,6 @@ func UpdateSystemConfig(c *gin.Context) {
 	c.JSON(http.StatusOK, util.OKNil())
 }
 
-// DeleteSystemConfig 删除系统配置
-// @Summary 删除系统配置
-// @Description 根据配置键删除对应配置，同时从 Redis 中移除对应缓存，需要管理员权限
-// @Tags admin
-// @Produce json
-// @Security SessionCookie
-// @Param key path string true "配置键"
-// @Success 200 {object} util.ResponseAny{data=string} "删除成功"
-// @Failure 401 {object} util.ResponseAny "未登录"
-// @Failure 403 {object} util.ResponseAny "无管理员权限"
-// @Failure 404 {object} util.ResponseAny "配置不存在"
-// @Failure 500 {object} util.ResponseAny "内部错误"
-// @Router /api/v1/admin/system-configs/{key} [delete]
-func DeleteSystemConfig(c *gin.Context) {
-	key := c.Param("key")
-
-	// 检查配置是否存在
-	var config model.SystemConfig
-	if err := db.DB(c.Request.Context()).Where("key = ?", key).First(&config).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(http.StatusNotFound, util.Err(SystemConfigNotFound))
-		} else {
-			c.JSON(http.StatusInternalServerError, util.Err(err.Error()))
-		}
-		return
-	}
-
-	if err := db.DB(c.Request.Context()).Transaction(func(tx *gorm.DB) error {
-		// 删除配置
-		if err := tx.Delete(&config).Error; err != nil {
-			return err
-		}
-
-		if err := db.Redis.HDel(c.Request.Context(), db.PrefixedKey(model.SystemConfigRedisHashKey), key).Err(); err != nil {
-			return err
-		}
-
-		return nil
-	}); err != nil {
-		c.JSON(http.StatusInternalServerError, util.Err(err.Error()))
-		return
-	}
-
-	c.JSON(http.StatusOK, util.OKNil())
-}
-
 // TestSMTPRequest 测试 SMTP 配置请求
 type TestSMTPRequest struct {
 	SMTPHost     string `json:"smtp_host" binding:"required,max=255"`

@@ -99,7 +99,7 @@ func AppendLog(ctx context.Context, format string, args ...interface{}) {
 func DispatchTask(ctx context.Context, taskType string, payload []byte, triggeredBy string) (string, error) {
 	meta := GetTaskMeta(taskType)
 	if meta == nil {
-		return "", fmt.Errorf("未知的任务类型: %s", taskType)
+		return "", fmt.Errorf(errUnknownTaskType, taskType)
 	}
 
 	// 生成唯一的 TaskID
@@ -119,7 +119,7 @@ func DispatchTask(ctx context.Context, taskType string, payload []byte, triggere
 	}
 
 	if err := model.CreateTaskExecution(ctx, execution); err != nil {
-		return "", fmt.Errorf("创建任务执行记录失败: %w", err)
+		return "", fmt.Errorf(errCreateTaskExecutionFailed, err)
 	}
 
 	// 入队 Asynq
@@ -137,7 +137,7 @@ func DispatchTask(ctx context.Context, taskType string, payload []byte, triggere
 		execution.StartedAt = &now
 		execution.FinishedAt = &now
 		_ = model.UpdateTaskExecution(ctx, execution)
-		return "", fmt.Errorf("任务入队失败: %w", err)
+		return "", fmt.Errorf(errTaskEnqueueFailed, err)
 	}
 
 	return taskID, nil
@@ -147,19 +147,19 @@ func DispatchTask(ctx context.Context, taskType string, payload []byte, triggere
 func RetryTask(ctx context.Context, id uint64) (string, error) {
 	execution, err := model.GetTaskExecutionByID(ctx, id)
 	if err != nil {
-		return "", fmt.Errorf("任务执行记录不存在: %w", err)
+		return "", fmt.Errorf(errTaskExecutionNotFound, err)
 	}
 
 	if execution.Status != model.TaskExecutionStatusFailed {
-		return "", fmt.Errorf("只有失败的任务才能重试，当前状态: %s", execution.Status)
+		return "", fmt.Errorf(errRetryOnlyFailedTask, execution.Status)
 	}
 
 	if !execution.Retryable {
-		return "", fmt.Errorf("该任务不支持重试")
+		return "", fmt.Errorf(errTaskNotRetryable)
 	}
 
 	if execution.RetryCount >= execution.MaxRetry {
-		return "", fmt.Errorf("已达到最大重试次数 %d", execution.MaxRetry)
+		return "", fmt.Errorf(errTaskMaxRetryExceeded, execution.MaxRetry)
 	}
 
 	// 生成新的 TaskID
@@ -179,7 +179,7 @@ func RetryTask(ctx context.Context, id uint64) (string, error) {
 	}
 
 	if err := model.CreateTaskExecution(ctx, newExecution); err != nil {
-		return "", fmt.Errorf("创建重试任务执行记录失败: %w", err)
+		return "", fmt.Errorf(errCreateRetryExecutionFailed, err)
 	}
 
 	// 入队 Asynq
@@ -196,7 +196,7 @@ func RetryTask(ctx context.Context, id uint64) (string, error) {
 		newExecution.StartedAt = &now
 		newExecution.FinishedAt = &now
 		_ = model.UpdateTaskExecution(ctx, newExecution)
-		return "", fmt.Errorf("重试任务入队失败: %w", err)
+		return "", fmt.Errorf(errRetryTaskEnqueueFailed, err)
 	}
 
 	return newTaskID, nil
@@ -224,7 +224,7 @@ func ProcessTask(ctx context.Context, t *asynq.Task) error {
 	// 查找处理器
 	handler, ok := getHandler(t.Type())
 	if !ok {
-		err := fmt.Errorf("未注册的任务处理器: %s", t.Type())
+		err := fmt.Errorf(errUnregisteredTaskHandler, t.Type())
 		logger.ErrorF(ctx, "[TaskExecutor] %v", err)
 		span.SetStatus(codes.Error, err.Error())
 		return err

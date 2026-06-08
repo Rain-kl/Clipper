@@ -23,9 +23,13 @@ import (
 )
 
 const (
-	UserNameKey = "username"
-	UserIDKey   = "user_id"
-	UserObjKey  = "user_obj"
+	UserNameKey                     = "username"
+	UserIDKey                       = "user_id"
+	UserObjKey                      = "user_obj"
+	PendingOAuthSourceIDKey         = "pending_oauth_source_id"
+	PendingOAuthExternalIDKey       = "pending_oauth_external_id"
+	PendingOAuthExternalUsernameKey = "pending_oauth_external_username"
+	PendingOAuthEmailKey            = "pending_oauth_email"
 )
 
 const (

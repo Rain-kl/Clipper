@@ -48,7 +48,7 @@ func StartScheduler() error {
 	schedulerOnce.Do(func() {
 		location, locErr := time.LoadLocation("Asia/Shanghai")
 		if locErr != nil {
-			err = fmt.Errorf("failed to load location: %w", locErr)
+			err = fmt.Errorf(errLoadLocationFailed, locErr)
 			return
 		}
 		scheduler = asynq.NewScheduler(

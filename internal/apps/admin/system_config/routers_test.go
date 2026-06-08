@@ -56,7 +56,6 @@ func setupTestRouter(authUser *model.User) *gin.Engine {
 	{
 		systemConfigRouter.GET("", GetSystemConfig)
 		systemConfigRouter.PUT("", UpdateSystemConfig)
-		systemConfigRouter.DELETE("", DeleteSystemConfig)
 	}
 
 	return r
@@ -254,48 +253,6 @@ func TestUpdateSystemConfig(t *testing.T) {
 		body, _ := json.Marshal(payload)
 		req, _ := http.NewRequest("PUT", "/api/v1/admin/system-configs/invalid_key", bytes.NewBuffer(body))
 		req.Header.Set("Content-Type", "application/json")
-		w := httptest.NewRecorder()
-		router.ServeHTTP(w, req)
-
-		if w.Code != http.StatusNotFound {
-			t.Errorf("expected 404 Not Found, got %d", w.Code)
-		}
-	})
-}
-
-func TestDeleteSystemConfig(t *testing.T) {
-	dbConn, _, cleanup := testhelper.SetupTestEnvironment(t)
-	defer cleanup()
-
-	adminUser := &model.User{ID: 1001, Username: "admin", IsAdmin: true}
-	router := setupTestRouter(adminUser)
-
-	t.Run("delete successfully", func(t *testing.T) {
-		req, _ := http.NewRequest("DELETE", "/api/v1/admin/system-configs/"+model.ConfigKeySiteName, nil)
-		w := httptest.NewRecorder()
-		router.ServeHTTP(w, req)
-
-		if w.Code != http.StatusOK {
-			t.Fatalf("expected 200 OK, got %d. Body: %s", w.Code, w.Body.String())
-		}
-
-		// Verify database
-		var count int64
-		dbConn.Model(&model.SystemConfig{}).Where("key = ?", model.ConfigKeySiteName).Count(&count)
-		if count != 0 {
-			t.Error("config still exists in DB")
-		}
-
-		// Verify Redis Cache removal
-		var redisConfig model.SystemConfig
-		err := db.HGetJSON(context.Background(), model.SystemConfigRedisHashKey, model.ConfigKeySiteName, &redisConfig)
-		if err == nil {
-			t.Error("config should have been deleted from Redis cache")
-		}
-	})
-
-	t.Run("delete non-existent config", func(t *testing.T) {
-		req, _ := http.NewRequest("DELETE", "/api/v1/admin/system-configs/invalid_key", nil)
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)
 

@@ -1,6 +1,5 @@
 /*
-Copyright 2025 linux.do
-Modified by Arctel.net, 2026
+Copyright 2026 Arctel.net
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,11 +19,21 @@ package storage
 type ErrS3InitializationFailed struct{}
 
 func (e ErrS3InitializationFailed) Error() string {
-	return "S3存储初始化失败"
+	return errS3InitializationFailed
 }
 
 type LocalCacheError struct{}
 
 func (e LocalCacheError) Error() string {
-	return "本地缓存错误"
+	return errLocalCache
 }
+
+const (
+	errS3InitializationFailed = "S3存储初始化失败"
+	errLocalCache             = "本地缓存错误"
+	errS3PutObjectFailed      = "s3 put object failed: %w"
+	errS3GetObjectFailed      = "s3 get object failed: %w"
+	errCDNRequestFailed       = "cdn request failed: %w"
+	errCDNStatusFailed        = "cdn returned status %d"
+	errS3DeleteObjectFailed   = "s3 delete object failed: %w"
+)

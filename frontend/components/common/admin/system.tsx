@@ -1,20 +1,20 @@
 "use client"
 
 import * as React from "react"
-import { Input } from "@/components/ui/input"
-import { Switch } from "@/components/ui/switch"
-import { ManagePage, ManageDetailPanel } from "@/components/common/general/manage-pannel"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import {Input} from "@/components/ui/input"
+import {Switch} from "@/components/ui/switch"
+import {ManageDetailPanel, ManagePage} from "@/components/common/general/manage-pannel"
+import {Tabs, TabsList, TabsTrigger} from "@/components/ui/tabs"
 
-import { formatDateTime } from "@/lib/utils"
-import type { SystemConfig } from "@/lib/services"
-import { useAdmin } from "@/contexts/admin-context"
+import {formatDateTime} from "@/lib/utils"
+import type {SystemConfig} from "@/lib/services"
+import {useAdmin} from "@/contexts/admin-context"
 
 
 /**
  * 系统配置
  * 显示系统配置的详细信息和编辑面板
- * 
+ *
  * @example
  * ```tsx
  * <SystemConfigDetailPanel
@@ -127,8 +127,8 @@ function SystemConfigDetailPanel({
           <div className="px-3 py-2 flex items-center justify-between border-b border-dashed last:border-b-0">
             <label className="text-xs font-medium text-muted-foreground">配置类型</label>
             <span className={`text-[11px] px-1.5 py-0.5 rounded font-medium ${
-              config?.type === 'system' 
-                ? 'bg-blue-500/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400' 
+              config?.type === 'system'
+                ? 'bg-blue-500/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400'
                 : 'bg-indigo-500/10 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400'
             }`}>
               {config?.type === 'system' ? '系统配置' : '业务配置'}
@@ -149,7 +149,7 @@ function SystemConfigDetailPanel({
 
 /**
  * 系统配置管理组件
- * 
+ *
  * @example
  * ```tsx
  * <SystemConfigs />
@@ -162,8 +162,7 @@ export function SystemConfigs() {
     systemConfigsLoading: loading,
     systemConfigsError: error,
     refetchSystemConfigs,
-    updateSystemConfig,
-    deleteSystemConfig
+    updateSystemConfig
   } = useAdmin()
 
   const [activeTab, setActiveTab] = React.useState<'system' | 'business'>('business')
@@ -186,10 +185,6 @@ export function SystemConfigs() {
     })
   }
 
-  const handleDelete = async (config: SystemConfig) => {
-    await deleteSystemConfig(config.key)
-  }
-
   return (
     <ManagePage<SystemConfig>
       title="系统配置"
@@ -199,7 +194,6 @@ export function SystemConfigs() {
       onReload={() => refetchSystemConfigs(activeTab)}
       getInitialEditData={getInitialEditData}
       onSave={handleSave}
-      onDelete={handleDelete}
       getId={(config) => config.key}
       emptyDescription="未发现系统配置"
       loadingDescription="配置加载中"

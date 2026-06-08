@@ -44,12 +44,12 @@ type SendEmailHandler struct{}
 // 校验并标准化邮件发送参数，框架在 Admin 下发时自动调用
 func (h *SendEmailHandler) ValidatePayload(payload []byte) ([]byte, error) {
 	if len(payload) == 0 {
-		return nil, errors.New("任务参数不能为空")
+		return nil, errors.New(errTaskPayloadRequired)
 	}
 
 	var req SendEmailPayload
 	if err := json.Unmarshal(payload, &req); err != nil {
-		return nil, fmt.Errorf("无效的 JSON 格式: %w", err)
+		return nil, fmt.Errorf(errInvalidJSONFormat, err)
 	}
 
 	req.To = strings.TrimSpace(req.To)
@@ -57,7 +57,7 @@ func (h *SendEmailHandler) ValidatePayload(payload []byte) ([]byte, error) {
 	req.Body = strings.TrimSpace(req.Body)
 
 	if req.To == "" || req.Subject == "" || req.Body == "" {
-		return nil, errors.New("to、subject、body 不能为空")
+		return nil, errors.New(errEmailTaskFieldsRequired)
 	}
 
 	return json.Marshal(req)
@@ -68,7 +68,7 @@ func (h *SendEmailHandler) Execute(ctx context.Context, payload []byte) (*task.T
 	var req SendEmailPayload
 	if err := json.Unmarshal(payload, &req); err != nil {
 		task.AppendLog(ctx, "解析邮件发送参数失败: %v", err)
-		return nil, fmt.Errorf("解析邮件发送参数失败: %w", err)
+		return nil, fmt.Errorf(errParseEmailPayloadFailed, err)
 	}
 
 	task.AppendLog(ctx, "开始准备发送邮件到: %s, 主题: %s", req.To, req.Subject)
@@ -94,7 +94,7 @@ func (h *SendEmailHandler) Execute(ctx context.Context, payload []byte) (*task.T
 	}
 
 	if smtpHost == "" || smtpPortVal == "" || smtpUsername == "" {
-		err := errors.New("系统 SMTP 邮件服务配置不完整")
+		err := errors.New(errSMTPConfigIncomplete)
 		task.AppendLog(ctx, "发送失败: %v", err)
 		return nil, err
 	}
@@ -117,7 +117,7 @@ func (h *SendEmailHandler) Execute(ctx context.Context, payload []byte) (*task.T
 	err = mail.SendMailHTML(cfg, req.To, req.Subject, req.Body)
 	if err != nil {
 		task.AppendLog(ctx, "邮件发送失败: %v", err)
-		return nil, fmt.Errorf("发送邮件失败: %w", err)
+		return nil, fmt.Errorf(errSendMailFailed, err)
 	}
 
 	msg := fmt.Sprintf("邮件成功发送至: %s", req.To)

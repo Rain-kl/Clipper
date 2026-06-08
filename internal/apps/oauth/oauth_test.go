@@ -267,7 +267,50 @@ func generateMockIDToken(issuer, sub, aud, nonce, username, email, name string) 
 
 // -----------------------------------------------------------------------------
 // Test Helpers
-// -----------------------------------------------------------------------------
+func newMockOIDCClient(issuer, clientID, expectedState, sub, username, email, name string) *http.Client {
+	cleanIssuer := strings.TrimRight(issuer, "/")
+	return &http.Client{
+		Transport: &mockRoundTripper{
+			roundTripFunc: func(req *http.Request) (*http.Response, error) {
+				urlStr := req.URL.String()
+				if req.Method == http.MethodGet && strings.Contains(urlStr, "/.well-known/openid-configuration") {
+					body := fmt.Sprintf(`{
+						"issuer": %q,
+						"authorization_endpoint": %q,
+						"token_endpoint": %q,
+						"jwks_uri": %q,
+						"response_types_supported": ["code"],
+						"subject_types_supported": ["public"],
+						"id_token_signing_alg_values_supported": ["RS256"]
+					}`, cleanIssuer, cleanIssuer+"/oauth2/authorize", cleanIssuer+"/oauth2/token", cleanIssuer+"/oauth2/keys")
+					return &http.Response{
+						StatusCode: http.StatusOK,
+						Body:       io.NopCloser(strings.NewReader(body)),
+						Header:     make(http.Header),
+					}, nil
+				}
+				if req.Method == http.MethodGet && (strings.Contains(urlStr, "/keys") || strings.Contains(urlStr, "/jwks")) {
+					jwksJSON, _ := json.Marshal(testJWKS)
+					return &http.Response{
+						StatusCode: http.StatusOK,
+						Body:       io.NopCloser(bytes.NewReader(jwksJSON)),
+						Header:     make(http.Header),
+					}, nil
+				}
+				if req.Method == http.MethodPost && (strings.Contains(urlStr, "/token") || strings.Contains(urlStr, "/access_token")) {
+					idToken := generateMockIDToken(issuer, sub, clientID, expectedState, username, email, name)
+					body := fmt.Sprintf(`{"access_token":"mock_access_token","token_type":"Bearer","expires_in":3600,"id_token":"%s"}`, idToken)
+					return &http.Response{
+						StatusCode: http.StatusOK,
+						Body:       io.NopCloser(strings.NewReader(body)),
+						Header:     make(http.Header),
+					}, nil
+				}
+				return nil, fmt.Errorf("unexpected mock request: %s %s", req.Method, req.URL)
+			},
+		},
+	}
+}
 
 func setupTestDB(t *testing.T) *gorm.DB {
 	dbConn, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
@@ -593,29 +636,7 @@ func TestCallbackLoginAndUserInfo(t *testing.T) {
 	state := uuid.NewString()
 
 	// 1. Mock the outgoing HTTP client for token exchange and user info fetching
-	httpMock := &http.Client{
-		Transport: &mockRoundTripper{
-			roundTripFunc: func(req *http.Request) (*http.Response, error) {
-				if req.Method == http.MethodGet && strings.Contains(req.URL.String(), "/.well-known/openid-configuration") {
-					return oidcDiscoveryResponse(), nil
-				}
-				if req.Method == http.MethodGet && req.URL.String() == testJWKSURL {
-					return jwksResponse(), nil
-				}
-				// Handle Token Exchange
-				if req.Method == http.MethodPost && req.URL.String() == testTokenURL {
-					idToken := generateMockIDToken(testIssuerURL, "88888", testClientID, state, "test_oauth_user", "oauth@linux.do", "Oauth Test User")
-					body := fmt.Sprintf(`{"access_token":"mock_access_token","token_type":"Bearer","expires_in":3600,"id_token":"%s"}`, idToken)
-					return &http.Response{
-						StatusCode: http.StatusOK,
-						Body:       io.NopCloser(strings.NewReader(body)),
-						Header:     make(http.Header),
-					}, nil
-				}
-				return nil, fmt.Errorf("unexpected outgoing request: %s %s", req.Method, req.URL)
-			},
-		},
-	}
+	httpMock := newMockOIDCClient(testIssuerURL, testClientID, state, "88888", "test_oauth_user", "oauth@linux.do", "Oauth Test User")
 	util.SetHTTPClient(httpMock)
 	router := setupTestRouter(dbConn, mockRedis, httpMock)
 
@@ -679,27 +700,7 @@ func TestCallbackLoginAndUserInfo(t *testing.T) {
 	mockRedis.Set(context.Background(), db.PrefixedKey(fmt.Sprintf(OAuthStateCacheKeyFormat, state2)), payloadValue, OAuthStateCacheKeyExpiration)
 
 	// Callback with same username but different external ID (99999)
-	httpMock2 := &http.Client{
-		Transport: &mockRoundTripper{
-			roundTripFunc: func(req *http.Request) (*http.Response, error) {
-				if req.Method == http.MethodGet && strings.Contains(req.URL.String(), "/.well-known/openid-configuration") {
-					return oidcDiscoveryResponse(), nil
-				}
-				if req.Method == http.MethodGet && req.URL.String() == testJWKSURL {
-					return jwksResponse(), nil
-				}
-				if req.Method == http.MethodPost && req.URL.String() == testTokenURL {
-					idToken := generateMockIDToken(testIssuerURL, "99999", testClientID, state2, "test_oauth_user", "another@linux.do", "Another User")
-					body := fmt.Sprintf(`{"access_token":"mock_access_token","token_type":"Bearer","expires_in":3600,"id_token":"%s"}`, idToken)
-					return &http.Response{
-						StatusCode: http.StatusOK,
-						Body:       io.NopCloser(strings.NewReader(body)),
-					}, nil
-				}
-				return nil, fmt.Errorf("unexpected outgoing request")
-			},
-		},
-	}
+	httpMock2 := newMockOIDCClient(testIssuerURL, testClientID, state2, "99999", "test_oauth_user", "another@linux.do", "Another User")
 	util.SetHTTPClient(httpMock2)
 
 	// Create another router for this mock client
@@ -740,28 +741,7 @@ func TestCallbackLoginAndUserInfo(t *testing.T) {
 		})
 		mockRedis.Set(context.Background(), db.PrefixedKey(fmt.Sprintf(OAuthStateCacheKeyFormat, state4)), payloadValue4, OAuthStateCacheKeyExpiration)
 
-		httpMock4 := &http.Client{
-			Transport: &mockRoundTripper{
-				roundTripFunc: func(req *http.Request) (*http.Response, error) {
-					if req.Method == http.MethodGet && strings.Contains(req.URL.String(), "/.well-known/openid-configuration") {
-						return oidcDiscoveryResponse(), nil
-					}
-					if req.Method == http.MethodGet && req.URL.String() == testJWKSURL {
-						return jwksResponse(), nil
-					}
-					if req.Method == http.MethodPost && req.URL.String() == testTokenURL {
-						idToken := generateMockIDToken(testIssuerURL, "77777", testClientID, state4, "need_bind_user", "needbind@linux.do", "Need Bind User")
-						body := fmt.Sprintf(`{"access_token":"mock_access_token","token_type":"Bearer","expires_in":3600,"id_token":"%s"}`, idToken)
-						return &http.Response{
-							StatusCode: http.StatusOK,
-							Body:       io.NopCloser(strings.NewReader(body)),
-							Header:     make(http.Header),
-						}, nil
-					}
-					return nil, fmt.Errorf("unexpected request")
-				},
-			},
-		}
+		httpMock4 := newMockOIDCClient(testIssuerURL, testClientID, state4, "77777", "need_bind_user", "needbind@linux.do", "Need Bind User")
 		util.SetHTTPClient(httpMock4)
 		router4 := setupTestRouter(dbConn, mockRedis, httpMock4)
 
@@ -824,47 +804,7 @@ func TestCallbackBind(t *testing.T) {
 	mockRedis.Set(context.Background(), db.PrefixedKey(fmt.Sprintf(OAuthStateCacheKeyFormat, state)), payloadValue, OAuthStateCacheKeyExpiration)
 
 	// Mock OIDC discovery, JWKS, and Token exchange for custom source (GitHub)
-	httpMock := &http.Client{
-		Transport: &mockRoundTripper{
-			roundTripFunc: func(req *http.Request) (*http.Response, error) {
-				// Handle OIDC Discovery Document
-				if req.Method == http.MethodGet && strings.Contains(req.URL.String(), "/.well-known/openid-configuration") {
-					body := `{
-						"issuer": "https://github.com",
-						"authorization_endpoint": "https://github.com/login/oauth/authorize",
-						"token_endpoint": "https://github.com/login/oauth/access_token",
-						"jwks_uri": "https://github.com/oauth/keys",
-						"response_types_supported": ["code"],
-						"subject_types_supported": ["public"],
-						"id_token_signing_alg_values_supported": ["RS256"]
-					}`
-					return &http.Response{
-						StatusCode: http.StatusOK,
-						Body:       io.NopCloser(strings.NewReader(body)),
-					}, nil
-				}
-				// Handle JWKS Key Set Fetch
-				if req.Method == http.MethodGet && strings.Contains(req.URL.String(), "/oauth/keys") {
-					jwksJSON, _ := json.Marshal(testJWKS)
-					return &http.Response{
-						StatusCode: http.StatusOK,
-						Body:       io.NopCloser(bytes.NewReader(jwksJSON)),
-					}, nil
-				}
-				// Handle Token Exchange
-				if req.Method == http.MethodPost && strings.Contains(req.URL.String(), "/login/oauth/access_token") {
-					// Generate signed RS256 token matching issuer and aud
-					idToken := generateMockIDToken("https://github.com", "github_user_123", "gh_client", state, "github_tester", "tester@github.com", "GitHub Tester")
-					body := fmt.Sprintf(`{"access_token":"mock_access_token","token_type":"Bearer","id_token":"%s"}`, idToken)
-					return &http.Response{
-						StatusCode: http.StatusOK,
-						Body:       io.NopCloser(strings.NewReader(body)),
-					}, nil
-				}
-				return nil, fmt.Errorf("unexpected request: %s", req.URL)
-			},
-		},
-	}
+	httpMock := newMockOIDCClient("https://github.com", "gh_client", state, "github_user_123", "github_tester", "tester@github.com", "GitHub Tester")
 	util.SetHTTPClient(httpMock)
 	router := setupTestRouter(dbConn, mockRedis, httpMock)
 
@@ -951,43 +891,7 @@ func TestCallbackBind(t *testing.T) {
 	mockRedis.Set(context.Background(), db.PrefixedKey(fmt.Sprintf(OAuthStateCacheKeyFormat, state3)), payloadValue, OAuthStateCacheKeyExpiration)
 
 	// Re-sign token for new state (since state serves as OIDC Nonce)
-	httpMock3 := &http.Client{
-		Transport: &mockRoundTripper{
-			roundTripFunc: func(req *http.Request) (*http.Response, error) {
-				if req.Method == http.MethodGet && strings.Contains(req.URL.String(), "/.well-known/openid-configuration") {
-					body := `{
-						"issuer": "https://github.com",
-						"authorization_endpoint": "https://github.com/login/oauth/authorize",
-						"token_endpoint": "https://github.com/login/oauth/access_token",
-						"jwks_uri": "https://github.com/oauth/keys",
-						"response_types_supported": ["code"],
-						"subject_types_supported": ["public"],
-						"id_token_signing_alg_values_supported": ["RS256"]
-					}`
-					return &http.Response{
-						StatusCode: http.StatusOK,
-						Body:       io.NopCloser(strings.NewReader(body)),
-					}, nil
-				}
-				if req.Method == http.MethodGet && strings.Contains(req.URL.String(), "/oauth/keys") {
-					jwksJSON, _ := json.Marshal(testJWKS)
-					return &http.Response{
-						StatusCode: http.StatusOK,
-						Body:       io.NopCloser(bytes.NewReader(jwksJSON)),
-					}, nil
-				}
-				if req.Method == http.MethodPost && strings.Contains(req.URL.String(), "/login/oauth/access_token") {
-					idToken := generateMockIDToken("https://github.com", "github_user_123", "gh_client", state3, "github_tester", "tester@github.com", "GitHub Tester")
-					body := fmt.Sprintf(`{"access_token":"mock_access_token","token_type":"Bearer","id_token":"%s"}`, idToken)
-					return &http.Response{
-						StatusCode: http.StatusOK,
-						Body:       io.NopCloser(strings.NewReader(body)),
-					}, nil
-				}
-				return nil, fmt.Errorf("unexpected request")
-			},
-		},
-	}
+	httpMock3 := newMockOIDCClient("https://github.com", "gh_client", state3, "github_user_123", "github_tester", "tester@github.com", "GitHub Tester")
 	util.SetHTTPClient(httpMock3)
 	router3 := setupTestRouter(dbConn, mockRedis, httpMock3)
 

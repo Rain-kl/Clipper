@@ -123,7 +123,7 @@ func HSetJSON[T any](ctx context.Context, hashKey, fieldKey string, data T) erro
 	}
 
 	if err := Redis.HSet(ctx, PrefixedKey(hashKey), fieldKey, jsonData).Err(); err != nil {
-		return fmt.Errorf("failed to set redis hash: %w", err)
+		return fmt.Errorf(errRedisHashSetFailed, err)
 	}
 
 	return nil
@@ -141,7 +141,7 @@ func HGetJSON[T any](ctx context.Context, hashKey, fieldKey string, data *T) err
 	}
 
 	if err := json.Unmarshal([]byte(val), data); err != nil {
-		return fmt.Errorf("failed to unmarshal data: %w", err)
+		return fmt.Errorf(errUnmarshalDataFailed, err)
 	}
 
 	return nil
@@ -158,7 +158,7 @@ func GetJSON[T any](ctx context.Context, key string, data *T) error {
 	}
 
 	if err := json.Unmarshal(val, data); err != nil {
-		return fmt.Errorf("failed to unmarshal data: %w", err)
+		return fmt.Errorf(errUnmarshalDataFailed, err)
 	}
 
 	return nil
@@ -172,11 +172,11 @@ func GetJSON[T any](ctx context.Context, key string, data *T) error {
 func SetJSON[T any](ctx context.Context, key string, data T, expiration time.Duration) error {
 	jsonData, err := json.Marshal(data)
 	if err != nil {
-		return fmt.Errorf("failed to marshal data: %w", err)
+		return fmt.Errorf(errMarshalDataFailed, err)
 	}
 
 	if err := Redis.Set(ctx, PrefixedKey(key), jsonData, expiration).Err(); err != nil {
-		return fmt.Errorf("failed to set redis key: %w", err)
+		return fmt.Errorf(errRedisKeySetFailed, err)
 	}
 
 	return nil
