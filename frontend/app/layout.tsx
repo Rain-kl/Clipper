@@ -9,7 +9,7 @@ import {AppQueryProvider} from "@/components/providers/query-provider";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Refreshing Platform",
+  title: "Wavelet Platform",
   description: "通用二次开发标准范式平台",
 };
 

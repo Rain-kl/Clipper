@@ -1,15 +1,15 @@
-# Refreshing — Full-Stack Boilerplate Config
+# Wavelet — Full-Stack Boilerplate Config
 # Copy this file to config.yaml and fill in your values.
 # Fields marked with <...> are required; others have sensible defaults.
 
 # ─── Application ────────────────────────────────────────────────────────────────
 app:
-  app_name: "refreshing"
+  app_name: "Wavelet"
   env: "development"          # development | testing | production
   addr: ":8000"
   node_id: 1                  # Snowflake node ID (0-1023). Must be unique per instance.
   graceful_shutdown_timeout: 30
-  session_cookie_name: "refreshing_session_id"  # Change to something unique before deploy
+  session_cookie_name: "Wavelet_session_id"  # Change to something unique before deploy
   session_secret: "<uniq-random-string>"         # Cannot be changed after first start
   session_domain: ""                             # e.g. ".yourdomain.com"
   session_age: 86400                             # Session lifetime in seconds (default: 24h)
@@ -25,7 +25,7 @@ database:
   port: 5432
   username: "postgres"
   password: "postgres"
-  database: "refreshing"
+  database: "wavelet"
   max_idle_conn: 16
   max_open_conn: 128
   conn_max_lifetime: 1800
@@ -33,7 +33,7 @@ database:
   log_level: "info"            # error | warn | info | debug | silent
   ssl_mode: "disable"
   time_zone: "UTC"
-  application_name: "refreshing-server"
+  application_name: "wavelet-server"
   prefer_simple_protocol: false
   search_path: "public"
   statement_cache_capacity: 256
@@ -53,7 +53,7 @@ clickhouse:
     - "127.0.0.1:9000"
   username: "default"
   password: ""
-  database: "refreshing"
+  database: "wavelet"
   max_idle_conn: 10
   max_open_conn: 100
   conn_max_lifetime: 3600
@@ -71,7 +71,7 @@ redis:
   db: 0                        # Ignored in Cluster mode
   cluster_mode: false          # Set true to enable Cluster mode
   master_name: ""              # Set non-empty to enable Sentinel mode
-  key_prefix: "refreshing:"
+  key_prefix: "wavelet:"
   pool_size: 100
   min_idle_conn: 10
   dial_timeout: 5

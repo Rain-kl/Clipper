@@ -28,7 +28,7 @@ const formatNumber = (num: number | string) => {
 export function SystemStatusManager() {
   const [status, setStatus] = useState<SystemStatus | null>(null)
   const [loading, setLoading] = useState(true)
-  const [refreshing, setRefreshing] = useState(false)
+  const [wavelet, setWavelet] = useState(false)
   const [autoRefresh, setAutoRefresh] = useState(true)
   const [intervalTime, setIntervalTime] = useState("5000") // 默认5秒
 
@@ -38,7 +38,7 @@ export function SystemStatusManager() {
 
   // 获取状态数据
   const fetchStatus = useCallback(async (isSilent = false) => {
-    if (!isSilent) setRefreshing(true)
+    if (!isSilent) setWavelet(true)
     try {
       const data = await services.admin.getSystemStatus()
 
@@ -66,7 +66,7 @@ export function SystemStatusManager() {
       })
     } finally {
       setLoading(false)
-      setRefreshing(false)
+      setWavelet(false)
     }
   }, [])
 
@@ -196,9 +196,9 @@ export function SystemStatusManager() {
             variant="secondary"
             className="h-7 text-[11px] gap-1.5"
             onClick={() => fetchStatus()}
-            disabled={refreshing}
+            disabled={wavelet}
           >
-            <RefreshCw className={`size-3 ${refreshing ? "animate-spin" : ""}`} />
+            <RefreshCw className={`size-3 ${wavelet ? "animate-spin" : ""}`} />
             刷新
           </Button>
         </div>

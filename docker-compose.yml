@@ -1,10 +1,10 @@
 services:
   postgres:
     image: postgres:17-alpine
-    container_name: refreshing-postgres
+    container_name: Wavelet-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-refreshing}
+      POSTGRES_DB: ${POSTGRES_DB:-wavelet}
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       TZ: ${TZ:-Asia/Shanghai}
@@ -13,7 +13,7 @@ services:
     volumes:
       - ./data/postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-refreshing}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-wavelet}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -21,7 +21,7 @@ services:
 #
 #  redis:
 #    image: redis:7-alpine
-#    container_name: refreshing-redis
+#    container_name: wavelet-redis
 #    restart: unless-stopped
 #    command: ["redis-server", "--appendonly", "yes"]
 #    ports:
@@ -37,12 +37,12 @@ services:
 #
 #  clickhouse:
 #    image: clickhouse/clickhouse-server:25.3-alpine
-#    container_name: refreshing-clickhouse
+#    container_name: wavelet-clickhouse
 #    restart: unless-stopped
 #    profiles:
 #      - clickhouse
 #    environment:
-#      CLICKHOUSE_DB: ${CLICKHOUSE_DB:-refreshing}
+#      CLICKHOUSE_DB: ${CLICKHOUSE_DB:-wavelet}
 #      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-default}
 #      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-}
 #      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
