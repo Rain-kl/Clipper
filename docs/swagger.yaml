@@ -73,6 +73,27 @@ definitions:
     - solutions
     - token
     type: object
+  logger.LogEntry:
+    properties:
+      data:
+        description: 一行日志原文（含换行符）
+        type: string
+      index:
+        description: 全局递增序号
+        type: integer
+    type: object
+  logs.logsResponse:
+    properties:
+      has_more:
+        type: boolean
+      lines:
+        items:
+          $ref: '#/definitions/logger.LogEntry'
+        type: array
+      next_cursor:
+        description: 用于加载更早日志的 cursor
+        type: integer
+    type: object
   model.AccessToken:
     properties:
       created_at:
@@ -936,6 +957,52 @@ paths:
       security:
       - SessionCookie: []
       summary: 切换认证源启用状态
+      tags:
+      - admin
+  /api/v1/admin/logs:
+    get:
+      description: 分页获取系统历史日志，cursor=0 获取最新日志，cursor>0 获取更早日志
+      parameters:
+      - default: 0
+        description: 日志游标，0=获取最新
+        in: query
+        name: cursor
+        type: integer
+      - default: 200
+        description: 每页条数
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 日志列表
+          schema:
+            allOf:
+            - $ref: '#/definitions/util.ResponseAny'
+            - properties:
+                data:
+                  $ref: '#/definitions/logs.logsResponse'
+              type: object
+        "401":
+          description: 未登录
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+        "403":
+          description: 无管理员权限
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      security:
+      - SessionCookie: []
+      summary: 获取系统日志
+      tags:
+      - admin
+  /api/v1/admin/logs/ws:
+    get:
+      description: 通过 WebSocket 实时推送系统日志，需要管理员权限
+      responses: {}
+      summary: 系统日志实时推送
       tags:
       - admin
   /api/v1/admin/status:

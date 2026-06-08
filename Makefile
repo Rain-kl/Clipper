@@ -1,5 +1,13 @@
+.PHONY: swagger license license-check build-embedded
+
 swagger:
 	scripts/swagger.sh
+
+license:
+	scripts/update_go_license.sh
+
+license-check:
+	scripts/update_go_license.sh --check
 
 build-embedded:
 	cd frontend && pnpm build:embed

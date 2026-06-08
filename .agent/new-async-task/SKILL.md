@@ -1,6 +1,6 @@
 ---
 name: "new-async-task"
-description: "项目专用：指导如何在本项目中新增异步任务（TaskHandler），包括常量定义、参数传递（TaskParam）、PayloadValidator 接口、处理器实现、注册、Cron 调度、AppendLog 日志规范等完整步骤。"
+description: "项目专用：指导如何在 wavelet 项目中新增异步任务（TaskHandler）。当用户提到新增任务、Asynq、后台任务、定时任务、任务日志、任务重试、TaskMeta、TaskParam 或 PayloadValidator 时必须使用本技能，覆盖常量定义、参数校验、处理器实现、统一注册、Worker 路由、Cron 调度、AppendLog 日志和测试验证。"
 ---
 
 # 新增异步任务开发指南
@@ -29,7 +29,8 @@ TaskHandler.Execute (← 你写这一步)
 - `internal/task/handler.go` — `TaskHandler` 接口、`TaskResult` 类型、`PayloadValidator` 可选接口
 - `internal/task/constants.go` — 任务类型常量、`TaskMeta`、`TaskParam`、`DispatchableTasks`
 - `internal/task/executor.go` — 注册、下发、执行、日志追加、参数校验分发
-- `internal/task/worker/worker.go` — Worker 启动、处理器注册、路由
+- `internal/task/handlers/register.go` — 内置任务处理器统一注册点，Admin API 和 Worker 都依赖它
+- `internal/task/worker/worker.go` — Worker 启动、Asynq mux 路由、队列配置
 - `internal/task/scheduler/scheduler.go` — Cron 定时调度
 - `internal/model/task_execution.go` — `TaskExecution` GORM 模型
 - `internal/apps/admin/task/routers.go` — 管理 API（下发、查询、重试）
@@ -216,20 +217,37 @@ type PayloadValidator interface {
 - 成功：返回 `&task.TaskResult{Message: "摘要", Detail: "可选详细JSON"}`。`ProcessTask` 会将 `Message + "\n" + Detail` 存入 `TaskExecution.Result`。
 - 失败：返回 `nil, fmt.Errorf("...")`。`ProcessTask` 会将错误信息存入 `TaskExecution.ErrorMessage`，状态标记为 `failed`，并将 error 返回给 Asynq 触发自动重试。
 
-### 第 3 步：在 worker.go 注册
+### 第 3 步：统一注册 Handler，并在 worker.go 添加路由
 
-打开 `internal/task/worker/worker.go`，做两件事：
+新增任务必须同时满足两条链路：
 
-**1. 在 `init()` 中注册处理器**：
+- Admin API 下发任务时能找到 Handler，从而调用 `PayloadValidator` 做服务端参数校验。
+- Worker 消费 Asynq 消息时能路由到 `task.ProcessTask`，再由框架分发到 Handler。
+
+#### 3.1 在 `internal/task/handlers/register.go` 注册处理器
+
+打开 `internal/task/handlers/register.go`，导入你的业务模块并在 `Register()` 中注册：
 
 ```go
-func init() {
+package handlers
+
+import (
+    "github.com/Rain-kl/Wavelet/internal/apps/upload"
+    "github.com/Rain-kl/Wavelet/internal/apps/user"
+    "github.com/Rain-kl/Wavelet/internal/task"
+)
+
+func Register() {
     task.RegisterHandler(task.CleanupUnusedUploadsTask, &upload.CleanupUnusedUploadsHandler{})
     task.RegisterHandler(task.SendEmailTask, &user.SendEmailHandler{})
 }
 ```
 
-**2. 在 `StartWorker()` 的 mux 中添加路由**：
+`Register()` 会被 Admin task API 和 Worker 共同调用。不要只在 `worker` 包里注册，否则 Admin dispatch 时 `ValidateAndNormalizePayload` 找不到 Handler，带参数任务会绕过 `PayloadValidator`。
+
+#### 3.2 在 `internal/task/worker/worker.go` 添加 Asynq 路由
+
+在 `StartWorker()` 的 mux 中添加任务类型路由：
 
 ```go
 mux := asynq.NewServeMux()
@@ -239,6 +257,14 @@ mux.HandleFunc(task.SendEmailTask, task.ProcessTask)
 ```
 
 所有路由都指向同一个 `task.ProcessTask`，它内部根据 Asynq task type 查找对应的 handler 分发执行。
+
+`worker.go` 的 `init()` 应保持调用统一注册函数：
+
+```go
+func init() {
+    taskhandlers.Register()
+}
+```
 
 ### 第 4 步（可选）：添加 Cron 定时调度
 
@@ -289,6 +315,8 @@ scheduler:
 
 关键点：Admin dispatch handler (`routers.go`) 是**通用的**，不需要按任务类型写 if 分支。新增带参数的任务时，只需在 Handler 上实现 `ValidatePayload` 方法即可。
 
+注意：`ValidateAndNormalizePayload` 依赖 Handler 已注册。新增任务后必须更新 `internal/task/handlers/register.go`，否则 Admin API 不会执行该任务的 `PayloadValidator`。
+
 ## AppendLog 使用指南
 
 `task.AppendLog(ctx, format string, args ...interface{})` 在 `TaskHandler.Execute` 内部调用，将日志追加到 `TaskExecution.Log` 字段。管理端 API 可查看完整执行日志。
@@ -338,3 +366,23 @@ scheduler:
 - `internal/apps/upload/tasks.go` — `CleanupUnusedUploadsHandler`：无参数任务，展示游标分页批量处理、每批次 AppendLog、事务内操作、单条失败 continue 不终止。
 - `internal/apps/user/tasks.go` — `SendEmailHandler`：带参数任务，展示 Payload 结构体定义、`PayloadValidator` 实现（`ValidatePayload` 用于校验+标准化）、`Execute` 中 json.Unmarshal 使用参数。
 
+## 测试与验证
+
+新增或调整异步任务后，至少做以下验证：
+
+1. 单测 Handler 本身：无参数任务验证业务结果；带参数任务额外覆盖 `ValidatePayload` 的成功、非法 JSON、缺失必填字段。
+2. 单测 Admin dispatch：`POST /api/v1/admin/tasks/dispatch` 对合法 payload 返回 200，对非法 payload 返回 400，并包含清晰错误信息。
+3. 单测 Retry：可重试失败任务应创建新的 `TaskExecution`，达到 `MaxRetry`、非 failed 状态、`Retryable=false` 都应拒绝。
+4. 跑目标包测试：
+
+```bash
+go test ./internal/task ./internal/apps/admin/task ./internal/apps/<module>
+```
+
+5. 最后跑全量测试：
+
+```bash
+go test ./...
+```
+
+测试环境中如需下发/重试任务，使用 `miniredis` 初始化 `task.AsynqClient`；不要把 `internal/task` 依赖塞回通用 `internal/testhelper`，否则容易让 `model`/`task` 测试产生 import cycle。

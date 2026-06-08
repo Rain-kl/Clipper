@@ -1,58 +1,36 @@
-name: Build Docker Image
+name: Build Docker Images
 
 on:
   push:
-    branches: [ "master" ]
-    tags: [ "*" ]
+    branches:
+      - "main"
+    tags:
+      - "*"
   pull_request:
-    branches: [ "master" ]
+    branches:
+      - "main"
 
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
-  FRONTEND_IMAGE_NAME: ${{ github.repository }}-web
+  FRONTEND_IMAGE_NAME: ${{ github.repository }}-frontend
+  BACKEND_IMAGE_NAME: ${{ github.repository }}-backend
 
-# add permission for package publishing
 permissions:
   contents: read
   packages: write
 
 jobs:
-  build_image:
+  build_integrated_image:
+    name: Build integrated image
     runs-on: ubuntu-24.04
     steps:
-      # checkout code
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # set up go
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: "1.25"
-          check-latest: true
-
-      # download Go modules
-      - name: Download Go modules
-        run: go mod download
-
-      # build do
-      - name: Build Go Binary (multi-arch)
-        run: |
-          # build amd64 binary
-          GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o credit-server-amd64 main.go
-
-          # build arm64 binary
-          GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -o credit-server-arm64 main.go
-
-          # show binaries
-          ls -alh credit-server-*
-
-      # set up docker buildx
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # login to registry
       - name: Log into registry
         uses: docker/login-action@v3
         with:
@@ -60,41 +38,38 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # extract metadata for docker
       - name: Extract Docker metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/master' }}
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=ref,event=tag
             type=sha,format=short,prefix=
 
-      # build and push docker image
       - name: Build Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
-          push: ${{ github.ref_type == 'tag' || (github.ref == 'refs/heads/master' && github.event_name == 'push') }}
+          file: docker/Dockerfile
+          push: ${{ github.ref_type == 'tag' || (github.ref == 'refs/heads/main' && github.event_name == 'push') }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           platforms: linux/amd64,linux/arm64
 
   build_frontend_image:
+    name: Build frontend image
     runs-on: ubuntu-24.04
     steps:
-      # checkout code
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # set up docker buildx
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # login to registry
       - name: Log into registry
         uses: docker/login-action@v3
         with:
@@ -102,99 +77,70 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # extract metadata for docker (frontend)
-      - name: Extract Docker metadata (frontend)
+      - name: Extract Docker metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE_NAME }}
           tags: |
-            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/master' }}
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=ref,event=tag
             type=sha,format=short,prefix=
 
-      # generate frontend build date in utc
       - name: Generate frontend build date
         id: frontend_build_meta
         run: echo "build_date=$(date -u +'%Y/%m/%d UTC')" >> "$GITHUB_OUTPUT"
 
-      # build and push frontend docker image with version argument
       - name: Build Frontend Docker image
         uses: docker/build-push-action@v5
         with:
-          context: ./frontend
-          push: ${{ github.ref_type == 'tag' || (github.ref == 'refs/heads/master' && github.event_name == 'push') }}
+          context: .
+          file: docker/Dockerfile.frontend
+          push: ${{ github.ref_type == 'tag' || (github.ref == 'refs/heads/main' && github.event_name == 'push') }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          platforms: linux/amd64
+          platforms: linux/amd64,linux/arm64
           build-args: |
             VERSION=${{ github.ref_type == 'tag' && github.ref_name || '' }}
             BUILD_DATE=${{ steps.frontend_build_meta.outputs.build_date }}
 
-  update_helm_values:
+  build_backend_image:
+    name: Build backend image
     runs-on: ubuntu-24.04
-    needs: [build_image, build_frontend_image]
-    if: github.ref_type == 'tag'
     steps:
-      # configure SSH agent with deploy key
-      - name: Setup SSH agent
-        uses: webfactory/ssh-agent@v0.9.0
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log into registry
+        uses: docker/login-action@v3
         with:
-          ssh-private-key: ${{ secrets.DEPLOY_KEY }}
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      # add github.com to known_hosts to avoid host verification prompt
-      - name: Add GitHub to known_hosts
-        run: ssh-keyscan github.com >> ~/.ssh/known_hosts
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }}
+          tags: |
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=ref,event=tag
+            type=sha,format=short,prefix=
 
-      # clone the helm charts repository
-      - name: Clone Helm Charts repository
-        run: git clone ${{ vars.HELM_CHARTS_REPO }} helm-charts
-
-      # install yq for yaml editing
-      - name: Install yq
-        run: |
-          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
-          sudo chmod +x /usr/local/bin/yq
-
-      # determine helm values file based on tag type (production or test)
-      - name: Determine Helm values file
-        id: helm_config
-        run: |
-          TAG="${{ github.ref_name }}"
-          if [[ $TAG =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "values_file=values/credit/credit.yaml" >> "$GITHUB_OUTPUT"
-            echo "branch_prefix=update/credit" >> "$GITHUB_OUTPUT"
-          else
-            echo "values_file=values/credit_test/credit.yaml" >> "$GITHUB_OUTPUT"
-            echo "branch_prefix=update/credit_test" >> "$GITHUB_OUTPUT"
-          fi
-
-      # update image tags in helm values file
-      - name: Update image tags in helm values file
-        run: |
-          cd helm-charts
-          yq -i '.image.tag = "${{ github.ref_name }}"' ${{ steps.helm_config.outputs.values_file }}
-          yq -i '.image.webTag = "${{ github.ref_name }}"' ${{ steps.helm_config.outputs.values_file }}
-
-      # commit and push to a new branch, then open a PR for review
-      - name: Commit, push and create PR
-        env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
-        run: |
-          cd helm-charts
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          BRANCH_NAME="${{ steps.helm_config.outputs.branch_prefix }}-${{ github.ref_name }}"
-          git checkout -b "$BRANCH_NAME"
-          git add ${{ steps.helm_config.outputs.values_file }}
-          git commit -m "chore: update credit image tag to ${{ github.ref_name }}"
-          git push origin "$BRANCH_NAME"
-          HELM_REPO=$(echo "${{ vars.HELM_CHARTS_REPO }}" | sed 's/git@github.com://;s/\.git$//')
-          gh pr create \
-            --repo "${HELM_REPO}" \
-            --title "chore: update credit image tag to ${{ github.ref_name }}" \
-            --body "Automated PR: update \`${{ steps.helm_config.outputs.values_file }}\` image tags to \`${{ github.ref_name }}\` after Docker image build." \
-            --base main \
-            --head "$BRANCH_NAME"
+      - name: Build Backend Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/Dockerfile.backend
+          push: ${{ github.ref_type == 'tag' || (github.ref == 'refs/heads/main' && github.event_name == 'push') }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          platforms: linux/amd64,linux/arm64
