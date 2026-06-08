@@ -1,0 +1,164 @@
+# LINUX DO Credit Config
+# Copy to config.yaml for runtime
+
+# App
+app:
+  app_name: "linux-do-credit"
+  env: "development" # development, testing, production
+  addr: ":8000"
+  node_id: 1  # 分布式节点 ID (0-1023)，不同实例必须不同
+  graceful_shutdown_timeout: 30
+  session_cookie_name: "linux_do_credit_session_id" # change this in local dev env
+  session_secret: "<uniq string>" # you can't change this after first time start
+  session_domain: ".linux.do"
+  session_age: 86400
+  session_secure: false
+  session_http_only: false
+  api_prefix: "/api"
+  frontend_url: "http://localhost:3000"
+  frontend_pay_url: "http://localhost:3000/paying"
+
+# OAuth2/OIDC(优先)
+oauth2:
+  client_id: "<OAUTH2_CLIENT_ID>"
+  client_secret: "<OAUTH2_CLIENT_SECRET>"
+  redirect_uri: "<OAUTH2_REDIRECT_URI>"
+  issuer: "https://connect.linux.do/"  # OIDC Issuer URL，用于自动发现端点
+  authorization_endpoint: "https://connect.linux.do/oauth2/authorize"
+  token_endpoint: "https://connect.linux.do/oauth2/token"
+  user_endpoint: "https://connect.linux.do/api/user"
+
+# DB
+# 支持两种模式：Standalone（单节点）、Primary-Replica（读写分离）
+database:
+  enabled: true
+  host: "127.0.0.1"
+  port: 5432
+  username: "postgres"
+  password: ""
+  database: "linux_do_credit"
+  max_idle_conn: 16
+  max_open_conn: 128
+  conn_max_lifetime: 1800
+  conn_max_idle_time: 600
+  log_level: "info"  # error, warn, info, debug, silent
+  ssl_mode: "disable"
+  time_zone: "Asia/Shanghai"
+  application_name: "pay-server"
+  # pgb改为true,默认false
+  prefer_simple_protocol: false
+  search_path: "public"
+  statement_cache_capacity: 256
+  default_query_exec_mode: "cache_statement"
+  slow_threshold: 200ms
+  # replicas:
+  #   - host: "replica1.db.local"
+  #     port: 5432
+  #   - host: "replica2.db.local"
+  #     port: 5432
+
+# clickhouse
+clickhouse:
+  enabled: false
+  hosts:
+    - "127.0.0.1:9000"
+  username: "default"
+  password: ""
+  database: "linux_do_credit"
+  max_idle_conn: 10
+  max_open_conn: 100
+  conn_max_lifetime: 3600
+  dial_timeout: 5
+  block_buffer_size: 10
+
+# Redis
+# 支持三种模式：Standalone（单节点）、Sentinel（高可用）、Cluster（水平扩展）
+redis:
+  enabled: true
+  addrs:
+    - "127.0.0.1:6379"
+  username: ""
+  password: ""
+  db: 0                    # Cluster 模式忽略此项
+  cluster_mode: false      # true 启用 Cluster 模式
+  master_name: ""          # 非空启用 Sentinel 模式
+  key_prefix: "credit:"
+  pool_size: 100
+  min_idle_conn: 10
+  dial_timeout: 5
+  read_timeout: 3
+  write_timeout: 3
+  max_retries: 3
+  pool_timeout: 4
+  conn_max_idle_time: 300
+
+# Log
+log:
+  level: "info"  # debug, info, warn, error, fatal, panic
+  format: "json"  # text, json
+  output: "stdout"  # stdout, file
+  file_path: "./logs/app.log"
+  max_size: 100
+  max_age: 30
+  max_backups: 10
+  compress: true
+
+# Scheduler
+scheduler:
+  update_user_gamification_scores_task_cron: "0 2 * * *"
+  dispute_auto_refund_dispatch_interval_seconds: 3
+  auto_refund_expired_disputes_task_cron: "0 0 * * *"
+  sync_orders_to_clickhouse_task_cron: "10 0 * * *"
+  refund_expired_red_envelopes_task_cron: "0 1 * * *"
+  cleanup_unused_uploads_task_cron: "0 */2 * * *"
+  settle_pending_payments_task_cron: "0 * * * *"
+
+# Worker
+worker:
+  concurrency: 20
+  strict_priority: false
+  queues:
+    - name: webhook
+      priority: 10
+    - name: whitelist_only
+      priority: 5
+    - name: default
+      priority: 3
+  # 积分更新速率限制：rate 次/period 秒
+  gamification_score_rate_limit:
+    rate: 1     # 允许的请求次数
+    period: 3   # 时间周期（秒）
+
+# linuxDo
+linuxDo:
+  api_key: "<LINUX_DO_API_KEY>"
+
+# OpenAPI Risk
+openapi_risk:
+  enabled: false
+  base_url: "https://audit.example.com"
+  username: "<OPENAPI_USERNAME>"
+  password: "<OPENAPI_PASSWORD>"
+  cache_ttl_seconds: 3600
+  prompt_risk_levels: []
+  block_risk_levels: []
+
+# OpenTelemetry
+otel:
+  sampling_rate: 0.1  # 采样率 0.0-1.0
+
+# S3 Compatible Storage
+# 支持 AWS S3、MinIO、Cloudflare R2、腾讯 COS 等 S3 兼容存储
+s3:
+  enabled: true
+  endpoint: "https://<Account ID>.r2.cloudflarestorage.com"
+  region: "auto"
+  bucket: "<Bucket Name>"
+  access_key_id: "<S3_ACCESS_KEY_ID>"
+  secret_access_key: "<S3_SECRET_ACCESS_KEY>"
+  path_style: false                              # MinIO 等自托管服务设为 true
+  key_prefix: ""                                 # 对象 key 前缀，如 "uploads/"，可用于分目录存储
+  cdn_url: ""                                    # CDN 域名（如 https://cdn.example.com），为空则直接读 S3
+  local_cache:
+    enabled: false
+    cache_dir: "./s3_cache"

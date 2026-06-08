@@ -1,0 +1,1658 @@
+definitions:
+  api_key.CreateAPIKeyRequest:
+    properties:
+      app_description:
+        maxLength: 100
+        type: string
+      app_homepage_url:
+        maxLength: 100
+        type: string
+      app_name:
+        maxLength: 20
+        type: string
+      notify_url:
+        maxLength: 100
+        type: string
+      public_key:
+        maxLength: 100
+        type: string
+      redirect_uri:
+        maxLength: 100
+        type: string
+      test_mode:
+        type: boolean
+    required:
+    - app_homepage_url
+    - app_name
+    - notify_url
+    type: object
+  api_key.UpdateAPIKeyRequest:
+    properties:
+      app_description:
+        maxLength: 100
+        type: string
+      app_homepage_url:
+        maxLength: 100
+        type: string
+      app_name:
+        maxLength: 20
+        type: string
+      notify_url:
+        maxLength: 100
+        type: string
+      public_key:
+        maxLength: 100
+        type: string
+      redirect_uri:
+        maxLength: 100
+        type: string
+      test_mode:
+        type: boolean
+    type: object
+  dashboard.UserBalanceStatsResponse:
+    properties:
+      avg_amount:
+        type: number
+      max_amount:
+        type: number
+      median_amount:
+        type: number
+      min_amount:
+        type: number
+      std_dev:
+        type: number
+      total_amount:
+        type: number
+      total_count:
+        type: integer
+    type: object
+  dispute.CloseDisputeRequest:
+    properties:
+      dispute_id:
+        example: "0"
+        type: string
+    required:
+    - dispute_id
+    type: object
+  dispute.CreateDisputeRequest:
+    properties:
+      order_id:
+        example: "0"
+        type: string
+      reason:
+        maxLength: 100
+        type: string
+    required:
+    - order_id
+    - reason
+    type: object
+  dispute.ListDisputesRequest:
+    properties:
+      dispute_id:
+        example: "0"
+        type: string
+      page:
+        minimum: 1
+        type: integer
+      page_size:
+        maximum: 100
+        minimum: 1
+        type: integer
+      status:
+        enum:
+        - disputing
+        - refund
+        - closed
+        type: string
+    type: object
+  dispute.RefundReviewRequest:
+    properties:
+      dispute_id:
+        example: "0"
+        type: string
+      reason:
+        maxLength: 100
+        type: string
+      status:
+        enum:
+        - refund
+        - closed
+        type: string
+    required:
+    - dispute_id
+    - status
+    type: object
+  link.PayByLinkRequest:
+    properties:
+      pay_key:
+        maxLength: 6
+        type: string
+      remark:
+        maxLength: 100
+        type: string
+      token:
+        type: string
+    required:
+    - pay_key
+    - token
+    type: object
+  link.PaymentLinkRequest:
+    properties:
+      amount:
+        type: number
+      product_name:
+        maxLength: 30
+        type: string
+      remark:
+        maxLength: 100
+        type: string
+      total_limit:
+        minimum: 1
+        type: integer
+      user_limit:
+        minimum: 1
+        type: integer
+    required:
+    - amount
+    - product_name
+    type: object
+  model.OrderTransferStatus:
+    enum:
+    - pending
+    - completed
+    type: string
+    x-enum-varnames:
+    - OrderTransferStatusPending
+    - OrderTransferStatusCompleted
+  model.PayLevel:
+    enum:
+    - 0
+    - 1
+    - 2
+    - 3
+    format: int32
+    type: integer
+    x-enum-varnames:
+    - PayLevelFree
+    - PayLevelBasic
+    - PayLevelStandard
+    - PayLevelPremium
+  model.RedEnvelopeType:
+    enum:
+    - fixed
+    - random
+    type: string
+    x-enum-varnames:
+    - RedEnvelopeTypeFixed
+    - RedEnvelopeTypeRandom
+  oauth.CallbackRequest:
+    properties:
+      code:
+        type: string
+      state:
+        type: string
+    type: object
+  order.TransactionListRequest:
+    properties:
+      client_id:
+        type: string
+      endTime:
+        type: string
+      id:
+        example: "0"
+        type: string
+      order_name:
+        type: string
+      page:
+        minimum: 1
+        type: integer
+      page_size:
+        maximum: 100
+        minimum: 1
+        type: integer
+      payee_transfer_status:
+        allOf:
+        - $ref: '#/definitions/model.OrderTransferStatus'
+        enum:
+        - pending
+        - completed
+      payee_username:
+        type: string
+      payer_username:
+        type: string
+      startTime:
+        type: string
+      statuses:
+        items:
+          type: string
+        type: array
+      types:
+        items:
+          type: string
+        type: array
+    type: object
+  payment.CreateOrderRequest:
+    properties:
+      amount:
+        type: number
+      merchant_order_no:
+        maxLength: 64
+        minLength: 1
+        type: string
+      notify_url:
+        maxLength: 100
+        type: string
+      order_name:
+        maxLength: 64
+        type: string
+      payment_type:
+        type: string
+      remark:
+        maxLength: 100
+        type: string
+      return_url:
+        maxLength: 100
+        type: string
+    required:
+    - amount
+    - order_name
+    type: object
+  payment.MerchantDistributeRequest:
+    properties:
+      amount:
+        type: number
+      out_trade_no:
+        maxLength: 64
+        minLength: 1
+        type: string
+      remark:
+        maxLength: 100
+        type: string
+      user_id:
+        type: integer
+      username:
+        type: string
+    required:
+    - amount
+    - user_id
+    - username
+    type: object
+  payment.PayOrderRequest:
+    properties:
+      order_no:
+        type: string
+      pay_key:
+        maxLength: 6
+        type: string
+    required:
+    - order_no
+    - pay_key
+    type: object
+  payment.QueryMerchantOrderResponse:
+    properties:
+      addtime:
+        example: "2023-12-08 12:00:00"
+        type: string
+      code:
+        example: 1
+        type: integer
+      endtime:
+        example: "2023-12-08 12:05:00"
+        type: string
+      money:
+        example: "10.00"
+        type: string
+      msg:
+        example: 查询订单号成功！
+        type: string
+      name:
+        example: 商品名称
+        type: string
+      out_trade_no:
+        example: M202312080001
+        type: string
+      pid:
+        example: "1001"
+        type: string
+      status:
+        example: 1
+        type: integer
+      trade_no:
+        example: "123456"
+        type: string
+      type:
+        example: epay
+        type: string
+    type: object
+  payment.RefundMerchantOrderResponse:
+    properties:
+      code:
+        example: 1
+        type: integer
+      msg:
+        example: 退款成功
+        type: string
+    type: object
+  payment.RefundOrderRequest:
+    properties:
+      key:
+        type: string
+      money:
+        type: number
+      out_trade_no:
+        type: string
+      pid:
+        type: string
+      trade_no:
+        type: integer
+    required:
+    - key
+    - money
+    - pid
+    - trade_no
+    type: object
+  payment.TransferRequest:
+    properties:
+      amount:
+        type: number
+      pay_key:
+        maxLength: 6
+        type: string
+      recipient_id:
+        example: "0"
+        type: string
+      recipient_username:
+        type: string
+      remark:
+        maxLength: 100
+        type: string
+    required:
+    - amount
+    - pay_key
+    - recipient_id
+    - recipient_username
+    type: object
+  redenvelope.ClaimRequest:
+    properties:
+      id:
+        example: "0"
+        type: string
+    required:
+    - id
+    type: object
+  redenvelope.CreateRequest:
+    properties:
+      cover_upload_id:
+        example: "0"
+        type: string
+      greeting:
+        maxLength: 100
+        type: string
+      heterotypic_upload_id:
+        example: "0"
+        type: string
+      pay_key:
+        maxLength: 10
+        type: string
+      total_amount:
+        type: number
+      total_count:
+        minimum: 1
+        type: integer
+      type:
+        allOf:
+        - $ref: '#/definitions/model.RedEnvelopeType'
+        enum:
+        - fixed
+        - random
+    required:
+    - pay_key
+    - total_amount
+    - total_count
+    - type
+    type: object
+  redenvelope.ListRequest:
+    properties:
+      page:
+        minimum: 1
+        type: integer
+      page_size:
+        maximum: 100
+        minimum: 1
+        type: integer
+      type:
+        enum:
+        - sent
+        - received
+        type: string
+    required:
+    - page
+    - page_size
+    type: object
+  system_config.CreateSystemConfigRequest:
+    properties:
+      description:
+        maxLength: 255
+        type: string
+      key:
+        maxLength: 64
+        type: string
+      value:
+        maxLength: 255
+        type: string
+    required:
+    - key
+    - value
+    type: object
+  system_config.UpdateSystemConfigRequest:
+    properties:
+      description:
+        maxLength: 255
+        type: string
+      value:
+        maxLength: 255
+        type: string
+    required:
+    - value
+    type: object
+  task.DispatchTaskRequest:
+    properties:
+      end_time:
+        type: string
+      start_time:
+        type: string
+      task_type:
+        type: string
+      user_id:
+        type: integer
+    required:
+    - task_type
+    type: object
+  user.UpdatePayKeyRequest:
+    properties:
+      pay_key:
+        maxLength: 6
+        type: string
+    required:
+    - pay_key
+    type: object
+  user.updateUserStatusRequest:
+    properties:
+      is_active:
+        type: boolean
+    type: object
+  user_pay_config.CreateUserPayConfigRequest:
+    properties:
+      daily_limit:
+        type: integer
+      distribute_rate:
+        type: number
+      fee_rate:
+        type: number
+      level:
+        $ref: '#/definitions/model.PayLevel'
+      max_score:
+        type: integer
+      min_score:
+        type: integer
+      score_rate:
+        type: number
+    required:
+    - distribute_rate
+    - fee_rate
+    - score_rate
+    type: object
+  user_pay_config.UpdateUserPayConfigRequest:
+    properties:
+      daily_limit:
+        type: integer
+      distribute_rate:
+        type: number
+      fee_rate:
+        type: number
+      max_score:
+        type: integer
+      min_score:
+        type: integer
+      score_rate:
+        type: number
+    required:
+    - distribute_rate
+    - fee_rate
+    - score_rate
+    type: object
+  util.ResponseAny:
+    properties:
+      data: {}
+      error_msg:
+        example: ""
+        type: string
+    type: object
+info:
+  contact: {}
+  title: LINUX DO Credit
+  version: 1.0.0
+paths:
+  /api.php:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - in: query
+        name: act
+        type: string
+      - in: query
+        name: key
+        required: true
+        type: string
+      - in: query
+        maxLength: 64
+        minLength: 1
+        name: out_trade_no
+        required: true
+        type: string
+      - in: query
+        name: pid
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/payment.QueryMerchantOrderResponse'
+      tags:
+      - payment
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 退款请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/payment.RefundOrderRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/payment.RefundMerchantOrderResponse'
+      tags:
+      - payment
+  /api/v1/admin/system-configs:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      tags:
+      - admin
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: request body
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/system_config.CreateSystemConfigRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      tags:
+      - admin
+  /api/v1/admin/system-configs/{key}:
+    delete:
+      parameters:
+      - description: 配置键
+        in: path
+        name: key
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      tags:
+      - admin
+    get:
+      parameters:
+      - description: 配置键
+        in: path
+        name: key
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      tags:
+      - admin
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: 配置键
+        in: path
+        name: key
+        required: true
+        type: string
+      - description: request body
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/system_config.UpdateSystemConfigRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      tags:
+      - admin
+  /api/v1/admin/tasks/dispatch:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: request body
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/task.DispatchTaskRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      tags:
+      - admin
+  /api/v1/admin/tasks/types:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      tags:
+      - admin
+  /api/v1/admin/user-pay-configs:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      tags:
+      - admin
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: request body
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/user_pay_config.CreateUserPayConfigRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      tags:
+      - admin
+  /api/v1/admin/user-pay-configs/{id}:
+    delete:
+      parameters:
+      - description: 配置ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      tags:
+      - admin
+    get:
+      parameters:
+      - description: 配置ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      tags:
+      - admin
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: 配置ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: request body
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/user_pay_config.UpdateUserPayConfigRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      tags:
+      - admin
+  /api/v1/admin/users:
+    get:
+      parameters:
+      - in: query
+        minimum: 1
+        name: page
+        type: integer
+      - in: query
+        maximum: 100
+        minimum: 1
+        name: page_size
+        type: integer
+      - in: query
+        name: user_id
+        type: integer
+      - in: query
+        name: username
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      tags:
+      - admin
+  /api/v1/admin/users/{id}/status:
+    put:
+      parameters:
+      - description: 用户ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 状态
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/user.updateUserStatusRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      tags:
+      - admin
+  /api/v1/config/public:
+    get:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      tags:
+      - config
+  /api/v1/dashboard/stats/daily:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: 查询天数，最大7天
+        in: query
+        name: days
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      summary: 获取每日收支统计
+      tags:
+      - dashboard
+  /api/v1/dashboard/stats/top-customers:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: 查询天数，最大7天
+        in: query
+        name: days
+        required: true
+        type: integer
+      - description: 返回数量，最大10
+        in: query
+        name: limit
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      summary: 获取Top客户
+      tags:
+      - dashboard
+  /api/v1/dashboard/stats/user-balance:
+    get:
+      consumes:
+      - application/json
+      description: 统计所有用户的AvailableBalance字段
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/util.ResponseAny'
+            - properties:
+                data:
+                  $ref: '#/definitions/dashboard.UserBalanceStatsResponse'
+              type: object
+      summary: 获取用户余额统计
+      tags:
+      - dashboard
+  /api/v1/health:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      tags:
+      - health
+  /api/v1/leaderboard:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: 页码
+        in: query
+        name: page
+        required: true
+        type: integer
+      - description: 每页数量
+        in: query
+        name: page_size
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      summary: 获取排行榜列表
+      tags:
+      - leaderboard
+  /api/v1/leaderboard/me:
+    get:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      summary: 获取当前用户排名
+      tags:
+      - leaderboard
+  /api/v1/leaderboard/users/{id}:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: 用户ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      summary: 获取指定用户排名
+      tags:
+      - leaderboard
+  /api/v1/merchant/api-keys:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      tags:
+      - merchant
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: request body
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/api_key.CreateAPIKeyRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      tags:
+      - merchant
+  /api/v1/merchant/api-keys/{id}:
+    delete:
+      parameters:
+      - description: API Key ID
+        format: int64
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      tags:
+      - merchant
+    get:
+      parameters:
+      - description: API Key ID
+        format: int64
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      tags:
+      - merchant
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: API Key ID
+        format: int64
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: request body
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/api_key.UpdateAPIKeyRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      tags:
+      - merchant
+  /api/v1/merchant/api-keys/{id}/payment-links:
+    get:
+      parameters:
+      - description: API Key ID
+        format: int64
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      tags:
+      - merchant
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: API Key ID
+        format: int64
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 创建支付链接请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/link.PaymentLinkRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      tags:
+      - merchant
+  /api/v1/merchant/api-keys/{id}/payment-links/{linkId}:
+    delete:
+      parameters:
+      - description: API Key ID
+        format: int64
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Payment Link ID
+        format: int64
+        in: path
+        name: linkId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      tags:
+      - merchant
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: API Key ID
+        format: int64
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Payment Link ID
+        format: int64
+        in: path
+        name: linkId
+        required: true
+        type: integer
+      - description: 更新支付链接请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/link.PaymentLinkRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      tags:
+      - merchant
+  /api/v1/merchant/payment:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 支付订单请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/payment.PayOrderRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      tags:
+      - payment
+  /api/v1/merchant/payment-links/{token}:
+    get:
+      parameters:
+      - description: 支付链接 Token
+        in: path
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      tags:
+      - merchant
+  /api/v1/merchant/payment-links/pay:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 支付请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/link.PayByLinkRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      tags:
+      - merchant
+  /api/v1/merchant/payment/order:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: 订单号
+        in: query
+        name: order_no
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      tags:
+      - payment
+  /api/v1/oauth/callback:
+    post:
+      parameters:
+      - description: request body
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/oauth.CallbackRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      tags:
+      - oauth
+  /api/v1/oauth/login:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      tags:
+      - oauth
+  /api/v1/oauth/logout:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      tags:
+      - oauth
+  /api/v1/oauth/user-info:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      tags:
+      - oauth
+  /api/v1/order/dispute:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: request body
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dispute.CreateDisputeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      tags:
+      - order
+  /api/v1/order/dispute/close:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: request body
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dispute.CloseDisputeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      tags:
+      - order
+  /api/v1/order/disputes:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: request body
+        in: body
+        name: request
+        schema:
+          $ref: '#/definitions/dispute.ListDisputesRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      tags:
+      - order
+  /api/v1/order/disputes/merchant:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: request body
+        in: body
+        name: request
+        schema:
+          $ref: '#/definitions/dispute.ListDisputesRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      tags:
+      - order
+  /api/v1/order/refund-review:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: request body
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dispute.RefundReviewRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      tags:
+      - order
+  /api/v1/order/transactions:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: request body
+        in: body
+        name: request
+        schema:
+          $ref: '#/definitions/order.TransactionListRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      tags:
+      - order
+  /api/v1/payment/transfer:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 转账请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/payment.TransferRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      tags:
+      - payment
+  /api/v1/redenvelope/{id}:
+    get:
+      parameters:
+      - description: 红包ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      tags:
+      - redenvelope
+  /api/v1/redenvelope/claim:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 领取红包请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/redenvelope.ClaimRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      tags:
+      - redenvelope
+  /api/v1/redenvelope/covers:
+    get:
+      parameters:
+      - description: 封面类型 (cover/heterotypic)
+        in: query
+        name: type
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      tags:
+      - redenvelope
+  /api/v1/redenvelope/create:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 创建红包请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/redenvelope.CreateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      tags:
+      - redenvelope
+  /api/v1/redenvelope/list:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 列表请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/redenvelope.ListRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      tags:
+      - redenvelope
+  /api/v1/upload/redenvelope/cover:
+    post:
+      consumes:
+      - multipart/form-data
+      parameters:
+      - description: 图片文件
+        in: formData
+        name: file
+        required: true
+        type: file
+      - description: 封面类型 (cover/heterotypic)
+        in: formData
+        name: type
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      tags:
+      - upload
+  /api/v1/user/pay-key:
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: request body
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/user.UpdatePayKeyRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      tags:
+      - user
+  /f/{id}:
+    get:
+      parameters:
+      - description: Upload ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/octet-stream
+      responses:
+        "200":
+          description: OK
+      tags:
+      - upload
+  /pay/distribute:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Basic Auth (base64(client_id:client_secret))
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 分发请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/payment.MerchantDistributeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      tags:
+      - payment
+  /pay/submit.php:
+    get:
+      consumes:
+      - application/x-www-form-urlencoded
+      parameters:
+      - description: request body
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/payment.CreateOrderRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      tags:
+      - payment
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      parameters:
+      - description: request body
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/payment.CreateOrderRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      tags:
+      - payment
+swagger: "2.0"
