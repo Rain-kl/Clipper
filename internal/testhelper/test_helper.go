@@ -212,6 +212,12 @@ func seedDefaultConfigs(t *testing.T, tx *gorm.DB) {
 			Type:        "system",
 			Description: "是否开启邮箱注册验证（true/false）",
 		},
+		{
+			Key:         model.ConfigKeyMenuDisplayConfig,
+			Value:       "{}",
+			Type:        "system",
+			Description: "目录显示配置（JSON 字符串，格式为 {url: enabled}）",
+		},
 	}
 
 	if err := tx.Create(&defaultConfigs).Error; err != nil {

@@ -27,17 +27,18 @@ import (
 
 // PublicConfigResponse 公共配置响应
 type PublicConfigResponse struct {
-	UploadAllowedExtensions          string `json:"upload_allowed_extensions"`           // 允许上传的图片扩展名
-	SiteName                         string `json:"site_name"`                           // 站点名称
-	PasswordLoginEnabled             bool   `json:"password_login_enabled"`              // 是否允许密码登录
-	RegistrationEnabled              bool   `json:"registration_enabled"`                // 是否允许注册
-	PasswordRegisterEnabled          bool   `json:"password_register_enabled"`           // 是否允许密码注册
-	OIDCLoginEnabled                 bool   `json:"oidc_login_enabled"`                  // 是否允许 OIDC 登录
-	MaxAPIKeysPerUser                int    `json:"max_api_keys_per_user"`               // 每个用户最大 API Key 数量
-	CapLoginEnabled                  bool   `json:"cap_login_enabled"`                   // 是否启用人机验证
-	CapAutoSolve                     bool   `json:"cap_auto_solve"`                      // 打开页面后是否自动开始计算
-	EmailLoginVerificationEnabled    bool   `json:"email_login_verification_enabled"`    // 是否启用邮箱登录验证
-	EmailRegisterVerificationEnabled bool   `json:"email_register_verification_enabled"` // 是否启用邮箱注册验证
+	UploadAllowedExtensions          string          `json:"upload_allowed_extensions"`           // 允许上传的图片扩展名
+	SiteName                         string          `json:"site_name"`                           // 站点名称
+	PasswordLoginEnabled             bool            `json:"password_login_enabled"`              // 是否允许密码登录
+	RegistrationEnabled              bool            `json:"registration_enabled"`                // 是否允许注册
+	PasswordRegisterEnabled          bool            `json:"password_register_enabled"`           // 是否允许密码注册
+	OIDCLoginEnabled                 bool            `json:"oidc_login_enabled"`                  // 是否允许 OIDC 登录
+	MaxAPIKeysPerUser                int             `json:"max_api_keys_per_user"`               // 每个用户最大 API Key 数量
+	CapLoginEnabled                  bool            `json:"cap_login_enabled"`                   // 是否启用人机验证
+	CapAutoSolve                     bool            `json:"cap_auto_solve"`                      // 打开页面后是否自动开始计算
+	EmailLoginVerificationEnabled    bool            `json:"email_login_verification_enabled"`    // 是否启用邮箱登录验证
+	EmailRegisterVerificationEnabled bool            `json:"email_register_verification_enabled"` // 是否启用邮箱注册验证
+	MenuDisplayConfig                map[string]bool `json:"menu_display_config"`                 // 目录显示配置
 }
 
 // GetPublicConfig 获取公共配置
@@ -116,6 +117,11 @@ func GetPublicConfig(c *gin.Context) {
 		emailRegisterVerificationEnabled = val
 	}
 
+	menuDisplayConfig, err := model.GetMenuDisplayConfig(ctx)
+	if err != nil {
+		menuDisplayConfig = make(map[string]bool)
+	}
+
 	response := PublicConfigResponse{
 		UploadAllowedExtensions:          uploadExtensions,
 		SiteName:                         siteName,
@@ -128,6 +134,7 @@ func GetPublicConfig(c *gin.Context) {
 		CapAutoSolve:                     capAutoSolve,
 		EmailLoginVerificationEnabled:    emailLoginVerificationEnabled,
 		EmailRegisterVerificationEnabled: emailRegisterVerificationEnabled,
+		MenuDisplayConfig:                menuDisplayConfig,
 	}
 
 	c.JSON(http.StatusOK, util.OK(response))

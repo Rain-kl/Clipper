@@ -19,6 +19,7 @@ package model
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strconv"
@@ -53,6 +54,7 @@ const (
 	ConfigKeySMTPPassword                     = "smtp_password"                       // SMTP 访问凭证
 	ConfigKeyEmailLoginVerificationEnabled    = "email_login_verification_enabled"    // 是否启用邮箱登录验证
 	ConfigKeyEmailRegisterVerificationEnabled = "email_register_verification_enabled" // 是否启用邮箱注册验证
+	ConfigKeyMenuDisplayConfig                = "menu_display_config"                 // 目录显示配置 (JSON 字符串)
 )
 
 const (
@@ -143,4 +145,23 @@ func GetBoolByKey(ctx context.Context, key string) (bool, error) {
 	}
 
 	return value, nil
+}
+
+// GetMenuDisplayConfig 获取目录显示配置，解析为 map[string]bool
+func GetMenuDisplayConfig(ctx context.Context) (map[string]bool, error) {
+	var sc SystemConfig
+	if err := sc.GetByKey(ctx, ConfigKeyMenuDisplayConfig); err != nil {
+		return nil, err
+	}
+
+	config := make(map[string]bool)
+	if sc.Value == "" || sc.Value == "{}" {
+		return config, nil
+	}
+
+	if err := json.Unmarshal([]byte(sc.Value), &config); err != nil {
+		return nil, fmt.Errorf("解析目录显示配置失败: %w", err)
+	}
+
+	return config, nil
 }

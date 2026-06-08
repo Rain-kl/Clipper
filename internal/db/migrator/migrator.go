@@ -100,6 +100,7 @@ func initSystemConfigs() {
 		ensureConfigKeyExists(model.ConfigKeySMTPPassword, "", "system", "SMTP 访问凭证（授权码/密码）")
 		ensureConfigKeyExists(model.ConfigKeyEmailLoginVerificationEnabled, "false", "system", "是否开启邮箱登录验证（true/false）")
 		ensureConfigKeyExists(model.ConfigKeyEmailRegisterVerificationEnabled, "false", "system", "是否开启邮箱注册验证（true/false）")
+		ensureConfigKeyExists(model.ConfigKeyMenuDisplayConfig, "{}", "system", "目录显示配置（JSON 字符串，格式为 {url: enabled}）")
 		return
 	}
 
@@ -229,6 +230,12 @@ func initSystemConfigs() {
 			Value:       "false",
 			Type:        "system",
 			Description: "是否开启邮箱注册验证（true/false）",
+		},
+		{
+			Key:         model.ConfigKeyMenuDisplayConfig,
+			Value:       "{}",
+			Type:        "system",
+			Description: "目录显示配置（JSON 字符串，格式为 {url: enabled}）",
 		},
 	}
 

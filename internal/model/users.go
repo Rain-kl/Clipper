@@ -63,6 +63,11 @@ type User struct {
 	AvatarUrl   string    `json:"avatar_url" gorm:"size:255"`
 	IsActive    bool      `json:"is_active" gorm:"default:true;index"`
 	IsAdmin     bool      `json:"is_admin" gorm:"default:false"`
+	Bio         string    `json:"bio" gorm:"size:500"`
+	Phone       string    `json:"phone" gorm:"size:32"`
+	Gender      string    `json:"gender" gorm:"size:16"`
+	Website     string    `json:"website" gorm:"size:255"`
+	Location    string    `json:"location" gorm:"size:255"`
 	LastLoginAt time.Time `json:"last_login_at" gorm:"index"`
 	CreatedAt   time.Time `json:"created_at" gorm:"autoCreateTime;index"`
 	UpdatedAt   time.Time `json:"updated_at" gorm:"autoUpdateTime;index"`

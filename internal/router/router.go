@@ -151,6 +151,7 @@ func Serve() {
 				userRouter.GET("/logout", user.Logout)
 				userRouter.GET("/self", oauth.LoginRequired(), oauth.UserInfo)
 				userRouter.POST("/change-password", oauth.LoginRequired(), user.ChangePassword)
+				userRouter.PUT("/profile", oauth.LoginRequired(), user.UpdateProfile)
 
 				// Access Token
 				tokenRouter := userRouter.Group("/access-tokens")

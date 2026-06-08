@@ -30,9 +30,15 @@ type BasicUserInfo struct {
 	ID                 uint64 `json:"id"`
 	Username           string `json:"username"`
 	Nickname           string `json:"nickname"`
+	Email              string `json:"email"`
 	AvatarUrl          string `json:"avatar_url"`
 	IsAdmin            bool   `json:"is_admin"`
 	NeedChangePassword bool   `json:"need_change_password"`
+	Bio                string `json:"bio"`
+	Phone              string `json:"phone"`
+	Gender             string `json:"gender"`
+	Website            string `json:"website"`
+	Location           string `json:"location"`
 }
 
 func BuildBasicUserInfo(user *model.User, needChange bool) BasicUserInfo {
@@ -40,9 +46,15 @@ func BuildBasicUserInfo(user *model.User, needChange bool) BasicUserInfo {
 		ID:                 user.ID,
 		Username:           user.Username,
 		Nickname:           user.Nickname,
+		Email:              user.Email,
 		AvatarUrl:          user.AvatarUrl,
 		IsAdmin:            user.IsAdmin,
 		NeedChangePassword: needChange,
+		Bio:                user.Bio,
+		Phone:              user.Phone,
+		Gender:             user.Gender,
+		Website:            user.Website,
+		Location:           user.Location,
 	}
 }
 

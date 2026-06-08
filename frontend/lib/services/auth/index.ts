@@ -37,4 +37,5 @@ export type {
   AuthSource,
   ExternalAccountBinding,
   ChangePasswordRequest,
+  UpdateProfileRequest,
 } from './types';

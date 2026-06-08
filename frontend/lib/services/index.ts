@@ -82,7 +82,7 @@ export type {
 
 // 认证服务
 export { AuthService } from './auth';
-export type { User, OAuthLoginUrlResponse, OAuthCallbackRequest, AuthSource, ExternalAccountBinding, ChangePasswordRequest } from './auth';
+export type { User, OAuthLoginUrlResponse, OAuthCallbackRequest, AuthSource, ExternalAccountBinding, ChangePasswordRequest, UpdateProfileRequest } from './auth';
 
 // 配置服务
 export { ConfigService } from './config';

@@ -61,6 +61,7 @@ import {
 } from "lucide-react"
 
 import {useUser} from "@/contexts/user-context"
+import {usePublicConfig} from "@/hooks/use-public-config"
 
 /* 导航数据 */
 const data = {
@@ -96,6 +97,7 @@ const data = {
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { toggleSidebar, state, isMobile, setOpenMobile } = useSidebar()
   const { user, logout } = useUser()
+  const { config } = usePublicConfig()
   const [showLogoutDialog, setShowLogoutDialog] = React.useState(false)
   const [isLoggingOut, setIsLoggingOut] = React.useState(false)
   const pathname = usePathname()
@@ -141,6 +143,21 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       setIsLoggingOut(false)
     }
   }
+
+  const navMainFiltered = React.useMemo(() => {
+    const displayConfig = config?.menu_display_config || {}
+    return data.navMain.filter((item) => displayConfig[item.url] !== false)
+  }, [config])
+
+  const adminFiltered = React.useMemo(() => {
+    const displayConfig = config?.menu_display_config || {}
+    return data.admin.filter((item) => displayConfig[item.url] !== false)
+  }, [config])
+
+  const documentFiltered = React.useMemo(() => {
+    const displayConfig = config?.menu_display_config || {}
+    return data.document.filter((item) => displayConfig[item.url] !== false)
+  }, [config])
 
   return (
     <>
@@ -263,35 +280,37 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </DropdownMenu>
         </SidebarHeader>
         <SidebarContent className="group-data-[collapsible=icon]">
-          <SidebarGroup className="py-0">
-            <SidebarGroupContent className="py-1">
-              <SidebarMenu className="gap-1">
-                {data.navMain.map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton
-                      tooltip={item.title}
-                      isActive={pathname === item.url}
-                      asChild
-                    >
-                      <Link href={item.url} onClick={handleCloseSidebar}>
-                        {item.icon && <item.icon />}
-                        <span>{item.title}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
+          {navMainFiltered.length > 0 && (
+            <SidebarGroup className="py-0">
+              <SidebarGroupContent className="py-1">
+                <SidebarMenu className="gap-1">
+                  {navMainFiltered.map((item) => (
+                    <SidebarMenuItem key={item.title}>
+                      <SidebarMenuButton
+                        tooltip={item.title}
+                        isActive={pathname === item.url}
+                        asChild
+                      >
+                        <Link href={item.url} onClick={handleCloseSidebar}>
+                          {item.icon && <item.icon />}
+                          <span>{item.title}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          )}
 
-          {user?.is_admin && (
+          {user?.is_admin && adminFiltered.length > 0 && (
             <SidebarGroup className="py-0 pt-4">
               <SidebarGroupLabel className="text-xs font-normal text-muted-foreground">
                 管理
               </SidebarGroupLabel>
               <SidebarGroupContent className="py-1">
                 <SidebarMenu className="gap-1">
-                  {data.admin.map((item) => (
+                  {adminFiltered.map((item) => (
                     <SidebarMenuItem key={item.title}>
                       <SidebarMenuButton
                         tooltip={item.title}
@@ -310,37 +329,39 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             </SidebarGroup>
           )}
 
-          <SidebarGroup className="py-0 pt-4">
-            <SidebarGroupLabel className="text-xs font-normal text-muted-foreground">
-              文档库
-            </SidebarGroupLabel>
-            <SidebarGroupContent className="py-1">
-              <SidebarMenu className="gap-1">
-                {data.document.map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton
-                      tooltip={item.title}
-                      isActive={pathname === item.url}
-                      asChild
-                    >
-                      {item.external ? (
-                        <Link href={item.url} target="_blank" rel="noopener noreferrer" onClick={handleCloseSidebar}>
-                          {item.icon && <item.icon />}
-                          <span className="flex-1">{item.title}</span>
-                          <ArrowUpRight className="size-3 text-muted-foreground" />
-                        </Link>
-                      ) : (
-                        <Link href={item.url} onClick={handleCloseSidebar}>
-                          {item.icon && <item.icon />}
-                          <span className="flex-1">{item.title}</span>
-                        </Link>
-                      )}
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
+          {documentFiltered.length > 0 && (
+            <SidebarGroup className="py-0 pt-4">
+              <SidebarGroupLabel className="text-xs font-normal text-muted-foreground">
+                文档库
+              </SidebarGroupLabel>
+              <SidebarGroupContent className="py-1">
+                <SidebarMenu className="gap-1">
+                  {documentFiltered.map((item) => (
+                    <SidebarMenuItem key={item.title}>
+                      <SidebarMenuButton
+                        tooltip={item.title}
+                        isActive={pathname === item.url}
+                        asChild
+                      >
+                        {item.external ? (
+                          <Link href={item.url} target="_blank" rel="noopener noreferrer" onClick={handleCloseSidebar}>
+                            {item.icon && <item.icon />}
+                            <span className="flex-1">{item.title}</span>
+                            <ArrowUpRight className="size-3 text-muted-foreground" />
+                          </Link>
+                        ) : (
+                          <Link href={item.url} onClick={handleCloseSidebar}>
+                            {item.icon && <item.icon />}
+                            <span className="flex-1">{item.title}</span>
+                          </Link>
+                        )}
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          )}
 
         </SidebarContent>
         <SidebarFooter className="mt-auto px-3 py-3 group-data-[collapsible=icon]:hidden">

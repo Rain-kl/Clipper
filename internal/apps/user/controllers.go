@@ -549,3 +549,88 @@ func SendEmailCode(c *gin.Context) {
 
 	c.JSON(http.StatusOK, util.OKNil())
 }
+
+type updateProfileRequest struct {
+	Nickname  string `json:"nickname"`
+	Email     string `json:"email"`
+	AvatarUrl string `json:"avatar_url"`
+	Bio       string `json:"bio"`
+	Phone     string `json:"phone"`
+	Gender    string `json:"gender"`
+	Website   string `json:"website"`
+	Location  string `json:"location"`
+}
+
+// UpdateProfile 修改当前登录用户的个人资料
+// @Summary 修改当前登录用户的个人资料
+// @Description 修改当前登录用户的昵称、邮箱、头像、简介、电话、性别、个人网站和所在地。
+// @Tags user
+// @Accept json
+// @Produce json
+// @Param request body user.updateProfileRequest true "更新请求参数"
+// @Success 200 {object} util.ResponseAny{data=oauth.BasicUserInfo} "修改成功，返回更新后的用户信息"
+// @Failure 400 {object} util.ResponseAny "邮箱已被占用或参数错误"
+// @Failure 401 {object} util.ResponseAny "未登录"
+// @Router /api/v1/user/profile [put]
+func UpdateProfile(c *gin.Context) {
+	var req updateProfileRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, util.Err(err.Error()))
+		return
+	}
+
+	userObj, _ := util.GetFromContext[*model.User](c, oauth.UserObjKey)
+	if userObj == nil {
+		c.JSON(http.StatusUnauthorized, util.Err("请先登录"))
+		return
+	}
+
+	ctx := c.Request.Context()
+	var dbUser model.User
+	if err := db.DB(ctx).Where("id = ?", userObj.ID).First(&dbUser).Error; err != nil {
+		c.JSON(http.StatusOK, util.Err("未找到该用户"))
+		return
+	}
+
+	// 校验邮箱格式与唯一性
+	req.Email = strings.TrimSpace(req.Email)
+	if req.Email != "" && req.Email != dbUser.Email {
+		if !strings.Contains(req.Email, "@") || !strings.Contains(req.Email, ".") {
+			c.JSON(http.StatusOK, util.Err("邮箱格式不正确"))
+			return
+		}
+
+		var count int64
+		if err := db.DB(ctx).Model(&model.User{}).Where("email = ? AND id != ?", req.Email, dbUser.ID).Count(&count).Error; err != nil {
+			c.JSON(http.StatusOK, util.Err(err.Error()))
+			return
+		}
+		if count > 0 {
+			c.JSON(http.StatusOK, util.Err("该邮箱已被其他账号绑定"))
+			return
+		}
+	}
+
+	// 更新字段
+	dbUser.Nickname = strings.TrimSpace(req.Nickname)
+	if dbUser.Nickname == "" {
+		dbUser.Nickname = dbUser.Username
+	}
+	dbUser.Email = req.Email
+	dbUser.AvatarUrl = req.AvatarUrl
+	dbUser.Bio = req.Bio
+	dbUser.Phone = strings.TrimSpace(req.Phone)
+	dbUser.Gender = strings.TrimSpace(req.Gender)
+	dbUser.Website = strings.TrimSpace(req.Website)
+	dbUser.Location = strings.TrimSpace(req.Location)
+
+	if err := db.DB(ctx).Save(&dbUser).Error; err != nil {
+		c.JSON(http.StatusOK, util.Err(err.Error()))
+		return
+	}
+
+	session := sessions.Default(c)
+	needChange := session.Get("need_change_password") == true
+
+	c.JSON(http.StatusOK, util.OK(oauth.BuildBasicUserInfo(&dbUser, needChange)))
+}

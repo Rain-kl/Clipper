@@ -9,6 +9,7 @@ import type {
   OAuthCallbackResult,
   OAuthLoginUrlResponse,
   RegisterRequest,
+  UpdateProfileRequest,
   User,
 } from './types';
 
@@ -117,6 +118,10 @@ export class AuthService extends BaseService {
 
   static async changePassword(request: ChangePasswordRequest): Promise<void> {
     return this.post<void>('/user/change-password', request);
+  }
+
+  static async updateProfile(request: UpdateProfileRequest): Promise<User> {
+    return this.put<User>('/user/profile', request);
   }
 
   static async getExternalAccountBindings(): Promise<ExternalAccountBinding[]> {

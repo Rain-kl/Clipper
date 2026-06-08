@@ -24,4 +24,6 @@ export interface PublicConfigResponse {
   email_login_verification_enabled: boolean;
   /** 是否启用邮箱注册验证 */
   email_register_verification_enabled: boolean;
+  /** 目录显示配置 */
+  menu_display_config?: Record<string, boolean>;
 }

@@ -14,6 +14,29 @@ export interface User {
   is_admin: boolean;
   /** 是否需要修改密码 */
   need_change_password?: boolean;
+  /** 邮箱 */
+  email: string;
+  /** 个人简介 */
+  bio?: string;
+  /** 手机号码 */
+  phone?: string;
+  /** 性别 */
+  gender?: string;
+  /** 个人网站 */
+  website?: string;
+  /** 所在地 */
+  location?: string;
+}
+
+export interface UpdateProfileRequest {
+  nickname: string;
+  email: string;
+  avatar_url: string;
+  bio?: string;
+  phone?: string;
+  gender?: string;
+  website?: string;
+  location?: string;
 }
 
 /**
