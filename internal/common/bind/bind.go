@@ -4,10 +4,11 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/linux-do/credit/internal/common/response"
+	"github.com/linux-do/credit/internal/util"
 )
 
 // DecodeJSONBody decodes JSON reader to target
@@ -32,7 +33,7 @@ func IDParam(c *gin.Context) (uint, bool) {
 func IDParamByName(c *gin.Context, name string) (uint, bool) {
 	id, err := strconv.ParseUint(c.Param(name), 10, 64)
 	if err != nil || id == 0 {
-		response.RespondBadRequest(c, "")
+		c.JSON(http.StatusBadRequest, util.Err("参数错误"))
 		return 0, false
 	}
 	return uint(id), true
@@ -41,7 +42,7 @@ func IDParamByName(c *gin.Context, name string) (uint, bool) {
 // JSON binds JSON body of context request to target
 func JSON(c *gin.Context, target any) bool {
 	if err := DecodeJSONBody(c.Request.Body, target); err != nil {
-		response.RespondBadRequest(c, "")
+		c.JSON(http.StatusBadRequest, util.Err("参数错误"))
 		return false
 	}
 	return true

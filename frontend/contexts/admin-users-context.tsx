@@ -1,9 +1,9 @@
 "use client"
 
 import * as React from "react"
-import { createContext, useContext, useCallback, useState, useRef, useEffect } from "react"
-import { toast } from "sonner"
-import { AdminService, AdminUser, ListUsersRequest } from "@/lib/services"
+import {createContext, useCallback, useContext, useEffect, useRef, useState} from "react"
+import {toast} from "sonner"
+import {AdminService, AdminUser, CreateUserRequest, ListUsersRequest} from "@/lib/services"
 
 /** 用户列表查询参数 */
 export interface UserQueryParams {
@@ -38,6 +38,7 @@ interface AdminUsersContextState {
   fetchUsers: (force?: boolean) => Promise<void>
   refresh: () => Promise<void>
   updateUserStatus: (user: AdminUser) => Promise<void>
+  createUser: (req: CreateUserRequest) => Promise<AdminUser>
 }
 
 const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes cache
@@ -107,17 +108,17 @@ export function AdminUsersProvider({ children }: { children: React.ReactNode }) 
     const requestId = ++latestRequestIdRef.current
 
     try {
-      // Current API doesn't support status filter in listUsers? 
-      // The previous implementation did client-side filtering. 
+      // Current API doesn't support status filter in listUsers?
+      // The previous implementation did client-side filtering.
       // Ideally backend supports it. If not, we fetch and filter?
       // "AdminService.listUsers" in previous code only took page, page_size, username.
-      // So status filter was client side. 
+      // So status filter was client side.
       // However, caching client-filtered result is tricky if we don't have all data.
       // But previous implementation fetched *paged* data then filtered? No, that would be wrong (filtering 20 items might leave 0).
-      // Let's check previous implementation: 
+      // Let's check previous implementation:
       // "const data = await AdminService.listUsers(...) ... let filteredUsers = data.users ... if (statusFilter...) filtered..."
       // This means filtering happens ONLY on the current page of results! This is technically buggy if the user wants "all inactive users".
-      // But preserving that behavior for now. 
+      // But preserving that behavior for now.
 
       const requestParams: ListUsersRequest = {
         page,
@@ -188,6 +189,21 @@ export function AdminUsersProvider({ children }: { children: React.ReactNode }) 
     }
   }
 
+  const createUser = async (req: CreateUserRequest) => {
+    try {
+      const newUser = await AdminService.createUser(req)
+      setUsers(prev => [newUser, ...prev])
+      setTotal(prev => prev + 1)
+      // Clear cache because data changed
+      cacheRef.current = {}
+      toast.success(`已成功创建用户 ${ newUser.username }`)
+      return newUser
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : '创建用户失败')
+      throw err
+    }
+  }
+
   const value = {
     users,
     total,
@@ -205,7 +221,8 @@ export function AdminUsersProvider({ children }: { children: React.ReactNode }) 
     setStatusFilter,
     fetchUsers,
     refresh,
-    updateUserStatus
+    updateUserStatus,
+    createUser
   }
 
   return (

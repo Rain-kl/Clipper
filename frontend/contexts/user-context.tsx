@@ -3,7 +3,7 @@
 import {createContext, ReactNode, useCallback, useContext, useEffect, useRef, useState} from 'react'
 
 import services from '@/lib/services'
-import {PayLevel, TrustLevel, User} from '@/lib/services/auth/types'
+import {User} from '@/lib/services/auth/types'
 
 
 /** 用户状态接口 */
@@ -17,27 +17,10 @@ interface UserState {
 interface UserContextValue extends UserState {
   setUser: (user: User) => void
   refetch: () => Promise<void>
-  getTrustLevelLabel: (trustLevel: TrustLevel) => string
-  getPayLevelLabel: (payLevel: PayLevel) => string
   logout: () => Promise<void>
 }
 
-/** 信任等级映射 */
-const TRUST_LEVEL_LABELS: Record<TrustLevel, string> = {
-  [TrustLevel.New]: '新用户',
-  [TrustLevel.Basic]: '基本用户',
-  [TrustLevel.Member]: '成员',
-  [TrustLevel.Regular]: '活跃用户',
-  [TrustLevel.Leader]: '领导者',
-}
 
-/** 支付等级映射 */
-const PAY_LEVEL_LABELS: Record<PayLevel, string> = {
-  [PayLevel.BlackGold]: '黑金',
-  [PayLevel.WhiteGold]: '白金',
-  [PayLevel.Gold]: '黄金',
-  [PayLevel.Ordinary]: '普通',
-}
 
 /** 用户上下文 */
 const UserContext = createContext<UserContextValue | undefined>(undefined)
@@ -65,15 +48,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   const isMountedRef = useRef(true)
 
-  /** 获取信任等级标签 */
-  const getTrustLevelLabel = useCallback((trustLevel: TrustLevel): string => {
-    return TRUST_LEVEL_LABELS[trustLevel] || '未知'
-  }, [])
 
-  /** 获取支付等级标签 */
-  const getPayLevelLabel = useCallback((payLevel: PayLevel): string => {
-    return PAY_LEVEL_LABELS[payLevel] || '未知'
-  }, [])
 
   /** 获取用户信息 */
   const fetchUser = useCallback(async () => {
@@ -144,8 +119,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
         ...state,
         setUser,
         refetch,
-        getTrustLevelLabel,
-        getPayLevelLabel,
         logout,
       }}
     >

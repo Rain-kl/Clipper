@@ -26,7 +26,6 @@
  */
 
 export { AuthService } from './auth.service';
-export { TrustLevel, PayLevel } from './types';
 export type {
   User,
   OAuthLoginUrlResponse,
@@ -37,4 +36,5 @@ export type {
   OAuthCallbackResult,
   AuthSource,
   ExternalAccountBinding,
+  ChangePasswordRequest,
 } from './types';

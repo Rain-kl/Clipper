@@ -19,11 +19,13 @@ package migrator
 import (
 	"context"
 	"log"
+	"time"
 
 	"github.com/linux-do/credit/internal/model"
 
 	"github.com/linux-do/credit/internal/config"
 	"github.com/linux-do/credit/internal/db"
+	"github.com/linux-do/credit/internal/db/idgen"
 )
 
 func Migrate() {
@@ -46,6 +48,8 @@ func Migrate() {
 
 	// 初始化系统配置数据
 	initSystemConfigs()
+	// 初始化默认管理员用户
+	initDefaultAdmin()
 }
 
 // initSystemConfigs 初始化系统配置数据
@@ -111,5 +115,37 @@ func initSystemConfigs() {
 		log.Printf("[PostgreSQL] failed to create default system configs: %v\n", err)
 	} else {
 		log.Printf("[PostgreSQL] initialized %d default system configs\n", len(defaultConfigs))
+	}
+}
+
+// initDefaultAdmin 初始化默认管理员用户
+func initDefaultAdmin() {
+	tx := db.DB(context.Background())
+
+	var count int64
+	if err := tx.Model(&model.User{}).Where("username = ?", "admin").Count(&count).Error; err != nil {
+		log.Printf("[PostgreSQL] failed to check default admin user: %v\n", err)
+		return
+	}
+
+	if count > 0 {
+		return
+	}
+
+	adminUser := model.User{
+		ID:          idgen.NextUint64ID(),
+		Username:    "admin",
+		Password:    "12345678", // 密码使用明文存储
+		Nickname:    "Administrator",
+		AvatarUrl:   "",
+		IsActive:    true,
+		IsAdmin:     true,
+		LastLoginAt: time.Now(),
+	}
+
+	if err := tx.Create(&adminUser).Error; err != nil {
+		log.Printf("[PostgreSQL] failed to create default admin user: %v\n", err)
+	} else {
+		log.Printf("[PostgreSQL] default admin user created successfully (username: admin, password: 12345678)\n")
 	}
 }

@@ -68,7 +68,7 @@ func TestListAuthSources(t *testing.T) {
 	}
 	dbConn.Create(&source)
 
-	adminUser := &model.User{ID: 1001, Username: "admin", IsAdmin: true, SignKey: "admin_key"}
+	adminUser := &model.User{ID: 1001, Username: "admin", IsAdmin: true}
 	router := setupTestRouter(adminUser)
 
 	req, _ := http.NewRequest("GET", "/api/v1/admin/auth-sources", nil)
@@ -105,7 +105,7 @@ func TestCreateAuthSource(t *testing.T) {
 	dbConn, _, cleanup := testhelper.SetupTestEnvironment(t)
 	defer cleanup()
 
-	adminUser := &model.User{ID: 1001, Username: "admin", IsAdmin: true, SignKey: "admin_key"}
+	adminUser := &model.User{ID: 1001, Username: "admin", IsAdmin: true}
 	router := setupTestRouter(adminUser)
 
 	t.Run("create successfully", func(t *testing.T) {
@@ -175,7 +175,7 @@ func TestUpdateAuthSource(t *testing.T) {
 	}
 	dbConn.Create(&source)
 
-	adminUser := &model.User{ID: 1001, Username: "admin", IsAdmin: true, SignKey: "admin_key"}
+	adminUser := &model.User{ID: 1001, Username: "admin", IsAdmin: true}
 	router := setupTestRouter(adminUser)
 
 	t.Run("update keep client secret", func(t *testing.T) {
@@ -252,7 +252,7 @@ func TestToggleAuthSource(t *testing.T) {
 	}
 	dbConn.Create(&source)
 
-	adminUser := &model.User{ID: 1001, Username: "admin", IsAdmin: true, SignKey: "admin_key"}
+	adminUser := &model.User{ID: 1001, Username: "admin", IsAdmin: true}
 	router := setupTestRouter(adminUser)
 
 	t.Run("cannot activate without credentials", func(t *testing.T) {
@@ -318,7 +318,7 @@ func TestDeleteAuthSource(t *testing.T) {
 	}
 	dbConn.Create(&externalAccount)
 
-	adminUser := &model.User{ID: 1001, Username: "admin", IsAdmin: true, SignKey: "admin_key"}
+	adminUser := &model.User{ID: 1001, Username: "admin", IsAdmin: true}
 	router := setupTestRouter(adminUser)
 
 	req, _ := http.NewRequest("DELETE", "/api/v1/admin/auth-sources/1", nil)

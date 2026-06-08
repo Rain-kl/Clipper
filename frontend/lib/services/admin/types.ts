@@ -160,20 +160,6 @@ export interface AdminUser {
   nickname: string;
   /** 头像 URL */
   avatar_url: string;
-  /** 信任等级 */
-  trust_level: number;
-  /** 支付积分 */
-  pay_score: number;
-  /** 累计收入 */
-  total_receive: string;
-  /** 累计支出 */
-  total_payment: string;
-  /** 累计社区积分 */
-  total_community: string;
-  /** 社区余额 */
-  community_balance: string;
-  /** 可用余额 */
-  available_balance: string;
   /** 是否激活 */
   is_active: boolean;
   /** 是否管理员 */
@@ -216,6 +202,22 @@ export interface ListUsersResponse {
 export interface UpdateUserStatusRequest {
   /** 是否激活 */
   is_active: boolean;
+}
+
+/**
+ * 创建用户请求参数
+ */
+export interface CreateUserRequest {
+  /** 用户名 */
+  username: string;
+  /** 密码 */
+  password: string;
+  /** 昵称 */
+  nickname?: string;
+  /** 是否激活 */
+  is_active?: boolean;
+  /** 是否管理员 */
+  is_admin?: boolean;
 }
 
 /**

@@ -46,12 +46,12 @@ export function LoginForm() {
 
   const publicConfigQuery = useQuery({
     queryKey: ["public-config"],
-    queryFn: services.config.getPublicConfig,
+    queryFn: () => services.config.getPublicConfig(),
   })
 
   const authSourcesQuery = useQuery({
     queryKey: ["auth-sources"],
-    queryFn: services.auth.getAuthSources,
+    queryFn: () => services.auth.getAuthSources(),
     enabled: publicConfigQuery.data?.oidc_login_enabled ?? true,
   })
 
@@ -61,7 +61,7 @@ export function LoginForm() {
   )
 
   const loginMutation = useMutation({
-    mutationFn: services.auth.login,
+    mutationFn: (req: any) => services.auth.login(req),
     onSuccess: (user) => {
       setUser(user)
       router.replace(redirectTarget)
@@ -72,7 +72,7 @@ export function LoginForm() {
   })
 
   const registerMutation = useMutation({
-    mutationFn: services.auth.register,
+    mutationFn: (req: any) => services.auth.register(req),
     onSuccess: (user) => {
       setUser(user)
       router.replace(redirectTarget)
@@ -125,9 +125,6 @@ export function LoginForm() {
           <h2 className="text-xl font-semibold tracking-tight text-foreground">
             账号登录
           </h2>
-          <p className="text-sm text-muted-foreground">
-            使用账号密码或第三方 OIDC 认证源登录
-          </p>
         </div>
 
         <Tabs value={mode} onValueChange={(value) => setMode(value as "login" | "register")}>
@@ -165,6 +162,7 @@ export function LoginForm() {
               <Button
                 type="button"
                 className="w-full"
+                variant={"secondary"}
                 onClick={handlePasswordLogin}
                 disabled={!passwordLoginEnabled || loginMutation.isPending}
               >
@@ -176,7 +174,7 @@ export function LoginForm() {
                 ) : (
                   <>
                     <KeyRound className="mr-2 size-4" />
-                    账号密码登录
+                    登录
                   </>
                 )}
               </Button>
@@ -216,6 +214,7 @@ export function LoginForm() {
               <Button
                 type="button"
                 className="w-full"
+                variant="secondary"
                 onClick={handleRegister}
                 disabled={!registrationEnabled || registerMutation.isPending}
               >
@@ -258,7 +257,7 @@ export function LoginForm() {
             </div>
           ))
         ) : null}
-        
+
       </CardContent>
     </Card>
   )

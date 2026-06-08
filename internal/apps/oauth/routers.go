@@ -23,48 +23,25 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/linux-do/credit/internal/model"
 	"github.com/linux-do/credit/internal/util"
-	"github.com/shopspring/decimal"
 )
 
 type BasicUserInfo struct {
-	ID               uint64           `json:"id"`
-	Username         string           `json:"username"`
-	Nickname         string           `json:"nickname"`
-	TrustLevel       model.TrustLevel `json:"trust_level"`
-	AvatarUrl        string           `json:"avatar_url"`
-	TotalReceive     decimal.Decimal  `json:"total_receive"`
-	TotalPayment     decimal.Decimal  `json:"total_payment"`
-	TotalTransfer    decimal.Decimal  `json:"total_transfer"`
-	TotalCommunity   decimal.Decimal  `json:"total_community"`
-	CommunityBalance decimal.Decimal  `json:"community_balance"`
-	AvailableBalance decimal.Decimal  `json:"available_balance"`
-	PendingBalance   decimal.Decimal  `json:"pending_balance"`
-	PayScore         int64            `json:"pay_score"`
-	IsAdmin          bool             `json:"is_admin"`
-	RemainQuota      decimal.Decimal  `json:"remain_quota"`
-	PayLevel         string           `json:"pay_level"`
-	DailyLimit       *int64           `json:"daily_limit"`
+	ID                 uint64 `json:"id"`
+	Username           string `json:"username"`
+	Nickname           string `json:"nickname"`
+	AvatarUrl          string `json:"avatar_url"`
+	IsAdmin            bool   `json:"is_admin"`
+	NeedChangePassword bool   `json:"need_change_password"`
 }
 
-func BuildBasicUserInfo(user *model.User) BasicUserInfo {
+func BuildBasicUserInfo(user *model.User, needChange bool) BasicUserInfo {
 	return BasicUserInfo{
-		ID:               user.ID,
-		Username:         user.Username,
-		Nickname:         user.Nickname,
-		TrustLevel:       user.TrustLevel,
-		AvatarUrl:        user.AvatarUrl,
-		TotalReceive:     user.TotalReceive,
-		TotalPayment:     user.TotalPayment,
-		TotalTransfer:    user.TotalTransfer,
-		TotalCommunity:   user.TotalCommunity,
-		CommunityBalance: user.CommunityBalance,
-		AvailableBalance: user.AvailableBalance,
-		PendingBalance:   user.PendingBalance,
-		PayScore:         user.PayScore,
-		IsAdmin:          user.IsAdmin,
-		RemainQuota:      decimal.NewFromInt(-1),
-		PayLevel:         "Free",
-		DailyLimit:       nil,
+		ID:                 user.ID,
+		Username:           user.Username,
+		Nickname:           user.Nickname,
+		AvatarUrl:          user.AvatarUrl,
+		IsAdmin:            user.IsAdmin,
+		NeedChangePassword: needChange,
 	}
 }
 
@@ -79,10 +56,12 @@ func BuildBasicUserInfo(user *model.User) BasicUserInfo {
 // @Router /api/v1/oauth/user-info [get]
 func UserInfo(c *gin.Context) {
 	user, _ := util.GetFromContext[*model.User](c, UserObjKey)
+	session := sessions.Default(c)
+	needChange := session.Get("need_change_password") == true
 
 	c.JSON(
 		http.StatusOK,
-		util.OK(BuildBasicUserInfo(user)),
+		util.OK(BuildBasicUserInfo(user, needChange)),
 	)
 }
 

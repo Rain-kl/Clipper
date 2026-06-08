@@ -1164,6 +1164,79 @@ const docTemplate = `{
                         }
                     }
                 }
+            },
+            "post": {
+                "security": [
+                    {
+                        "SessionCookie": []
+                    }
+                ],
+                "description": "创建一个本地密码登录的新用户，需要管理员权限",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin"
+                ],
+                "summary": "创建用户",
+                "parameters": [
+                    {
+                        "description": "创建用户参数",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/user.createUserRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "创建成功",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/util.ResponseAny"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/user.user"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "参数错误或用户名已存在",
+                        "schema": {
+                            "$ref": "#/definitions/util.ResponseAny"
+                        }
+                    },
+                    "401": {
+                        "description": "未登录",
+                        "schema": {
+                            "$ref": "#/definitions/util.ResponseAny"
+                        }
+                    },
+                    "403": {
+                        "description": "无管理员权限",
+                        "schema": {
+                            "$ref": "#/definitions/util.ResponseAny"
+                        }
+                    },
+                    "500": {
+                        "description": "内部错误",
+                        "schema": {
+                            "$ref": "#/definitions/util.ResponseAny"
+                        }
+                    }
+                }
             }
         },
         "/api/v1/admin/users/{id}/status": {
@@ -2223,6 +2296,64 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/user/change-password": {
+            "post": {
+                "description": "修改当前登录用户的密码。修改成功后，如果是首次明文登录的升级提示，则清除修改密码的提示状态。",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "user"
+                ],
+                "summary": "修改用户密码",
+                "parameters": [
+                    {
+                        "description": "修改密码请求参数",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/user.changePasswordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "修改密码成功",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/util.ResponseAny"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "原密码错误或新密码不符合要求",
+                        "schema": {
+                            "$ref": "#/definitions/util.ResponseAny"
+                        }
+                    },
+                    "401": {
+                        "description": "请先登录",
+                        "schema": {
+                            "$ref": "#/definitions/util.ResponseAny"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/user/login": {
             "post": {
                 "description": "使用用户名和密码登录，登录成功后建立 Session。若管理员已关闭密码登录功能则返回错误。",
@@ -2665,23 +2796,6 @@ const docTemplate = `{
                 "TaskExecutionStatusFailed"
             ]
         },
-        "model.TrustLevel": {
-            "type": "integer",
-            "enum": [
-                0,
-                1,
-                2,
-                3,
-                4
-            ],
-            "x-enum-varnames": [
-                "TrustLevelNewUser",
-                "TrustLevelBasicUser",
-                "TrustLevelUser",
-                "TrustLevelActiveUser",
-                "TrustLevelLeader"
-            ]
-        },
         "model.Upload": {
             "type": "object",
             "properties": {
@@ -2834,17 +2948,8 @@ const docTemplate = `{
         "oauth.BasicUserInfo": {
             "type": "object",
             "properties": {
-                "available_balance": {
-                    "type": "number"
-                },
                 "avatar_url": {
                     "type": "string"
-                },
-                "community_balance": {
-                    "type": "number"
-                },
-                "daily_limit": {
-                    "type": "integer"
                 },
                 "id": {
                     "type": "integer"
@@ -2852,35 +2957,11 @@ const docTemplate = `{
                 "is_admin": {
                     "type": "boolean"
                 },
+                "need_change_password": {
+                    "type": "boolean"
+                },
                 "nickname": {
                     "type": "string"
-                },
-                "pay_level": {
-                    "type": "string"
-                },
-                "pay_score": {
-                    "type": "integer"
-                },
-                "pending_balance": {
-                    "type": "number"
-                },
-                "remain_quota": {
-                    "type": "number"
-                },
-                "total_community": {
-                    "type": "number"
-                },
-                "total_payment": {
-                    "type": "number"
-                },
-                "total_receive": {
-                    "type": "number"
-                },
-                "total_transfer": {
-                    "type": "number"
-                },
-                "trust_level": {
-                    "$ref": "#/definitions/model.TrustLevel"
                 },
                 "username": {
                     "type": "string"
@@ -3051,11 +3132,51 @@ const docTemplate = `{
                 }
             }
         },
+        "user.changePasswordRequest": {
+            "type": "object",
+            "properties": {
+                "new_password": {
+                    "type": "string"
+                },
+                "old_password": {
+                    "type": "string"
+                }
+            }
+        },
         "user.createTokenRequest": {
             "type": "object",
             "properties": {
                 "name": {
                     "type": "string"
+                }
+            }
+        },
+        "user.createUserRequest": {
+            "type": "object",
+            "required": [
+                "password",
+                "username"
+            ],
+            "properties": {
+                "is_active": {
+                    "type": "boolean"
+                },
+                "is_admin": {
+                    "type": "boolean"
+                },
+                "nickname": {
+                    "type": "string",
+                    "maxLength": 64
+                },
+                "password": {
+                    "type": "string",
+                    "maxLength": 64,
+                    "minLength": 8
+                },
+                "username": {
+                    "type": "string",
+                    "maxLength": 64,
+                    "minLength": 3
                 }
             }
         },
@@ -3123,14 +3244,8 @@ const docTemplate = `{
         "user.user": {
             "type": "object",
             "properties": {
-                "available_balance": {
-                    "type": "number"
-                },
                 "avatar_url": {
                     "type": "string"
-                },
-                "community_balance": {
-                    "type": "number"
                 },
                 "created_at": {
                     "type": "string"
@@ -3149,24 +3264,6 @@ const docTemplate = `{
                 },
                 "nickname": {
                     "type": "string"
-                },
-                "pay_score": {
-                    "type": "integer"
-                },
-                "total_community": {
-                    "type": "number"
-                },
-                "total_payment": {
-                    "type": "number"
-                },
-                "total_receive": {
-                    "type": "number"
-                },
-                "total_transfer": {
-                    "type": "number"
-                },
-                "trust_level": {
-                    "$ref": "#/definitions/model.TrustLevel"
                 },
                 "updated_at": {
                     "type": "string"

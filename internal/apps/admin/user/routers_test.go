@@ -29,7 +29,6 @@ import (
 	"github.com/linux-do/credit/internal/model"
 	"github.com/linux-do/credit/internal/testhelper"
 	"github.com/linux-do/credit/internal/util"
-	"github.com/shopspring/decimal"
 )
 
 func setupTestRouter(authUser *model.User) *gin.Engine {
@@ -46,6 +45,7 @@ func setupTestRouter(authUser *model.User) *gin.Engine {
 	})
 
 	adminGroup.GET("/users", ListUsers)
+	adminGroup.POST("/users", CreateUser)
 	adminGroup.PUT("/users/:id/status", UpdateUserStatus)
 	return r
 }
@@ -57,34 +57,28 @@ func TestListUsers(t *testing.T) {
 	// Seed users
 	users := []model.User{
 		{
-			ID:               1001,
-			Username:         "alice",
-			Nickname:         "Alice Nickname",
-			IsActive:         true,
-			IsAdmin:          false,
-			AvailableBalance: decimal.NewFromFloat(100.0),
-			LastLoginAt:      time.Now(),
-			SignKey:          "alice_sign_key",
+			ID:          1001,
+			Username:    "alice",
+			Nickname:    "Alice Nickname",
+			IsActive:    true,
+			IsAdmin:     false,
+			LastLoginAt: time.Now(),
 		},
 		{
-			ID:               1002,
-			Username:         "bob",
-			Nickname:         "Bob Nickname",
-			IsActive:         true,
-			IsAdmin:          false,
-			AvailableBalance: decimal.NewFromFloat(50.0),
-			LastLoginAt:      time.Now(),
-			SignKey:          "bob_sign_key",
+			ID:          1002,
+			Username:    "bob",
+			Nickname:    "Bob Nickname",
+			IsActive:    true,
+			IsAdmin:     false,
+			LastLoginAt: time.Now(),
 		},
 		{
-			ID:               1003,
-			Username:         "charlie",
-			Nickname:         "Charlie Nickname",
-			IsActive:         false,
-			IsAdmin:          true,
-			AvailableBalance: decimal.NewFromFloat(9999.0),
-			LastLoginAt:      time.Now(),
-			SignKey:          "charlie_sign_key",
+			ID:          1003,
+			Username:    "charlie",
+			Nickname:    "Charlie Nickname",
+			IsActive:    false,
+			IsAdmin:     true,
+			LastLoginAt: time.Now(),
 		},
 	}
 
@@ -94,7 +88,7 @@ func TestListUsers(t *testing.T) {
 		}
 	}
 
-	adminUser := &model.User{ID: 1003, Username: "charlie", IsAdmin: true, SignKey: "charlie_sign_key"}
+	adminUser := &model.User{ID: 1003, Username: "charlie", IsAdmin: true}
 	router := setupTestRouter(adminUser)
 
 	t.Run("basic pagination list", func(t *testing.T) {
@@ -185,14 +179,12 @@ func TestUpdateUserStatus(t *testing.T) {
 		Username: "alice",
 		IsActive: true,
 		IsAdmin:  false,
-		SignKey:  "alice_sign_key",
 	}
 	adminUser := model.User{
 		ID:       1002,
 		Username: "bob",
 		IsActive: true,
 		IsAdmin:  true,
-		SignKey:  "bob_sign_key",
 	}
 
 	dbConn.Create(&regularUser)
@@ -249,6 +241,110 @@ func TestUpdateUserStatus(t *testing.T) {
 
 		if w.Code != http.StatusNotFound {
 			t.Errorf("expected 404 Not Found, got %d. Body: %s", w.Code, w.Body.String())
+		}
+	})
+}
+
+func TestCreateUser(t *testing.T) {
+	dbConn, _, cleanup := testhelper.SetupTestEnvironment(t)
+	defer cleanup()
+
+	adminUser := &model.User{ID: 1003, Username: "charlie", IsAdmin: true}
+	router := setupTestRouter(adminUser)
+
+	t.Run("create user successfully", func(t *testing.T) {
+		payload := createUserRequest{
+			Username: "newuser",
+			Password: "newpassword123",
+			Nickname: "New Nickname",
+			IsActive: true,
+			IsAdmin:  false,
+		}
+		body, _ := json.Marshal(payload)
+		req, _ := http.NewRequest("POST", "/api/v1/admin/users", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Errorf("expected 200 OK, got %d. Body: %s", w.Code, w.Body.String())
+		}
+
+		var resp util.ResponseAny
+		if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+			t.Fatalf("failed to parse response: %v", err)
+		}
+
+		if resp.ErrorMsg != "" {
+			t.Errorf("expected empty error message, got '%s'", resp.ErrorMsg)
+		}
+
+		dataBytes, _ := json.Marshal(resp.Data)
+		var resUser user
+		if err := json.Unmarshal(dataBytes, &resUser); err != nil {
+			t.Fatalf("failed to parse response data: %v", err)
+		}
+
+		if resUser.Username != "newuser" || resUser.Nickname != "New Nickname" || !resUser.IsActive || resUser.IsAdmin {
+			t.Errorf("unexpected user values: %+v", resUser)
+		}
+
+		// Verify in DB
+		var dbUser model.User
+		if err := dbConn.Where("username = ?", "newuser").First(&dbUser).Error; err != nil {
+			t.Fatalf("failed to find user in db: %v", err)
+		}
+		if !dbUser.CheckPassword("newpassword123") {
+			t.Error("password was not hashed correctly")
+		}
+	})
+
+	t.Run("create user with duplicate username", func(t *testing.T) {
+		// Create the first user
+		existing := model.User{
+			ID:       2001,
+			Username: "dupuser",
+			Nickname: "Dup User",
+		}
+		dbConn.Create(&existing)
+
+		payload := createUserRequest{
+			Username: "dupuser",
+			Password: "password123",
+			Nickname: "Another Nick",
+			IsActive: true,
+		}
+		body, _ := json.Marshal(payload)
+		req, _ := http.NewRequest("POST", "/api/v1/admin/users", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusBadRequest {
+			t.Errorf("expected 400 Bad Request, got %d. Body: %s", w.Code, w.Body.String())
+		}
+
+		var resp util.ResponseAny
+		json.Unmarshal(w.Body.Bytes(), &resp)
+		if resp.ErrorMsg != usernameExists {
+			t.Errorf("expected error '%s', got '%s'", usernameExists, resp.ErrorMsg)
+		}
+	})
+
+	t.Run("validation error - password too short", func(t *testing.T) {
+		payload := createUserRequest{
+			Username: "shortpass",
+			Password: "123",
+			IsActive: true,
+		}
+		body, _ := json.Marshal(payload)
+		req, _ := http.NewRequest("POST", "/api/v1/admin/users", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusBadRequest {
+			t.Errorf("expected 400 Bad Request, got %d. Body: %s", w.Code, w.Body.String())
 		}
 	})
 }

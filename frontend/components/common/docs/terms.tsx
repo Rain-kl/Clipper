@@ -24,11 +24,7 @@ export const termsSections: PolicySection[] = [
     title: "2. 服务定义与性质界定",
     content: (
       <div className="space-y-4 text-sm leading-relaxed">
-        <p><strong>2.1 纯技术研发脚手架：</strong>本平台是一个开源/闭源授权的技术二次开发底座。我们仅提供用户注册、API 调用、安全配置维护等<strong>纯软件技术服务</strong>。</p>
-        <p><strong>2.2 非金融机构与无承兑申明：</strong></p>
         <ul className="list-disc pl-4 md:pl-5 space-y-2">
-          <li><strong>非持牌金融或支付机构：</strong>本系统不是银行、商户收单或清算结算机构。</li>
-          <li><strong>不提供资金管理：</strong>系统无真实法币、加密货币或商业代金券充值、存储与兑现功能。若在二开中加入了积分等属性，其最终性质也应限制于虚拟软件积分。</li>
           <li><strong>责任自担：</strong>关于用户对本系统进行二次开发并应用于其他生产环境产生的任何业务行为，由二开部署运营主体承担全部合规责任。</li>
         </ul>
       </div>

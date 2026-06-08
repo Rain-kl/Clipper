@@ -1,17 +1,17 @@
 "use client"
 
-import { useState, useEffect, memo } from "react"
-import { AnimatePresence, motion } from "motion/react"
-import { Button } from "@/components/ui/button"
-import { Bell, Plus, Settings, Search, Moon, Sun, Maximize2, Minimize2 } from "lucide-react"
-import { useUser } from "@/contexts/user-context"
-import { useBellRing } from "@/contexts/bell-ring-context"
-import { useNotificationSettings } from "@/contexts/notification-settings-context"
-import { SidebarTrigger } from "@/components/ui/sidebar"
-import { useTheme } from "next-themes"
-import { useRouter } from "next/navigation"
-import { SearchDialog } from "@/components/layout/search-dialog"
-import { Kbd } from "@/components/ui/kbd"
+import {memo, useEffect, useState} from "react"
+import {AnimatePresence, motion} from "motion/react"
+import {Button} from "@/components/ui/button"
+import {Bell, Info, Maximize2, Minimize2, Moon, Search, Settings, Sun} from "lucide-react"
+import {useUser} from "@/contexts/user-context"
+import {useBellRing} from "@/contexts/bell-ring-context"
+import {useNotificationSettings} from "@/contexts/notification-settings-context"
+import {SidebarTrigger} from "@/components/ui/sidebar"
+import {useTheme} from "next-themes"
+import {useRouter} from "next/navigation"
+import {SearchDialog} from "@/components/layout/search-dialog"
+import {Kbd} from "@/components/ui/kbd"
 
 
 /**
@@ -75,6 +75,22 @@ export function SiteHeader({ isFullWidth = false, onToggleFullWidth }: { isFullW
   return (
     <div className="flex flex-col w-full">
       <AppBanner />
+      {user?.need_change_password && (
+        <div className="bg-amber-500/10 border-b border-amber-500/20 px-4 py-3 text-amber-500 text-xs sm:text-sm flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <Info className="size-4 shrink-0 text-amber-500" />
+            <span>为了您的账号安全，请立即修改密码！</span>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-amber-500 hover:text-amber-600 border-amber-500/30 hover:border-amber-500/50 bg-transparent shrink-0 h-8 px-3 text-xs"
+            onClick={() => router.push("/settings/profile")}
+          >
+            去修改密码
+          </Button>
+        </div>
+      )}
       <header className="flex h-(--header-height) shrink-0 items-center bg-background px-4 md:px-0">
         <div className="flex w-full items-center justify-between md:hidden">
           <div className="flex items-center gap-2">

@@ -17,12 +17,12 @@ limitations under the License.
 package user
 
 import (
+	"net/http"
 	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/linux-do/credit/internal/apps/oauth"
-	"github.com/linux-do/credit/internal/common/response"
 	"github.com/linux-do/credit/internal/db"
 	"github.com/linux-do/credit/internal/model"
 	"github.com/linux-do/credit/internal/util"
@@ -46,17 +46,18 @@ type tokenResponse struct {
 // @Success 200 {object} util.ResponseAny{data=[]model.AccessToken} "令牌列表"
 // @Failure 401 {object} util.ResponseAny "未登录"
 // @Router /api/v1/user/access-tokens [get]
+// ListAccessTokens 获取当前用户的 AccessToken 列表
 func ListAccessTokens(c *gin.Context) {
 	currUser, _ := util.GetFromContext[*model.User](c, oauth.UserObjKey)
 	ctx := c.Request.Context()
 
 	var tokens []model.AccessToken
 	if err := db.DB(ctx).Where("user_id = ?", currUser.ID).Order("created_at desc").Find(&tokens).Error; err != nil {
-		response.RespondFailure(c, err.Error())
+		c.JSON(http.StatusOK, util.Err(err.Error()))
 		return
 	}
 
-	response.RespondSuccess(c, tokens)
+	c.JSON(http.StatusOK, util.OK(tokens))
 }
 
 // CreateAccessToken 创建一个新的 AccessToken
@@ -76,13 +77,13 @@ func CreateAccessToken(c *gin.Context) {
 
 	var req createTokenRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		response.RespondFailure(c, "参数绑定失败")
+		c.JSON(http.StatusOK, util.Err("参数绑定失败"))
 		return
 	}
 
 	req.Name = strings.TrimSpace(req.Name)
 	if req.Name == "" {
-		response.RespondFailure(c, "令牌名称不能为空")
+		c.JSON(http.StatusOK, util.Err("令牌名称不能为空"))
 		return
 	}
 
@@ -94,19 +95,19 @@ func CreateAccessToken(c *gin.Context) {
 
 	var count int64
 	if err := db.DB(ctx).Model(&model.AccessToken{}).Where("user_id = ?", currUser.ID).Count(&count).Error; err != nil {
-		response.RespondFailure(c, err.Error())
+		c.JSON(http.StatusOK, util.Err(err.Error()))
 		return
 	}
 
 	if int(count) >= maxLimit {
-		response.RespondFailure(c, "已达到访问令牌最大创建数量限制")
+		c.JSON(http.StatusOK, util.Err("已达到访问令牌最大创建数量限制"))
 		return
 	}
 
 	// 生成 Token
 	tokenStr, err := model.GenerateTokenString()
 	if err != nil {
-		response.RespondFailure(c, "生成令牌失败")
+		c.JSON(http.StatusOK, util.Err("生成令牌失败"))
 		return
 	}
 
@@ -121,14 +122,14 @@ func CreateAccessToken(c *gin.Context) {
 	}
 
 	if err := db.DB(ctx).Create(&tokenRecord).Error; err != nil {
-		response.RespondFailure(c, err.Error())
+		c.JSON(http.StatusOK, util.Err(err.Error()))
 		return
 	}
 
-	response.RespondSuccess(c, tokenResponse{
+	c.JSON(http.StatusOK, util.OK(tokenResponse{
 		Token:  tokenStr,
 		Record: tokenRecord,
-	})
+	}))
 }
 
 // DeleteAccessToken 删除一个 AccessToken
@@ -148,22 +149,22 @@ func DeleteAccessToken(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 64)
 	if err != nil {
-		response.RespondFailure(c, "无效的令牌ID")
+		c.JSON(http.StatusOK, util.Err("无效的令牌ID"))
 		return
 	}
 
 	tx := db.DB(ctx).Where("id = ? AND user_id = ?", id, currUser.ID).Delete(&model.AccessToken{})
 	if tx.Error != nil {
-		response.RespondFailure(c, tx.Error.Error())
+		c.JSON(http.StatusOK, util.Err(tx.Error.Error()))
 		return
 	}
 
 	if tx.RowsAffected == 0 {
-		response.RespondFailure(c, "令牌不存在或无权操作")
+		c.JSON(http.StatusOK, util.Err("令牌不存在或无权操作"))
 		return
 	}
 
-	response.RespondSuccess(c, "删除成功")
+	c.JSON(http.StatusOK, util.OK("删除成功"))
 }
 
 // RotateAccessToken 轮换一个 AccessToken
@@ -183,20 +184,20 @@ func RotateAccessToken(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 64)
 	if err != nil {
-		response.RespondFailure(c, "无效的令牌ID")
+		c.JSON(http.StatusOK, util.Err("无效的令牌ID"))
 		return
 	}
 
 	var tokenRecord model.AccessToken
 	if err := db.DB(ctx).Where("id = ? AND user_id = ?", id, currUser.ID).First(&tokenRecord).Error; err != nil {
-		response.RespondFailure(c, "令牌不存在或无权操作")
+		c.JSON(http.StatusOK, util.Err("令牌不存在或无权操作"))
 		return
 	}
 
 	// 生成新的 Token
 	newTokenStr, err := model.GenerateTokenString()
 	if err != nil {
-		response.RespondFailure(c, "生成令牌失败")
+		c.JSON(http.StatusOK, util.Err("生成令牌失败"))
 		return
 	}
 
@@ -208,12 +209,12 @@ func RotateAccessToken(c *gin.Context) {
 	tokenRecord.LastUsedAt = nil // 轮换后重置使用时间
 
 	if err := db.DB(ctx).Save(&tokenRecord).Error; err != nil {
-		response.RespondFailure(c, err.Error())
+		c.JSON(http.StatusOK, util.Err(err.Error()))
 		return
 	}
 
-	response.RespondSuccess(c, tokenResponse{
+	c.JSON(http.StatusOK, util.OK(tokenResponse{
 		Token:  newTokenStr,
 		Record: tokenRecord,
-	})
+	}))
 }

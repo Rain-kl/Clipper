@@ -39,9 +39,8 @@ import (
 )
 
 type testResponse struct {
-	Success bool            `json:"success"`
-	Message string          `json:"message"`
-	Data    json.RawMessage `json:"data"`
+	ErrorMsg string          `json:"error_msg"`
+	Data     json.RawMessage `json:"data"`
 }
 
 func setupTestRouter(authUser *model.User) *gin.Engine {
@@ -161,8 +160,8 @@ func TestUploadFile(t *testing.T) {
 			t.Fatalf("failed to unmarshal response: %v", err)
 		}
 
-		if !resp.Success {
-			t.Fatalf("expected success response, got failure: %s", resp.Message)
+		if resp.ErrorMsg != "" {
+			t.Fatalf("expected success response, got failure: %s", resp.ErrorMsg)
 		}
 
 		// Verify database record
@@ -212,7 +211,7 @@ func TestUploadFile(t *testing.T) {
 
 		var resp testResponse
 		json.Unmarshal(w.Body.Bytes(), &resp)
-		if resp.Success || !strings.Contains(resp.Message, ErrUnsupportedFormat) {
+		if resp.ErrorMsg == "" || !strings.Contains(resp.ErrorMsg, ErrUnsupportedFormat) {
 			t.Errorf("expected unsupported format error, got: %v", resp)
 		}
 	})
@@ -249,8 +248,8 @@ func TestUploadFile(t *testing.T) {
 		var resp2 testResponse
 		json.Unmarshal(w2.Body.Bytes(), &resp2)
 
-		if !resp2.Success {
-			t.Fatalf("second upload was unsuccessful: %s", resp2.Message)
+		if resp2.ErrorMsg != "" {
+			t.Fatalf("second upload was unsuccessful: %s", resp2.ErrorMsg)
 		}
 
 		var uploadRecord2 model.Upload
@@ -306,8 +305,8 @@ func TestUploadFile(t *testing.T) {
 		var resp testResponse
 		json.Unmarshal(w.Body.Bytes(), &resp)
 
-		if !resp.Success {
-			t.Fatalf("local upload failed: %s", resp.Message)
+		if resp.ErrorMsg != "" {
+			t.Fatalf("local upload failed: %s", resp.ErrorMsg)
 		}
 
 		var localRecord model.Upload

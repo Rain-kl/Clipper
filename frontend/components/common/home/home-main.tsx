@@ -9,7 +9,7 @@ import {ArrowRight, ExternalLink, FileText, HelpCircle, Layers, Shield, ShieldCh
 import Link from "next/link"
 
 export function HomeMain() {
-  const { user, getTrustLevelLabel } = useUser()
+  const { user } = useUser()
 
   const quickLinks = [
     {

@@ -90,56 +90,56 @@ export function AuthSourceModal({
         <div className="grid gap-4 md:grid-cols-2 pt-2">
           <div className="space-y-2">
             <Label>标识符 (英文名称)</Label>
-            <Input 
-              value={form.name} 
+            <Input
+              value={form.name}
               disabled={!!source}
-              onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))} 
+              onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
               placeholder="例如: github"
             />
           </div>
           <div className="space-y-2">
             <Label>展示名称</Label>
-            <Input 
-              value={form.display_name} 
-              onChange={(e) => setForm((prev) => ({ ...prev, display_name: e.target.value }))} 
+            <Input
+              value={form.display_name}
+              onChange={(e) => setForm((prev) => ({ ...prev, display_name: e.target.value }))}
               placeholder="例如: GitHub 登录"
             />
           </div>
           <div className="space-y-2">
             <Label>Client ID</Label>
-            <Input 
-              value={form.client_id} 
-              onChange={(e) => setForm((prev) => ({ ...prev, client_id: e.target.value }))} 
+            <Input
+              value={form.client_id}
+              onChange={(e) => setForm((prev) => ({ ...prev, client_id: e.target.value }))}
             />
           </div>
           <div className="space-y-2">
             <Label>Client Secret</Label>
-            <Input 
-              value={form.client_secret} 
-              onChange={(e) => setForm((prev) => ({ ...prev, client_secret: e.target.value }))} 
-              placeholder={source ? "留空则保留原值" : ""} 
+            <Input
+              value={form.client_secret}
+              onChange={(e) => setForm((prev) => ({ ...prev, client_secret: e.target.value }))}
+              placeholder={source ? "留空则保留原值" : ""}
             />
           </div>
           <div className="space-y-2 md:col-span-2">
             <Label>Discovery URL (OIDC 发行方 URL)</Label>
-            <Input 
-              value={form.openid_discovery_url} 
-              onChange={(e) => setForm((prev) => ({ ...prev, openid_discovery_url: e.target.value }))} 
+            <Input
+              value={form.openid_discovery_url}
+              onChange={(e) => setForm((prev) => ({ ...prev, openid_discovery_url: e.target.value }))}
               placeholder="https://..."
             />
           </div>
           <div className="space-y-2">
             <Label>Scopes</Label>
-            <Input 
-              value={form.scopes} 
-              onChange={(e) => setForm((prev) => ({ ...prev, scopes: e.target.value }))} 
+            <Input
+              value={form.scopes}
+              onChange={(e) => setForm((prev) => ({ ...prev, scopes: e.target.value }))}
             />
           </div>
           <div className="space-y-2">
             <Label>图标 URL (可选)</Label>
-            <Input 
-              value={form.icon_url} 
-              onChange={(e) => setForm((prev) => ({ ...prev, icon_url: e.target.value }))} 
+            <Input
+              value={form.icon_url}
+              onChange={(e) => setForm((prev) => ({ ...prev, icon_url: e.target.value }))}
               placeholder="https://... 或留空"
             />
           </div>
@@ -154,7 +154,7 @@ export function AuthSourceModal({
             <Button variant="outline" type="button" onClick={onClose}>
               取消
             </Button>
-            <Button type="button" onClick={saveSource} disabled={saving} className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-600/10">
+            <Button type="button" onClick={saveSource} disabled={saving} variant="secondary">
               {saving ? "保存中..." : "保存"}
             </Button>
           </div>

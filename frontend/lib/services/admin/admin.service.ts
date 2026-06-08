@@ -1,8 +1,10 @@
 import {BaseService} from '../core/base.service';
 import type {
+  AdminUser,
   AuthSource,
   AuthSourceRequest,
   CreateSystemConfigRequest,
+  CreateUserRequest,
   DispatchTaskRequest,
   ListTaskExecutionsRequest,
   ListTaskExecutionsResponse,
@@ -306,5 +308,14 @@ export class AdminService extends BaseService {
     request: UpdateUserStatusRequest
   ): Promise<void> {
     return this.put<void>(`/users/${ id }/status`, request);
+  }
+
+  /**
+   * 创建用户
+   * @param request - 创建用户请求参数
+   * @returns 创建成功的用户信息
+   */
+  static async createUser(request: CreateUserRequest): Promise<AdminUser> {
+    return this.post<AdminUser>('/users', request);
   }
 }

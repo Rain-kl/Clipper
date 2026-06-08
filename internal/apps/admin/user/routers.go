@@ -23,9 +23,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/linux-do/credit/internal/db"
+	"github.com/linux-do/credit/internal/db/idgen"
 	"github.com/linux-do/credit/internal/model"
 	"github.com/linux-do/credit/internal/util"
-	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
 )
 
@@ -38,23 +38,15 @@ type listUsersRequest struct {
 }
 
 type user struct {
-	ID               uint64           `json:"id"`
-	Username         string           `json:"username"`
-	Nickname         string           `json:"nickname"`
-	AvatarUrl        string           `json:"avatar_url"`
-	TrustLevel       model.TrustLevel `json:"trust_level"`
-	PayScore         int64            `json:"pay_score"`
-	TotalReceive     decimal.Decimal  `json:"total_receive"`
-	TotalPayment     decimal.Decimal  `json:"total_payment"`
-	TotalTransfer    decimal.Decimal  `json:"total_transfer"`
-	TotalCommunity   decimal.Decimal  `json:"total_community"`
-	CommunityBalance decimal.Decimal  `json:"community_balance"`
-	AvailableBalance decimal.Decimal  `json:"available_balance"`
-	IsActive         bool             `json:"is_active"`
-	IsAdmin          bool             `json:"is_admin"`
-	LastLoginAt      time.Time        `json:"last_login_at"`
-	CreatedAt        time.Time        `json:"created_at"`
-	UpdatedAt        time.Time        `json:"updated_at"`
+	ID          uint64    `json:"id"`
+	Username    string    `json:"username"`
+	Nickname    string    `json:"nickname"`
+	AvatarUrl   string    `json:"avatar_url"`
+	IsActive    bool      `json:"is_active"`
+	IsAdmin     bool      `json:"is_admin"`
+	LastLoginAt time.Time `json:"last_login_at"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 }
 
 // listUsersResponse 用户列表响应
@@ -76,6 +68,7 @@ type listUsersResponse struct {
 // @Failure 403 {object} util.ResponseAny "无管理员权限"
 // @Failure 500 {object} util.ResponseAny "内部错误"
 // @Router /api/v1/admin/users [get]
+// ListUsers 获取用户列表
 func ListUsers(c *gin.Context) {
 	var req listUsersRequest
 	if err := c.ShouldBindQuery(&req); err != nil {
@@ -105,9 +98,7 @@ func ListUsers(c *gin.Context) {
 
 	offset := (req.Page - 1) * req.PageSize
 	if err := query.
-		Select("id, username, nickname, avatar_url, trust_level, pay_score, " +
-			"total_receive, total_payment, total_transfer, total_community, " +
-			"community_balance, available_balance, is_active, is_admin, " +
+		Select("id, username, nickname, avatar_url, is_active, is_admin, " +
 			"last_login_at, created_at, updated_at").
 		Order("id DESC").
 		Offset(offset).
@@ -184,4 +175,95 @@ func UpdateUserStatus(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, util.OKNil())
+}
+
+// createUserRequest 创建用户请求
+type createUserRequest struct {
+	Username string `json:"username" binding:"required,min=3,max=64"`
+	Password string `json:"password" binding:"required,min=8,max=64"`
+	Nickname string `json:"nickname" binding:"omitempty,max=64"`
+	IsActive bool   `json:"is_active"`
+	IsAdmin  bool   `json:"is_admin"`
+}
+
+// CreateUser 创建用户
+// @Summary 创建用户
+// @Description 创建一个本地密码登录的新用户，需要管理员权限
+// @Tags admin
+// @Accept json
+// @Produce json
+// @Security SessionCookie
+// @Param request body user.createUserRequest true "创建用户参数"
+// @Success 200 {object} util.ResponseAny{data=user.user} "创建成功"
+// @Failure 400 {object} util.ResponseAny "参数错误或用户名已存在"
+// @Failure 401 {object} util.ResponseAny "未登录"
+// @Failure 403 {object} util.ResponseAny "无管理员权限"
+// @Failure 500 {object} util.ResponseAny "内部错误"
+// @Router /api/v1/admin/users [post]
+func CreateUser(c *gin.Context) {
+	var req createUserRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, util.Err(err.Error()))
+		return
+	}
+
+	req.Username = strings.TrimSpace(req.Username)
+	req.Nickname = strings.TrimSpace(req.Nickname)
+	req.Password = strings.TrimSpace(req.Password)
+
+	if req.Username == "" {
+		c.JSON(http.StatusBadRequest, util.Err(usernameRequired))
+		return
+	}
+	if len(req.Password) < 8 {
+		c.JSON(http.StatusBadRequest, util.Err(passwordTooShort))
+		return
+	}
+
+	ctx := c.Request.Context()
+	var count int64
+	if err := db.DB(ctx).Table("users").Where("username = ?", req.Username).Count(&count).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, util.Err(err.Error()))
+		return
+	}
+	if count > 0 {
+		c.JSON(http.StatusBadRequest, util.Err(usernameExists))
+		return
+	}
+
+	newUser := model.User{
+		ID:          idgen.NextUint64ID(),
+		Username:    req.Username,
+		Nickname:    req.Nickname,
+		IsActive:    req.IsActive,
+		IsAdmin:     req.IsAdmin,
+		LastLoginAt: time.Time{},
+	}
+	if newUser.Nickname == "" {
+		newUser.Nickname = req.Username
+	}
+
+	if err := newUser.SetEncryptedPassword(req.Password); err != nil {
+		c.JSON(http.StatusInternalServerError, util.Err(err.Error()))
+		return
+	}
+
+	if err := db.DB(ctx).Create(&newUser).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, util.Err(err.Error()))
+		return
+	}
+
+	res := user{
+		ID:          newUser.ID,
+		Username:    newUser.Username,
+		Nickname:    newUser.Nickname,
+		AvatarUrl:   newUser.AvatarUrl,
+		IsActive:    newUser.IsActive,
+		IsAdmin:     newUser.IsAdmin,
+		LastLoginAt: newUser.LastLoginAt,
+		CreatedAt:   newUser.CreatedAt,
+		UpdatedAt:   newUser.UpdatedAt,
+	}
+
+	c.JSON(http.StatusOK, util.OK(res))
 }

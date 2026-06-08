@@ -14,17 +14,52 @@ import {
   BreadcrumbSeparator
 } from "@/components/ui/breadcrumb"
 import {useUser} from "@/contexts/user-context"
-import {ArrowRight, Link2, Loader2, Shield, Unlink} from "lucide-react"
+import {ArrowRight, Info, Link2, Loader2, Lock, Shield, Unlink} from "lucide-react"
 import {Button} from "@/components/ui/button"
+import {Input} from "@/components/ui/input"
 import {Separator} from "@/components/ui/separator"
 import {AuthService} from "@/lib/services"
 import {toast} from "sonner"
 
 export function ProfileMain() {
-  const { user, loading, getTrustLevelLabel } = useUser()
+  const { user, loading, refetch } = useUser()
   const controls = useAnimation()
   const isAnimatingRef = React.useRef(false)
   const queryClient = useQueryClient()
+
+  const [oldPassword, setOldPassword] = React.useState("")
+  const [newPassword, setNewPassword] = React.useState("")
+  const [confirmPassword, setConfirmPassword] = React.useState("")
+
+  const changePasswordMutation = useMutation({
+    mutationFn: (req: any) => AuthService.changePassword(req),
+    onSuccess: () => {
+      toast.success("密码修改成功")
+      setOldPassword("")
+      setNewPassword("")
+      setConfirmPassword("")
+      void refetch()
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "修改密码失败，请重试")
+    },
+  })
+
+  const handlePasswordChange = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (newPassword !== confirmPassword) {
+      toast.error("两次输入的新密码不一致")
+      return
+    }
+    if (newPassword.length < 8) {
+      toast.error("新密码长度不能少于 8 位")
+      return
+    }
+    changePasswordMutation.mutate({
+      old_password: oldPassword,
+      new_password: newPassword,
+    })
+  }
 
   const externalAccountBindingsQuery = useQuery({
     queryKey: ["auth", "external-accounts"],
@@ -135,10 +170,7 @@ export function ProfileMain() {
                 <div className="text-sm font-mono font-semibold">{user.id}</div>
               </div>
 
-              <div className="space-y-1">
-                <div className="text-xs text-muted-foreground">信任等级</div>
-                <div className="text-sm font-semibold">{getTrustLevelLabel(user.trust_level)}</div>
-              </div>
+
 
               <div className="space-y-1">
                 <div className="text-xs text-muted-foreground">管理员身份</div>
@@ -156,6 +188,72 @@ export function ProfileMain() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* 修改密码面板 */}
+      <div className="space-y-6 bg-card border border-dashed rounded-lg p-6">
+        <div className="border-b pb-4 flex items-center gap-2">
+          <div className="p-1.5 rounded-lg bg-amber-500/10 text-amber-500">
+            <Lock className="size-4" />
+          </div>
+          <div>
+            <h2 className="text-lg font-semibold tracking-tight">修改密码</h2>
+            <p className="text-xs text-muted-foreground">更改您的账号密码以确保安全。密码长度不能少于 8 位。</p>
+          </div>
+        </div>
+
+        {user.need_change_password && (
+          <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-3.5 py-3 text-xs text-amber-500 flex items-start gap-2.5">
+            <Info className="size-4 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-semibold">密码风险提示</p>
+              <p className="mt-0.5 text-amber-500/80 leading-relaxed font-normal">
+                为了账号安全，您必须修改初始密码。
+              </p>
+            </div>
+          </div>
+        )}
+
+        <form onSubmit={handlePasswordChange} className="space-y-4 pt-2 max-w-md">
+          <div className="space-y-2">
+            <label className="text-xs font-medium text-muted-foreground">当前密码</label>
+            <Input
+              type="password"
+              placeholder="请输入当前密码"
+              value={oldPassword}
+              onChange={(e) => setOldPassword(e.target.value)}
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-xs font-medium text-muted-foreground">新密码</label>
+            <Input
+              type="password"
+              placeholder="新密码（至少 8 位）"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-xs font-medium text-muted-foreground">确认新密码</label>
+            <Input
+              type="password"
+              placeholder="确认新密码"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+            />
+          </div>
+
+          <Button
+            type="submit"
+            className="w-full sm:w-auto"
+            disabled={changePasswordMutation.isPending}
+          >
+            {changePasswordMutation.isPending ? "提交中..." : "确认修改"}
+          </Button>
+        </form>
       </div>
 
       {/* 账号绑定面板 */}

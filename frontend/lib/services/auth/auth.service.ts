@@ -1,6 +1,7 @@
 import {BaseService} from '../core/base.service';
 import type {
   AuthSource,
+  ChangePasswordRequest,
   ExternalAccountBinding,
   LoginRequest,
   OAuthAuthorizeResponse,
@@ -108,6 +109,10 @@ export class AuthService extends BaseService {
 
   static async register(request: RegisterRequest): Promise<User> {
     return this.post<User>('/user/register', request);
+  }
+
+  static async changePassword(request: ChangePasswordRequest): Promise<void> {
+    return this.post<void>('/user/change-password', request);
   }
 
   static async getExternalAccountBindings(): Promise<ExternalAccountBinding[]> {

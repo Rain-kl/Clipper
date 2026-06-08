@@ -142,14 +142,12 @@ export function LoginPage() {
         }}
         className="relative z-10 w-full max-w-sm px-4"
       >
-        <div className="text-center mb-8 space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">
-            LINUX DO <span className="font-serif italic text-primary">Credit</span>
-          </h1>
-          <p className="text-sm text-muted-foreground font-light">
-            简单、安全，专为社区设计
-          </p>
-        </div>
+        {/*Title Do Not Remove*/}
+        {/*<div className="text-center mb-8 space-y-2">*/}
+        {/*  <h1 className="text-3xl font-bold tracking-tight text-foreground">*/}
+        {/*    Refresh*/}
+        {/*  </h1>*/}
+        {/*</div>*/}
 
         <AnimatePresence mode="wait">
           {isProcessingCallback || isCheckingSession ? (
@@ -209,10 +207,6 @@ export function LoginPage() {
             </motion.div>
           )}
         </AnimatePresence>
-
-        <div className="mt-8 text-center text-xs text-muted-foreground">
-          &copy; {new Date().getFullYear()} LINUX DO Credit. 版权所有
-        </div>
       </motion.div>
     </AuroraBackground>
   )

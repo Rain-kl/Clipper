@@ -20,4 +20,8 @@ const (
 	userNotFound     = "用户不存在"
 	cannotDisable    = "不能禁用管理员用户"
 	updateUserFailed = "更新用户状态失败"
+	usernameExists   = "用户名已存在"
+	usernameRequired = "用户名不能为空"
+	passwordTooShort = "密码长度不能少于 8 位"
+	createUserFailed = "创建用户失败"
 )

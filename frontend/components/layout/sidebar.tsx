@@ -65,13 +65,13 @@ import {useUser} from "@/contexts/user-context"
 const data = {
   navMain: [
     { title: "首页", url: "/home", icon: Home },
-    { title: "文件管理", url: "/settings/files", icon: FolderOpen },
   ],
   admin: [
     { title: "系统设置", url: "/admin/settings", icon: Settings },
     { title: "系统配置", url: "/admin/system", icon: ShieldCheck },
     { title: "用户管理", url: "/admin/users", icon: UserRound },
     { title: "任务管理", url: "/admin/tasks", icon: Layers },
+    { title: "文件管理", url: "/admin/files", icon: FolderOpen },
   ],
   document: [
     { title: "接口文档", url: "/docs/api", icon: CreditCard, external: true },
@@ -92,7 +92,7 @@ const data = {
  */
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { toggleSidebar, state, isMobile, setOpenMobile } = useSidebar()
-  const { user, getTrustLevelLabel, logout } = useUser()
+  const { user, logout } = useUser()
   const [showLogoutDialog, setShowLogoutDialog] = React.useState(false)
   const [isLoggingOut, setIsLoggingOut] = React.useState(false)
   const pathname = usePathname()
@@ -185,7 +185,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     {user?.nickname || user?.username || "Unknown User"}
                   </span>
                   <span className="text-[11px] font-medium text-muted-foreground/100 truncate w-full text-left ml-2">
-                    {user ? getTrustLevelLabel(user.trust_level) : "Trust Level Unknown"}
+                    {user?.is_admin ? "系统管理员" : "普通用户"}
                   </span>
                 </div>
                 <ChevronDown className="size-4 text-muted-foreground ml-auto group-data-[collapsible=icon]:hidden" />
@@ -226,7 +226,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     {user?.nickname || user?.username || "Unknown User"}
                   </span>
                   <span className="text-xs font-base text-muted-foreground">
-                    {user ? getTrustLevelLabel(user.trust_level) : "Trust Level Unknown"}
+                    {user?.is_admin ? "系统管理员" : "普通用户"}
                   </span>
                 </div>
               </DropdownMenuLabel>

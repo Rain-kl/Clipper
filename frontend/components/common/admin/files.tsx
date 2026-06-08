@@ -147,7 +147,7 @@ export function FilesMain() {
               文件管理
             </h1>
             <p className="text-sm text-muted-foreground">
-              管理您上传的所有文件，支持下载和批量操作
+              管理您上传的所有文件，支持下载 and 批量操作
             </p>
           </div>
         </div>

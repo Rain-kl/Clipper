@@ -61,7 +61,7 @@ func TestListTaskTypes(t *testing.T) {
 	_, _, cleanup := testhelper.SetupTestEnvironment(t)
 	defer cleanup()
 
-	adminUser := &model.User{ID: 1001, Username: "admin", IsAdmin: true, SignKey: "admin_key"}
+	adminUser := &model.User{ID: 1001, Username: "admin", IsAdmin: true}
 	router := setupTestRouter(adminUser)
 
 	req, _ := http.NewRequest("GET", "/api/v1/admin/tasks/types", nil)
@@ -99,7 +99,7 @@ func TestDispatchTask(t *testing.T) {
 	_, _, cleanup := testhelper.SetupTestEnvironment(t)
 	defer cleanup()
 
-	adminUser := &model.User{ID: 1001, Username: "admin", IsAdmin: true, SignKey: "admin_key"}
+	adminUser := &model.User{ID: 1001, Username: "admin", IsAdmin: true}
 	router := setupTestRouter(adminUser)
 
 	t.Run("dispatch valid task successfully", func(t *testing.T) {
@@ -156,7 +156,7 @@ func TestListTaskExecutions(t *testing.T) {
 	_, _, cleanup := testhelper.SetupTestEnvironment(t)
 	defer cleanup()
 
-	adminUser := &model.User{ID: 1001, Username: "admin", IsAdmin: true, SignKey: "admin_key"}
+	adminUser := &model.User{ID: 1001, Username: "admin", IsAdmin: true}
 	router := setupTestRouter(adminUser)
 	ctx := context.Background()
 
@@ -245,7 +245,7 @@ func TestGetTaskExecution(t *testing.T) {
 	_, _, cleanup := testhelper.SetupTestEnvironment(t)
 	defer cleanup()
 
-	adminUser := &model.User{ID: 1001, Username: "admin", IsAdmin: true, SignKey: "admin_key"}
+	adminUser := &model.User{ID: 1001, Username: "admin", IsAdmin: true}
 	router := setupTestRouter(adminUser)
 	ctx := context.Background()
 
@@ -308,7 +308,7 @@ func TestRetryTask(t *testing.T) {
 	_, _, cleanup := testhelper.SetupTestEnvironment(t)
 	defer cleanup()
 
-	adminUser := &model.User{ID: 1001, Username: "admin", IsAdmin: true, SignKey: "admin_key"}
+	adminUser := &model.User{ID: 1001, Username: "admin", IsAdmin: true}
 	router := setupTestRouter(adminUser)
 	ctx := context.Background()
 
@@ -415,7 +415,7 @@ func TestRetryTaskMaxRetryExceeded(t *testing.T) {
 	_, _, cleanup := testhelper.SetupTestEnvironment(t)
 	defer cleanup()
 
-	adminUser := &model.User{ID: 1001, Username: "admin", IsAdmin: true, SignKey: "admin_key"}
+	adminUser := &model.User{ID: 1001, Username: "admin", IsAdmin: true}
 	router := setupTestRouter(adminUser)
 	ctx := context.Background()
 

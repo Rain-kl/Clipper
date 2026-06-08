@@ -255,7 +255,7 @@ func normalizeOAuthUserInfo(userInfo *model.OAuthUserInfo) error {
 func buildCallbackResult(user *model.User, status string) OAuthCallbackResult {
 	result := OAuthCallbackResult{Status: status}
 	if user != nil {
-		info := BuildBasicUserInfo(user)
+		info := BuildBasicUserInfo(user, false)
 		result.User = &info
 	}
 	return result

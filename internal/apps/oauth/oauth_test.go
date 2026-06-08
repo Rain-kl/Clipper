@@ -712,7 +712,6 @@ func TestCallbackBind(t *testing.T) {
 		ID:          777,
 		Username:    "existing_member",
 		Nickname:    "Existing Member",
-		SignKey:     "key",
 		IsActive:    true,
 		LastLoginAt: time.Now(),
 	}
@@ -841,7 +840,6 @@ func TestCallbackBind(t *testing.T) {
 		ID:          888,
 		Username:    "another_member",
 		Nickname:    "Another Member",
-		SignKey:     "key2",
 		IsActive:    true,
 		LastLoginAt: time.Now(),
 	}
@@ -929,7 +927,6 @@ func TestExternalAccountsListAndDelete(t *testing.T) {
 		ID:       555,
 		Username: "account_holder",
 		IsActive: true,
-		SignKey:  "key5",
 	})
 
 	dbConn.Create(&model.AuthSource{
@@ -1000,7 +997,6 @@ func TestLoginRequiredAndRiskChecks(t *testing.T) {
 		ID:       1122,
 		Username: "risk_tester",
 		IsActive: true,
-		SignKey:  "keysign",
 	})
 
 	// Enable risk checks

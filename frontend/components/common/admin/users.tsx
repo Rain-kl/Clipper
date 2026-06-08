@@ -1,25 +1,38 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Switch } from "@/components/ui/switch"
-import { Separator } from "@/components/ui/separator"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Sheet, SheetTitle, SheetContent } from "@/components/ui/sheet"
-import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Layers, Search, UserX, UserCheck, Eye, ShieldCheck, Filter, X, ChevronDown, ChevronLeft, ChevronRight, Loader2 } from "lucide-react"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import {useEffect, useState} from "react"
+import {Button} from "@/components/ui/button"
+import {Switch} from "@/components/ui/switch"
+import {Separator} from "@/components/ui/separator"
+import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "@/components/ui/table"
+import {Sheet, SheetContent, SheetTitle} from "@/components/ui/sheet"
+import {Badge} from "@/components/ui/badge"
+import {Avatar, AvatarFallback, AvatarImage} from "@/components/ui/avatar"
+import {
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Eye,
+  Filter,
+  Layers,
+  Loader2,
+  Plus,
+  Search,
+  ShieldCheck,
+  UserCheck,
+  UserX,
+  X
+} from "lucide-react"
+import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from "@/components/ui/tooltip"
 
-import { AdminUser, AdminService } from "@/lib/services"
-import { toast } from "sonner"
-import { formatDateTime } from "@/lib/utils"
-import { EmptyStateWithBorder } from "@/components/layout/empty"
-import { LoadingStateWithBorder } from "@/components/layout/loading"
-import { ErrorInline } from "@/components/layout/error"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { cn } from "@/lib/utils"
-import { useAdminUsers } from "@/contexts/admin-users-context"
+import {AdminUser} from "@/lib/services"
+import {cn, formatDateTime} from "@/lib/utils"
+import {EmptyStateWithBorder} from "@/components/layout/empty"
+import {LoadingStateWithBorder} from "@/components/layout/loading"
+import {ErrorInline} from "@/components/layout/error"
+import {DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger} from "@/components/ui/dropdown-menu"
+import {useAdminUsers} from "@/contexts/admin-users-context"
+import {CreateUserModal} from "./create-user-modal"
 
 export function UsersManager() {
   const {
@@ -43,6 +56,7 @@ export function UsersManager() {
 
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null)
   const [detailOpen, setDetailOpen] = useState(false)
+  const [createModalOpen, setCreateModalOpen] = useState(false)
 
   useEffect(() => {
     fetchUsers()
@@ -277,6 +291,10 @@ export function UsersManager() {
         <div className="flex flex-col gap-1">
           <div className="text-2xl font-semibold">用户管理</div>
         </div>
+        <Button variant="secondary" size="sm" className="h-7 text-xs" onClick={() => setCreateModalOpen(true)}>
+          <Plus className="size-3.5 mr-1" />
+          新增用户
+        </Button>
       </div>
 
       {renderFilterBar()}
@@ -409,9 +427,6 @@ export function UsersManager() {
                           <Badge variant="secondary" className="h-4.5 px-1.5 text-[9px] uppercase font-medium">
                             UID: {selectedUser.id}
                           </Badge>
-                          <Badge variant="secondary" className="h-4.5 px-1.5 text-[9px] uppercase font-medium">
-                            Lv.{selectedUser.trust_level}
-                          </Badge>
                           {selectedUser.is_admin && (
                             <Badge className="h-4.5 px-1.5 text-[9px] uppercase font-medium bg-primary text-primary-foreground">
                               Admin
@@ -482,6 +497,8 @@ export function UsersManager() {
           )}
         </SheetContent>
       </Sheet>
+
+      <CreateUserModal isOpen={createModalOpen} onClose={() => setCreateModalOpen(false)} />
     </div>
   )
 }

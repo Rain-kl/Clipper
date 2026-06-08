@@ -81,8 +81,8 @@ export type {
 // ==================== 业务服务导出 ====================
 
 // 认证服务
-export { AuthService, TrustLevel } from './auth';
-export type { User, OAuthLoginUrlResponse, OAuthCallbackRequest, AuthSource, ExternalAccountBinding } from './auth';
+export { AuthService } from './auth';
+export type { User, OAuthLoginUrlResponse, OAuthCallbackRequest, AuthSource, ExternalAccountBinding, ChangePasswordRequest } from './auth';
 
 // 配置服务
 export { ConfigService } from './config';
@@ -93,6 +93,7 @@ export { AdminService } from './admin';
 export type {
   SystemConfig,
   CreateSystemConfigRequest,
+  CreateUserRequest,
   UpdateSystemConfigRequest,
   TaskMeta,
   TaskExecution,

@@ -117,6 +117,7 @@ func Serve() {
 			apiV1Router.GET("/oauth/logout", oauth.Logout)
 			apiV1Router.POST("/oauth/callback", oauth.Callback)
 			apiV1Router.GET("/oauth/user-info", oauth.LoginRequired(), oauth.UserInfo)
+			apiV1Router.GET("/user-info", oauth.LoginRequired(), oauth.UserInfo)
 			apiV1Router.GET("/oauth/external-accounts", oauth.LoginRequired(), oauth.ListExternalAccounts)
 			apiV1Router.POST("/oauth/external-accounts/:id/delete", oauth.LoginRequired(), oauth.DeleteExternalAccount)
 
@@ -127,6 +128,7 @@ func Serve() {
 				userRouter.POST("/register", user.Register)
 				userRouter.GET("/logout", user.Logout)
 				userRouter.GET("/self", oauth.LoginRequired(), oauth.UserInfo)
+				userRouter.POST("/change-password", oauth.LoginRequired(), user.ChangePassword)
 
 				// Access Token
 				tokenRouter := userRouter.Group("/access-tokens")
@@ -171,6 +173,7 @@ func Serve() {
 
 				// Users
 				adminRouter.GET("/users", admin_user.ListUsers)
+				adminRouter.POST("/users", admin_user.CreateUser)
 				adminRouter.PUT("/users/:id/status", admin_user.UpdateUserStatus)
 
 				// System Config

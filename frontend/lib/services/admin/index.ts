@@ -23,6 +23,7 @@ export { AdminService } from './admin.service';
 export type {
   SystemConfig,
   CreateSystemConfigRequest,
+  CreateUserRequest,
   UpdateSystemConfigRequest,
   AuthSource,
   AuthSourceRequest,

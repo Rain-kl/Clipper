@@ -62,7 +62,7 @@ func TestCreateSystemConfig(t *testing.T) {
 	dbConn, _, cleanup := testhelper.SetupTestEnvironment(t)
 	defer cleanup()
 
-	adminUser := &model.User{ID: 1001, Username: "admin", IsAdmin: true, SignKey: "admin_key"}
+	adminUser := &model.User{ID: 1001, Username: "admin", IsAdmin: true}
 	router := setupTestRouter(adminUser)
 
 	t.Run("create successfully", func(t *testing.T) {
@@ -124,7 +124,7 @@ func TestListSystemConfigs(t *testing.T) {
 	_, _, cleanup := testhelper.SetupTestEnvironment(t)
 	defer cleanup()
 
-	adminUser := &model.User{ID: 1001, Username: "admin", IsAdmin: true, SignKey: "admin_key"}
+	adminUser := &model.User{ID: 1001, Username: "admin", IsAdmin: true}
 	router := setupTestRouter(adminUser)
 
 	t.Run("list all seeded configurations", func(t *testing.T) {
@@ -171,7 +171,7 @@ func TestGetSystemConfig(t *testing.T) {
 	_, _, cleanup := testhelper.SetupTestEnvironment(t)
 	defer cleanup()
 
-	adminUser := &model.User{ID: 1001, Username: "admin", IsAdmin: true, SignKey: "admin_key"}
+	adminUser := &model.User{ID: 1001, Username: "admin", IsAdmin: true}
 	router := setupTestRouter(adminUser)
 
 	t.Run("get existing configuration", func(t *testing.T) {
@@ -210,7 +210,7 @@ func TestUpdateSystemConfig(t *testing.T) {
 	dbConn, _, cleanup := testhelper.SetupTestEnvironment(t)
 	defer cleanup()
 
-	adminUser := &model.User{ID: 1001, Username: "admin", IsAdmin: true, SignKey: "admin_key"}
+	adminUser := &model.User{ID: 1001, Username: "admin", IsAdmin: true}
 	router := setupTestRouter(adminUser)
 
 	t.Run("update successfully", func(t *testing.T) {
@@ -263,7 +263,7 @@ func TestDeleteSystemConfig(t *testing.T) {
 	dbConn, _, cleanup := testhelper.SetupTestEnvironment(t)
 	defer cleanup()
 
-	adminUser := &model.User{ID: 1001, Username: "admin", IsAdmin: true, SignKey: "admin_key"}
+	adminUser := &model.User{ID: 1001, Username: "admin", IsAdmin: true}
 	router := setupTestRouter(adminUser)
 
 	t.Run("delete successfully", func(t *testing.T) {
