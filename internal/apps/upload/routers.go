@@ -68,6 +68,12 @@ type batchDownloadRequest struct {
 // @Failure 500 {object} util.ResponseAny "内部错误"
 // @Router /api/v1/upload [post]
 func UploadFile(c *gin.Context) {
+	c.Header("X-Content-Type-Options", "nosniff")
+	c.Header("Content-Security-Policy", "sandbox")
+
+	// 限制请求体大小以防止 DoS
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxUploadSize)
+
 	currUser, _ := util.GetFromContext[*model.User](c, oauth.UserObjKey)
 	ctx := c.Request.Context()
 
@@ -128,6 +134,19 @@ func UploadFile(c *gin.Context) {
 	mimeType := http.DetectContentType(buf.Bytes()[:min(512, int(size))])
 	if mimeType == "application/octet-stream" && header.Header.Get("Content-Type") != "" {
 		mimeType = header.Header.Get("Content-Type")
+	}
+
+	// 校验真实 MIME Type 是否与常见图片扩展名匹配，防止 Polyglot / HTML 注入攻击
+	isImageExt := false
+	for _, imgExt := range []string{"jpg", "jpeg", "png", "webp", "gif"} {
+		if ext == imgExt {
+			isImageExt = true
+			break
+		}
+	}
+	if isImageExt && !strings.HasPrefix(mimeType, "image/") {
+		c.JSON(http.StatusOK, util.Err("文件内容与扩展名不匹配，可能包含安全风险"))
+		return
 	}
 
 	// 6. 秒传匹配校验：校验数据库中是否存在相同 Hash 且大小一致的可用文件
@@ -255,6 +274,9 @@ func UploadFile(c *gin.Context) {
 // @Failure 500 {object} util.ResponseAny "服务内部错误"
 // @Router /api/v1/upload/download/{id} [get]
 func DownloadFile(c *gin.Context) {
+	c.Header("X-Content-Type-Options", "nosniff")
+	c.Header("Content-Security-Policy", "sandbox")
+
 	ctx := c.Request.Context()
 	idStr := c.Param("id")
 	uploadID, err := strconv.ParseUint(idStr, 10, 64)

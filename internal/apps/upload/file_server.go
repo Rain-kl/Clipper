@@ -41,6 +41,9 @@ import (
 // @Failure 500 {object} util.ResponseAny "服务内部错误"
 // @Router /f/{id} [get]
 func ServeFileByID(c *gin.Context) {
+	c.Header("X-Content-Type-Options", "nosniff")
+	c.Header("Content-Security-Policy", "sandbox")
+
 	idStr := c.Param("id")
 	uploadID, err := strconv.ParseUint(idStr, 10, 64)
 	if err != nil {

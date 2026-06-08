@@ -129,6 +129,6 @@ export class AuthService extends BaseService {
   }
 
   static async deleteExternalAccountBinding(id: string): Promise<void> {
-    return this.delete<void>(`/oauth/external-accounts/${encodeURIComponent(id)}/delete`);
+    return this.post<void>(`/oauth/external-accounts/${encodeURIComponent(id)}/delete`);
   }
 }

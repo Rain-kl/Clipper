@@ -74,7 +74,7 @@ export interface OAuthAuthorizeResponse {
 }
 
 export interface OAuthCallbackResult {
-  status: 'logged_in' | 'bound';
+  status: 'logged_in' | 'bound' | 'need_bind';
   user?: User;
 }
 

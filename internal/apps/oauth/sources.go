@@ -481,6 +481,27 @@ func Callback(c *gin.Context) {
 			return
 		}
 	case errors.Is(err, gorm.ErrRecordNotFound):
+		// 检查系统是否允许注册
+		registrationEnabled, regErr := model.GetBoolByKey(ctx, model.ConfigKeyRegistrationEnabled)
+		if regErr != nil {
+			registrationEnabled = true // 默认允许注册
+		}
+
+		if !registrationEnabled {
+			// 如果不允许注册，临时记录到 session 并向前端返回 "need_bind" 状态
+			session := sessions.Default(c)
+			session.Set("pending_oauth_source_id", source.ID)
+			session.Set("pending_oauth_external_id", userInfo.Sub)
+			session.Set("pending_oauth_external_username", userInfo.Username)
+			session.Set("pending_oauth_email", userInfo.Email)
+			if err := session.Save(); err != nil {
+				c.JSON(http.StatusInternalServerError, util.Err(err.Error()))
+				return
+			}
+			c.JSON(http.StatusOK, util.OK(buildCallbackResult(nil, "need_bind")))
+			return
+		}
+
 		username, uniqueErr := uniqueUsername(ctx, userInfo.Username)
 		if uniqueErr != nil {
 			c.JSON(http.StatusInternalServerError, util.Err(uniqueErr.Error()))

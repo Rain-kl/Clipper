@@ -109,6 +109,12 @@ export function LoginPage() {
         setIsProcessingCallback(true)
         try {
           const result = await services.auth.handleCallback({ state, code })
+          if (result.status === "need_bind") {
+            toast.info("您的第三方账号未绑定本地账号，系统已关闭注册。请登录已有本地账号进行绑定。")
+            setIsProcessingCallback(false)
+            router.replace('/login')
+            return
+          }
           if (result.user) {
             setUser(result.user)
           }

@@ -251,6 +251,43 @@ func Login(c *gin.Context) {
 		return
 	}
 
+	// 检查是否有未完成的 OAuth/OIDC 绑定
+	pendingSourceID := session.Get("pending_oauth_source_id")
+	pendingExternalID := session.Get("pending_oauth_external_id")
+	pendingExternalUsername := session.Get("pending_oauth_external_username")
+	pendingEmail := session.Get("pending_oauth_email")
+
+	if pendingSourceID != nil && pendingExternalID != nil {
+		var sourceID uint64
+		switch v := pendingSourceID.(type) {
+		case uint64:
+			sourceID = v
+		case int:
+			sourceID = uint64(v)
+		case float64:
+			sourceID = uint64(v)
+		}
+		externalID, _ := pendingExternalID.(string)
+		externalUsername, _ := pendingExternalUsername.(string)
+		email, _ := pendingEmail.(string)
+
+		if sourceID != 0 && externalID != "" {
+			_ = model.BindExternalAccount(&model.ExternalAccount{
+				AuthSourceID:     sourceID,
+				UserID:           user.ID,
+				ExternalID:       externalID,
+				ExternalUsername: externalUsername,
+				Email:            email,
+			})
+		}
+		// 清除 pending 信息
+		session.Delete("pending_oauth_source_id")
+		session.Delete("pending_oauth_external_id")
+		session.Delete("pending_oauth_external_username")
+		session.Delete("pending_oauth_email")
+		_ = session.Save()
+	}
+
 	c.JSON(http.StatusOK, util.OK(oauth.BuildBasicUserInfo(&user, needChangePassword)))
 }
 

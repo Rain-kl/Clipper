@@ -722,6 +722,70 @@ func TestCallbackLoginAndUserInfo(t *testing.T) {
 	if collisionResp.Data.User.Username != "test_oauth_user-1" {
 		t.Errorf("expected collision renamed username, got %s", collisionResp.Data.User.Username)
 	}
+
+	t.Run("OIDC login when registration disabled - need bind", func(t *testing.T) {
+		// Disable registration in database
+		dbConn.Create(&model.SystemConfig{
+			Key:   model.ConfigKeyRegistrationEnabled,
+			Value: "false",
+		})
+		defer func() {
+			dbConn.Where("key = ?", model.ConfigKeyRegistrationEnabled).Delete(&model.SystemConfig{})
+		}()
+
+		state4 := uuid.NewString()
+		payloadValue4, _ := encodeOAuthStatePayload(oauthStatePayload{
+			SourceName: testSourceName,
+			Purpose:    OAuthPurposeLogin,
+		})
+		mockRedis.Set(context.Background(), db.PrefixedKey(fmt.Sprintf(OAuthStateCacheKeyFormat, state4)), payloadValue4, OAuthStateCacheKeyExpiration)
+
+		httpMock4 := &http.Client{
+			Transport: &mockRoundTripper{
+				roundTripFunc: func(req *http.Request) (*http.Response, error) {
+					if req.Method == http.MethodGet && strings.Contains(req.URL.String(), "/.well-known/openid-configuration") {
+						return oidcDiscoveryResponse(), nil
+					}
+					if req.Method == http.MethodGet && req.URL.String() == testJWKSURL {
+						return jwksResponse(), nil
+					}
+					if req.Method == http.MethodPost && req.URL.String() == testTokenURL {
+						idToken := generateMockIDToken(testIssuerURL, "77777", testClientID, state4, "need_bind_user", "needbind@linux.do", "Need Bind User")
+						body := fmt.Sprintf(`{"access_token":"mock_access_token","token_type":"Bearer","expires_in":3600,"id_token":"%s"}`, idToken)
+						return &http.Response{
+							StatusCode: http.StatusOK,
+							Body:       io.NopCloser(strings.NewReader(body)),
+							Header:     make(http.Header),
+						}, nil
+					}
+					return nil, fmt.Errorf("unexpected request")
+				},
+			},
+		}
+		util.SetHTTPClient(httpMock4)
+		router4 := setupTestRouter(dbConn, mockRedis, httpMock4)
+
+		reqBody4 := fmt.Sprintf(`{"state":"%s","code":"test_auth_code"}`, state4)
+		w4 := performRequest(router4, http.MethodPost, "/api/v1/oauth/callback", []byte(reqBody4), map[string]string{
+			"Content-Type": "application/json",
+		}, nil)
+
+		if w4.Code != http.StatusOK {
+			t.Fatalf("callback failed: %d, body: %s", w4.Code, w4.Body.String())
+		}
+
+		var needBindResp struct {
+			Data OAuthCallbackResult `json:"data"`
+		}
+		_ = json.Unmarshal(w4.Body.Bytes(), &needBindResp)
+
+		if needBindResp.Data.Status != "need_bind" {
+			t.Errorf("expected status 'need_bind', got %s", needBindResp.Data.Status)
+		}
+		if needBindResp.Data.User != nil {
+			t.Errorf("expected User to be nil, got %+v", needBindResp.Data.User)
+		}
+	})
 }
 
 func TestCallbackBind(t *testing.T) {
