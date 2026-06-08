@@ -63,6 +63,7 @@ func Serve() {
 	// 初始化路由
 	r := gin.New()
 	r.Use(gin.Recovery())
+	r.Use(corsMiddleware())
 
 	cfg := config.Config.Redis
 	addrs := cfg.Addrs

@@ -19,16 +19,15 @@ package config
 import "time"
 
 type configModel struct {
-	App         appConfig         `mapstructure:"app"`
-	Database    databaseConfig    `mapstructure:"database"`
-	Redis       redisConfig       `mapstructure:"redis"`
-	Log         logConfig         `mapstructure:"log"`
-	Scheduler   schedulerConfig   `mapstructure:"scheduler"`
-	Worker      workerConfig      `mapstructure:"worker"`
-	ClickHouse  clickHouseConfig  `mapstructure:"clickhouse"`
-	OpenAPIRisk openAPIRiskConfig `mapstructure:"openapi_risk"`
-	Otel        otelConfig        `mapstructure:"otel"`
-	S3          s3Config          `mapstructure:"s3"`
+	App        appConfig        `mapstructure:"app"`
+	Database   databaseConfig   `mapstructure:"database"`
+	Redis      redisConfig      `mapstructure:"redis"`
+	Log        logConfig        `mapstructure:"log"`
+	Scheduler  schedulerConfig  `mapstructure:"scheduler"`
+	Worker     workerConfig     `mapstructure:"worker"`
+	ClickHouse clickHouseConfig `mapstructure:"clickhouse"`
+	Otel       otelConfig       `mapstructure:"otel"`
+	S3         s3Config         `mapstructure:"s3"`
 }
 
 // appConfig 应用基本配置
@@ -147,17 +146,6 @@ type workerConfig struct {
 type QueueConfig struct {
 	Name     string `mapstructure:"name"`
 	Priority int    `mapstructure:"priority"`
-}
-
-// openAPIRiskConfig OpenAPI 用户风险配置
-type openAPIRiskConfig struct {
-	Enabled          bool     `mapstructure:"enabled"`
-	BaseURL          string   `mapstructure:"base_url"`
-	Username         string   `mapstructure:"username"`
-	Password         string   `mapstructure:"password" json:"-"`
-	CacheTTLSeconds  int      `mapstructure:"cache_ttl_seconds"`
-	PromptRiskLevels []string `mapstructure:"prompt_risk_levels"`
-	BlockRiskLevels  []string `mapstructure:"block_risk_levels"`
 }
 
 // otelConfig OpenTelemetry 配置

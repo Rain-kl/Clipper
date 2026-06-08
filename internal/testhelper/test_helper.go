@@ -176,6 +176,12 @@ func seedDefaultConfigs(t *testing.T, tx *gorm.DB) {
 			Type:        "system",
 			Description: "人机验证兑换凭证有效时间（秒）",
 		},
+		{
+			Key:         model.ConfigKeyServerAddress,
+			Value:       "",
+			Type:        "system",
+			Description: "服务器地址（用于跨域源控制，不设定则允许任意源）",
+		},
 	}
 
 	if err := tx.Create(&defaultConfigs).Error; err != nil {

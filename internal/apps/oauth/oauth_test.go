@@ -333,10 +333,6 @@ func initializeTestConfig() {
 	config.Config.App.SessionSecret = "test_session_secret"
 	config.Config.App.APIPrefix = "/api"
 	config.Config.App.FrontendURL = "http://localhost:3000"
-	config.Config.OpenAPIRisk.Enabled = false
-	config.Config.OpenAPIRisk.BaseURL = ""
-	config.Config.OpenAPIRisk.BlockRiskLevels = []string{}
-	config.Config.OpenAPIRisk.PromptRiskLevels = []string{}
 }
 
 // -----------------------------------------------------------------------------
@@ -984,100 +980,5 @@ func TestExternalAccountsListAndDelete(t *testing.T) {
 	dbConn.Model(&model.ExternalAccount{}).Where("id = ?", 2001).Count(&count)
 	if count != 0 {
 		t.Error("binding record was not deleted from DB")
-	}
-}
-
-func TestLoginRequiredAndRiskChecks(t *testing.T) {
-	initializeTestConfig()
-	dbConn := setupTestDB(t)
-	mockRedis := newMockRedisClient()
-
-	// Create user
-	dbConn.Create(&model.User{
-		ID:       1122,
-		Username: "risk_tester",
-		IsActive: true,
-	})
-
-	// Enable risk checks
-	config.Config.OpenAPIRisk.Enabled = true
-	config.Config.OpenAPIRisk.BaseURL = "https://risk.test"
-	config.Config.OpenAPIRisk.BlockRiskLevels = []string{"BLOCK"}
-	config.Config.OpenAPIRisk.PromptRiskLevels = []string{"WARN"}
-
-	// Mock Risk HTTP Endpoint (Returns BLOCK)
-	httpMock := &http.Client{
-		Transport: &mockRoundTripper{
-			roundTripFunc: func(req *http.Request) (*http.Response, error) {
-				if req.Method == http.MethodGet && strings.Contains(req.URL.String(), "/api/open/v1/risk/users/1122") {
-					body := `{"risky":true,"risk_level":"BLOCK","risks":[{"label":"IP_ABUSE","value":"high","desc":"Blocked IP address"}]}`
-					return &http.Response{
-						StatusCode: http.StatusOK,
-						Body:       io.NopCloser(strings.NewReader(body)),
-					}, nil
-				}
-				return nil, fmt.Errorf("unexpected request: %s", req.URL)
-			},
-		},
-	}
-	util.SetHTTPClient(httpMock)
-	router := setupTestRouter(dbConn, mockRedis, httpMock)
-
-	router.GET("/test-helper/login-1122", func(c *gin.Context) {
-		session := sessions.Default(c)
-		session.Set(UserIDKey, uint64(1122))
-		session.Save()
-		c.String(200, "ok")
-	})
-
-	wLogin := performRequest(router, http.MethodGet, "/test-helper/login-1122", nil, nil, nil)
-	var activeCookie *http.Cookie
-	for _, cookie := range wLogin.Result().Cookies() {
-		if cookie.Name == config.Config.App.SessionCookieName {
-			activeCookie = cookie
-			break
-		}
-	}
-
-	// Trigger request - UserInfo requires LoginRequired middleware, which will check risk
-	wBlock := performRequest(router, http.MethodGet, "/api/v1/oauth/user-info", nil, nil, []*http.Cookie{activeCookie})
-	if wBlock.Code != http.StatusForbidden {
-		t.Fatalf("expected 403 Forbidden when user is risk-blocked, got %d, body: %s", wBlock.Code, wBlock.Body.String())
-	}
-
-	if !strings.Contains(wBlock.Body.String(), "RISK_BLOCKED") {
-		t.Errorf("response body should contain RISK_BLOCKED: %s", wBlock.Body.String())
-	}
-
-	// Clear risk cache in redis
-	mockRedis.store = make(map[string]string)
-
-	// Mock Risk HTTP Endpoint (Returns WARN)
-	httpMock2 := &http.Client{
-		Transport: &mockRoundTripper{
-			roundTripFunc: func(req *http.Request) (*http.Response, error) {
-				if req.Method == http.MethodGet && strings.Contains(req.URL.String(), "/api/open/v1/risk/users/1122") {
-					body := `{"risky":true,"risk_level":"WARN","risks":[{"label":"VPN_DETECTED","value":"yes","desc":"Warning VPN"}]}`
-					return &http.Response{
-						StatusCode: http.StatusOK,
-						Body:       io.NopCloser(strings.NewReader(body)),
-					}, nil
-				}
-				return nil, fmt.Errorf("unexpected request")
-			},
-		},
-	}
-	util.SetHTTPClient(httpMock2)
-	router2 := setupTestRouter(dbConn, mockRedis, httpMock2)
-
-	wWarn := performRequest(router2, http.MethodGet, "/api/v1/oauth/user-info", nil, nil, []*http.Cookie{activeCookie})
-	if wWarn.Code != http.StatusOK {
-		t.Fatalf("expected 200 OK when user is only warned, got %d, body: %s", wWarn.Code, wWarn.Body.String())
-	}
-
-	// Check if risk headers are present
-	hLevel := wWarn.Header().Get("X-Credit-Risk-Level")
-	if hLevel != "WARN" {
-		t.Errorf("expected X-Credit-Risk-Level WARN, got %s", hLevel)
 	}
 }

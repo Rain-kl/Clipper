@@ -45,6 +45,7 @@ const (
 	ConfigKeyCapChallengeDifficulty  = "cap_challenge_difficulty"  // 人机验证 PoW 难度（目标前缀长度）
 	ConfigKeyCapChallengeTTL         = "cap_challenge_ttl_seconds" // 人机验证难题有效时间（秒）
 	ConfigKeyCapTokenTTL             = "cap_token_ttl_seconds"     // 人机验证兑换凭证有效时间（秒）
+	ConfigKeyServerAddress           = "server_address"            // 服务器地址
 )
 
 const (

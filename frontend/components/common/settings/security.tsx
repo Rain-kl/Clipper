@@ -93,6 +93,7 @@ export function SecurityMain() {
   const [capTTL, setCapTTL] = useState("")
   const [capTokenTTL, setCapTokenTTL] = useState("")
   const [capAutoSolve, setCapAutoSolve] = useState(true)
+  const [serverAddress, setServerAddress] = useState("")
 
   const systemConfigsQuery = useQuery({
     queryKey: ["admin", "system-configs"],
@@ -126,6 +127,7 @@ export function SecurityMain() {
       setCapTTL(cfgMap["cap_challenge_ttl_seconds"]?.value || "600")
       setCapTokenTTL(cfgMap["cap_token_ttl_seconds"]?.value || "1200")
       setCapAutoSolve(cfgMap["cap_auto_solve"]?.value !== "false")
+      setServerAddress(cfgMap["server_address"]?.value || "")
     }
   }, [systemConfigsQuery.data])
 
@@ -212,6 +214,28 @@ export function SecurityMain() {
   const handleCapSave = (e: React.FormEvent) => {
     e.preventDefault()
     saveCapMutation.mutate()
+  }
+
+  const saveSystemMutation = useMutation({
+    mutationFn: async () => {
+      const currentCfg = configs["server_address"]
+      await AdminService.updateSystemConfig("server_address", {
+        value: serverAddress,
+        description: currentCfg?.description || "服务器地址",
+      })
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["admin", "system-configs"] })
+      toast.success("通用配置已成功保存")
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "保存配置失败")
+    },
+  })
+
+  const handleSystemSave = (e: React.FormEvent) => {
+    e.preventDefault()
+    saveSystemMutation.mutate()
   }
 
   if (loading || !user || !user.is_admin) {
@@ -541,7 +565,57 @@ export function SecurityMain() {
           </div>
         </TabsContent>
         <TabsContent value="operation" />
-        <TabsContent value="system" />
+        <TabsContent value="system" className="pt-4">
+          <div className="space-y-6">
+            <Card className="border border-dashed shadow-sm">
+              <CardHeader className="border-b border-dashed pb-4">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 rounded-lg bg-indigo-500/10 text-indigo-500">
+                    <Server className="size-4" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base font-semibold">通用设置</CardTitle>
+                    <CardDescription className="text-xs">配置系统的全局通用参数</CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-6">
+                <form onSubmit={handleSystemSave} className="space-y-6">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="server_address" className="text-xs font-semibold">服务器地址</Label>
+                    <Input
+                      id="server_address"
+                      type="text"
+                      value={serverAddress}
+                      onChange={(e) => setServerAddress(e.target.value)}
+                      placeholder="例如: https://example.com"
+                      className="bg-card border-dashed text-xs"
+                    />
+                    <p className="text-[10px] text-muted-foreground leading-normal">
+                      这里可以编辑更改服务器地址。默认不设定，允许从任意源（*）访问 API，此时存在跨域安全风险；如果手动设置服务器地址，CORS 允许源将更新为该地址，消除跨域安全隐患。
+                    </p>
+                  </div>
+                  <div className="flex justify-end pt-4 border-t border-dashed">
+                    <Button
+                      type="submit"
+                      size="sm"
+                      disabled={saveSystemMutation.isPending}
+                    >
+                      {saveSystemMutation.isPending ? (
+                        <>
+                          <Loader2 className="mr-1.5 size-3.5 animate-spin" />
+                          保存中...
+                        </>
+                      ) : (
+                        "保存配置"
+                      )}
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
         <TabsContent value="status" className="pt-4">
           <SystemStatusManager />
         </TabsContent>

@@ -17,12 +17,14 @@ limitations under the License.
 package router
 
 import (
+	"net/http"
 	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/linux-do/credit/internal/config"
 	"github.com/linux-do/credit/internal/logger"
+	"github.com/linux-do/credit/internal/model"
 	"github.com/linux-do/credit/internal/otel_trace"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
@@ -74,5 +76,30 @@ func loggerMiddleware() gin.HandlerFunc {
 			span := trace.SpanFromContext(ctx)
 			span.SetStatus(codes.Error, strconv.Itoa(c.Writer.Status()))
 		}
+	}
+}
+
+func corsMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		origin := c.Request.Header.Get("Origin")
+		if origin != "" {
+			var sc model.SystemConfig
+			// Fetch from system config. We use request context which supports trace
+			if err := sc.GetByKey(c.Request.Context(), model.ConfigKeyServerAddress); err == nil && sc.Value != "" {
+				c.Writer.Header().Set("Access-Control-Allow-Origin", sc.Value)
+			} else {
+				c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
+			}
+			c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+			c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With, X-Access-Token, X-Cap-Token")
+			c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT, DELETE, PATCH")
+		}
+
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(http.StatusNoContent)
+			return
+		}
+
+		c.Next()
 	}
 }

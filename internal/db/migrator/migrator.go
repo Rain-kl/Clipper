@@ -89,6 +89,7 @@ func initSystemConfigs() {
 		ensureConfigKeyExists(model.ConfigKeyCapChallengeDifficulty, "4", "system", "人机验证 PoW 难度（目标前缀长度）")
 		ensureConfigKeyExists(model.ConfigKeyCapChallengeTTL, "600", "system", "人机验证难题有效时间（秒）")
 		ensureConfigKeyExists(model.ConfigKeyCapTokenTTL, "1200", "system", "人机验证兑换凭证有效时间（秒）")
+		ensureConfigKeyExists(model.ConfigKeyServerAddress, "", "system", "服务器地址（用于跨域源控制，不设定则允许任意源）")
 		return
 	}
 
@@ -134,6 +135,12 @@ func initSystemConfigs() {
 			Value:       "1200",
 			Type:        "system",
 			Description: "人机验证兑换凭证有效时间（秒）",
+		},
+		{
+			Key:         model.ConfigKeyServerAddress,
+			Value:       "",
+			Type:        "system",
+			Description: "服务器地址（用于跨域源控制，不设定则允许任意源）",
 		},
 		{
 			Key:         model.ConfigKeyUploadAllowedExtensions,
