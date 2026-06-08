@@ -16,6 +16,7 @@ env:
   GO_BUILD_TAGS: embed_frontend
   GO_LDFLAGS: -s -w
   NODE_VERSION: "22"
+  PNPM_VERSION: "10.10.0"
   FRONTEND_DIR: frontend
   FRONTEND_BUILD_COMMAND: pnpm build:embed
   FRONTEND_OUT_DIR: frontend/out
@@ -85,19 +86,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+          run_install: false
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
           cache-dependency-path: ${{ env.FRONTEND_DIR }}/pnpm-lock.yaml
-
-      - name: Enable pnpm
-        shell: bash
-        run: |
-          set -euo pipefail
-          corepack enable
-          corepack prepare pnpm@10.10.0 --activate
 
       - name: Install frontend dependencies
         working-directory: ${{ env.FRONTEND_DIR }}
