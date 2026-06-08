@@ -44,6 +44,7 @@ Refreshing/                        # 项目根目录（模块名: github.com/lin
 ├── go.mod / go.sum                # Go 模块依赖
 ├── config.yaml                    # 运行时配置（不提交到 Git）
 ├── config.example.yaml            # 配置模板（需提交）
+├── DEPLOYMENT_zh.md               # 部署说明文档（中文版）
 ├── Makefile                       # 常用命令（swagger/tidy/license）
 ├── Dockerfile                     # 后端容器镜像构建
 ├── docker-compose.yml             # 本地依赖服务（PostgreSQL / Redis / ClickHouse）

@@ -38,7 +38,6 @@ type appConfig struct {
 	NodeID                  int64  `mapstructure:"node_id"`
 	APIPrefix               string `mapstructure:"api_prefix"`
 	GracefulShutdownTimeout int    `mapstructure:"graceful_shutdown_timeout"`
-	FrontendURL             string `mapstructure:"frontend_url"`
 	SessionCookieName       string `mapstructure:"session_cookie_name"`
 	SessionSecret           string `mapstructure:"session_secret"`
 	SessionDomain           string `mapstructure:"session_domain"`

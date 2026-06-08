@@ -66,7 +66,16 @@ func newMockRedisClient() *mockRedisClient {
 
 func (m *mockRedisClient) Set(ctx context.Context, key string, value interface{}, expiration time.Duration) *redis.StatusCmd {
 	cmd := redis.NewStatusCmd(ctx)
-	m.store[key] = fmt.Sprintf("%v", value)
+	var val string
+	switch v := value.(type) {
+	case []byte:
+		val = string(v)
+	case string:
+		val = v
+	default:
+		val = fmt.Sprintf("%v", v)
+	}
+	m.store[key] = val
 	cmd.SetVal("OK")
 	return cmd
 }
@@ -99,7 +108,15 @@ func (m *mockRedisClient) HSet(ctx context.Context, key string, values ...interf
 	cmd := redis.NewIntCmd(ctx)
 	if len(values) >= 2 {
 		field := fmt.Sprintf("%v", values[0])
-		val := fmt.Sprintf("%v", values[1])
+		var val string
+		switch v := values[1].(type) {
+		case []byte:
+			val = string(v)
+		case string:
+			val = v
+		default:
+			val = fmt.Sprintf("%v", v)
+		}
 		compositeKey := key + ":" + field
 		m.store[compositeKey] = val
 		cmd.SetVal(1)
@@ -265,6 +282,15 @@ func setupTestDB(t *testing.T) *gorm.DB {
 	if err != nil {
 		t.Fatalf("failed to migrate schema: %v", err)
 	}
+
+	// 注入测试所需的服务器地址配置
+	if err := dbConn.Create(&model.SystemConfig{
+		Key:   model.ConfigKeyServerAddress,
+		Value: "http://localhost:3000",
+	}).Error; err != nil {
+		t.Fatalf("failed to seed server_address config: %v", err)
+	}
+
 	return dbConn
 }
 
@@ -332,7 +358,6 @@ func initializeTestConfig() {
 	config.Config.App.SessionCookieName = "test_session_id"
 	config.Config.App.SessionSecret = "test_session_secret"
 	config.Config.App.APIPrefix = "/api"
-	config.Config.App.FrontendURL = "http://localhost:3000"
 }
 
 // -----------------------------------------------------------------------------

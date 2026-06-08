@@ -240,7 +240,7 @@ export const apiSections: PolicySection[] = [
           code={`{
   "error_msg": "",
   "data": {
-    "site_name": "Antigravity Project",
+    "site_name": "Wavelet",
     "registration_enabled": true,
     "password_login_enabled": true,
     "password_register_enabled": true,

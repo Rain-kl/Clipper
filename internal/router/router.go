@@ -200,6 +200,7 @@ func Serve() {
 				// System Config
 				adminRouter.POST("/system-configs", system_config.CreateSystemConfig)
 				adminRouter.GET("/system-configs", system_config.ListSystemConfigs)
+				adminRouter.POST("/system-configs/smtp/test", system_config.TestSMTP)
 
 				systemConfigRouter := adminRouter.Group("/system-configs/:key")
 				{
@@ -217,6 +218,9 @@ func Serve() {
 			}
 		}
 	}
+
+	// 注册前端静态路由（当启用 embed_frontend 编译标签时）
+	registerFrontend(r)
 
 	srv := &http.Server{
 		Addr:    config.Config.App.Addr,

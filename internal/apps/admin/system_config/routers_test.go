@@ -17,11 +17,14 @@ limitations under the License.
 package system_config
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
+	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/textproto"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -143,9 +146,9 @@ func TestListSystemConfigs(t *testing.T) {
 		var configs []model.SystemConfig
 		json.Unmarshal(dataBytes, &configs)
 
-		// Defaults seed 15 configurations
-		if len(configs) != 15 {
-			t.Errorf("expected 15 default configs, got %d", len(configs))
+		// Defaults seed 19 configurations
+		if len(configs) != 19 {
+			t.Errorf("expected 19 default configs, got %d", len(configs))
 		}
 	})
 
@@ -299,4 +302,107 @@ func TestDeleteSystemConfig(t *testing.T) {
 			t.Errorf("expected 404 Not Found, got %d", w.Code)
 		}
 	})
+}
+
+func TestTestSMTP(t *testing.T) {
+	_, _, cleanup := testhelper.SetupTestEnvironment(t)
+	defer cleanup()
+
+	adminUser := &model.User{ID: 1001, Username: "admin", IsAdmin: true}
+	r := setupTestRouter(adminUser)
+	r.POST("/api/v1/admin/system-configs/smtp/test", TestSMTP)
+
+	// Start a mock SMTP server
+	l, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("failed to start mock smtp server: %v", err)
+	}
+	defer l.Close()
+
+	port := l.Addr().(*net.TCPAddr).Port
+
+	go func() {
+		conn, err := l.Accept()
+		if err != nil {
+			return
+		}
+		defer conn.Close()
+
+		writer := bufio.NewWriter(conn)
+		reader := bufio.NewReader(conn)
+		tp := textproto.NewReader(reader)
+
+		// 220 Ready
+		writer.WriteString("220 mock.smtp.com SMTP Ready\r\n")
+		writer.Flush()
+
+		// Read HELO/EHLO
+		tp.ReadLine()
+		writer.WriteString("250-mock.smtp.com\r\n250 AUTH PLAIN\r\n")
+		writer.Flush()
+
+		// Read AUTH PLAIN
+		tp.ReadLine()
+		writer.WriteString("235 Authentication successful\r\n")
+		writer.Flush()
+
+		// Read MAIL FROM
+		tp.ReadLine()
+		writer.WriteString("250 OK\r\n")
+		writer.Flush()
+
+		// Read RCPT TO
+		tp.ReadLine()
+		writer.WriteString("250 OK\r\n")
+		writer.Flush()
+
+		// Read DATA
+		tp.ReadLine()
+		writer.WriteString("354 Start mail input\r\n")
+		writer.Flush()
+
+		// Read body lines until dot
+		for {
+			line, err := tp.ReadLine()
+			if err != nil || line == "." {
+				break
+			}
+		}
+		writer.WriteString("250 OK\r\n")
+		writer.Flush()
+
+		// Read QUIT
+		tp.ReadLine()
+		writer.WriteString("221 Bye\r\n")
+		writer.Flush()
+	}()
+
+	payload := TestSMTPRequest{
+		SMTPHost:     "127.0.0.1",
+		SMTPPort:     port,
+		SMTPUsername: "sender@example.com",
+		SMTPPassword: "password",
+		To:           "recipient@example.com",
+	}
+
+	body, _ := json.Marshal(payload)
+	req, _ := http.NewRequest("POST", "/api/v1/admin/system-configs/smtp/test", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200 OK, got %d. Body: %s", w.Code, w.Body.String())
+	}
+
+	var resp util.ResponseAny
+	json.Unmarshal(w.Body.Bytes(), &resp)
+
+	dataBytes, _ := json.Marshal(resp.Data)
+	var testResp TestSMTPResponse
+	json.Unmarshal(dataBytes, &testResp)
+
+	if !testResp.Success {
+		t.Errorf("expected test success, got failed: %s. Log: %s", testResp.Error, testResp.Log)
+	}
 }

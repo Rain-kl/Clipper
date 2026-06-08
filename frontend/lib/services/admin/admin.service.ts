@@ -117,6 +117,16 @@ export class AdminService extends BaseService {
     return this.put<void>(`/system-configs/${ key }`, request);
   }
 
+  static async testSMTP(request: {
+    smtp_host: string;
+    smtp_port: number;
+    smtp_username: string;
+    smtp_password: string;
+    to: string;
+  }): Promise<{ success: boolean; log: string; error: string }> {
+    return this.post<{ success: boolean; log: string; error: string }>('/system-configs/smtp/test', request);
+  }
+
   /**
    * 删除系统配置
    * @param key - 配置键

@@ -24,6 +24,7 @@ import (
 	"github.com/linux-do/credit/internal/db"
 	"github.com/linux-do/credit/internal/model"
 	"github.com/linux-do/credit/internal/util"
+	mail "github.com/linux-do/credit/internal/util/mail"
 	"gorm.io/gorm"
 )
 
@@ -123,6 +124,12 @@ func ListSystemConfigs(c *gin.Context) {
 		return
 	}
 
+	for i := range configs {
+		if configs[i].Key == model.ConfigKeySMTPPassword && configs[i].Value != "" {
+			configs[i].Value = "******"
+		}
+	}
+
 	c.JSON(http.StatusOK, util.OK(configs))
 }
 
@@ -148,6 +155,10 @@ func GetSystemConfig(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, util.Err(err.Error()))
 		}
 		return
+	}
+
+	if config.Key == model.ConfigKeySMTPPassword && config.Value != "" {
+		config.Value = "******"
 	}
 
 	c.JSON(http.StatusOK, util.OK(config))
@@ -191,11 +202,14 @@ func UpdateSystemConfig(c *gin.Context) {
 
 	if err := db.DB(c.Request.Context()).Transaction(func(tx *gorm.DB) error {
 		// 更新配置
-		if err := tx.Model(&config).
-			Updates(map[string]interface{}{
-				"value":       req.Value,
-				"description": req.Description,
-			}).Error; err != nil {
+		updates := map[string]interface{}{
+			"description": req.Description,
+		}
+		if !(key == model.ConfigKeySMTPPassword && req.Value == "******") {
+			updates["value"] = req.Value
+			config.Value = req.Value
+		}
+		if err := tx.Model(&config).Updates(updates).Error; err != nil {
 			return err
 		}
 
@@ -256,4 +270,70 @@ func DeleteSystemConfig(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, util.OKNil())
+}
+
+// TestSMTPRequest 测试 SMTP 配置请求
+type TestSMTPRequest struct {
+	SMTPHost     string `json:"smtp_host" binding:"required,max=255"`
+	SMTPPort     int    `json:"smtp_port" binding:"required"`
+	SMTPUsername string `json:"smtp_username" binding:"required,max=255"`
+	SMTPPassword string `json:"smtp_password" binding:"required,max=255"`
+	To           string `json:"to" binding:"required,email"`
+}
+
+// TestSMTPResponse 测试 SMTP 配置响应
+type TestSMTPResponse struct {
+	Success bool   `json:"success"`
+	Log     string `json:"log"`
+	Error   string `json:"error"`
+}
+
+// TestSMTP 测试 SMTP 邮件发送
+// @Summary 测试 SMTP 邮件发送
+// @Description 使用传入的配置进行 SMTP 邮件发送测试，支持使用 ****** 占位符使用保存的数据库密码
+// @Tags admin
+// @Accept json
+// @Produce json
+// @Security SessionCookie
+// @Param request body system_config.TestSMTPRequest true "测试请求参数"
+// @Success 200 {object} util.ResponseAny{data=system_config.TestSMTPResponse} "测试执行完毕"
+// @Failure 400 {object} util.ResponseAny "参数错误"
+// @Router /api/v1/admin/system-configs/smtp/test [post]
+func TestSMTP(c *gin.Context) {
+	var req TestSMTPRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, util.Err(err.Error()))
+		return
+	}
+
+	password := req.SMTPPassword
+	if password == "******" {
+		var sc model.SystemConfig
+		if err := sc.GetByKey(c.Request.Context(), model.ConfigKeySMTPPassword); err == nil {
+			password = sc.Value
+		}
+	}
+
+	cfg := mail.Config{
+		Host:     req.SMTPHost,
+		Port:     req.SMTPPort,
+		Username: req.SMTPUsername,
+		Password: password,
+	}
+
+	subject := "Wavelet SMTP Test Mail"
+	body := `<h3>SMTP Mail Connection Test</h3>
+<p>If you received this message, your SMTP configuration is correct and mail sending is working properly.</p>
+<p>Sent from Wavelet.</p>`
+
+	logs, err := mail.SendMailWithLog(cfg, req.To, subject, body)
+	resp := TestSMTPResponse{
+		Success: err == nil,
+		Log:     logs,
+	}
+	if err != nil {
+		resp.Error = err.Error()
+	}
+
+	c.JSON(http.StatusOK, util.OK(resp))
 }

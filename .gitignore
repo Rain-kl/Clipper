@@ -45,3 +45,5 @@ uploads/*
 s3_cache
 /frontend/.next/
 /data/
+/internal/router/dist/
+/frontend/out/

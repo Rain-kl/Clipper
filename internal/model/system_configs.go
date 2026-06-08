@@ -46,6 +46,10 @@ const (
 	ConfigKeyCapChallengeTTL         = "cap_challenge_ttl_seconds" // 人机验证难题有效时间（秒）
 	ConfigKeyCapTokenTTL             = "cap_token_ttl_seconds"     // 人机验证兑换凭证有效时间（秒）
 	ConfigKeyServerAddress           = "server_address"            // 服务器地址
+	ConfigKeySMTPHost                = "smtp_host"                 // SMTP 服务器地址
+	ConfigKeySMTPPort                = "smtp_port"                 // SMTP 端口
+	ConfigKeySMTPUsername            = "smtp_username"             // SMTP 账户
+	ConfigKeySMTPPassword            = "smtp_password"             // SMTP 访问凭证
 )
 
 const (

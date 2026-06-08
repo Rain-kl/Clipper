@@ -100,7 +100,7 @@ func seedDefaultConfigs(t *testing.T, tx *gorm.DB) {
 		},
 		{
 			Key:         model.ConfigKeySiteName,
-			Value:       "Antigravity Project",
+			Value:       "Wavelet",
 			Type:        "system",
 			Description: "系统平台的展示名称",
 		},
@@ -181,6 +181,30 @@ func seedDefaultConfigs(t *testing.T, tx *gorm.DB) {
 			Value:       "",
 			Type:        "system",
 			Description: "服务器地址（用于跨域源控制，不设定则允许任意源）",
+		},
+		{
+			Key:         model.ConfigKeySMTPHost,
+			Value:       "",
+			Type:        "system",
+			Description: "SMTP 服务器地址（例如 smtp.example.com）",
+		},
+		{
+			Key:         model.ConfigKeySMTPPort,
+			Value:       "587",
+			Type:        "system",
+			Description: "SMTP 端口（例如 587 或 465）",
+		},
+		{
+			Key:         model.ConfigKeySMTPUsername,
+			Value:       "",
+			Type:        "system",
+			Description: "SMTP 账户（如 sender@example.com）",
+		},
+		{
+			Key:         model.ConfigKeySMTPPassword,
+			Value:       "",
+			Type:        "system",
+			Description: "SMTP 访问凭证（授权码/密码）",
 		},
 	}
 

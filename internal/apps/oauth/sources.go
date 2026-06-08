@@ -15,7 +15,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/linux-do/credit/internal/common"
-	"github.com/linux-do/credit/internal/config"
 	"github.com/linux-do/credit/internal/db"
 	"github.com/linux-do/credit/internal/model"
 	"github.com/linux-do/credit/internal/util"
@@ -104,11 +103,12 @@ func activeLoginSources() []AuthSourceView {
 	return sources
 }
 
-func frontendLoginRedirectURL() string {
-	if config.Config.App.FrontendURL != "" {
-		return strings.TrimRight(config.Config.App.FrontendURL, "/") + "/login"
+func getFrontendLoginRedirectURL(ctx context.Context) (string, error) {
+	var sc model.SystemConfig
+	if err := sc.GetByKey(ctx, model.ConfigKeyServerAddress); err != nil || strings.TrimSpace(sc.Value) == "" {
+		return "", errors.New("服务器地址 (server_address) 未配置或配置为空，请在后台系统设置中配置后再试")
 	}
-	return "/login"
+	return strings.TrimRight(sc.Value, "/") + "/login", nil
 }
 
 func buildOAuthConfig(ctx context.Context, source *model.AuthSource, redirectURL string) (*oauth2.Config, *oidc.IDTokenVerifier, error) {
@@ -304,14 +304,18 @@ func GetLoginURL(c *gin.Context) {
 
 	authorizeURL, err := buildAuthorizeURL(c.Request.Context(), source, state)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, util.Err(err.Error()))
+		c.JSON(http.StatusBadRequest, util.Err(err.Error()))
 		return
 	}
 	c.JSON(http.StatusOK, util.OK(OAuthAuthorizeResponse{AuthorizeURL: authorizeURL}))
 }
 
 func buildAuthorizeURL(ctx context.Context, source *model.AuthSource, state string) (string, error) {
-	authConfig, verifier, err := buildOAuthConfig(ctx, source, frontendLoginRedirectURL())
+	redirectURL, err := getFrontendLoginRedirectURL(ctx)
+	if err != nil {
+		return "", err
+	}
+	authConfig, verifier, err := buildOAuthConfig(ctx, source, redirectURL)
 	if err != nil {
 		return "", err
 	}
@@ -361,7 +365,7 @@ func Authorize(c *gin.Context) {
 	}
 	authorizeURL, err := buildAuthorizeURL(c.Request.Context(), source, state)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, util.Err(err.Error()))
+		c.JSON(http.StatusBadRequest, util.Err(err.Error()))
 		return
 	}
 	c.JSON(http.StatusOK, util.OK(OAuthAuthorizeResponse{AuthorizeURL: authorizeURL}))
@@ -407,7 +411,13 @@ func Callback(c *gin.Context) {
 		return
 	}
 
-	userInfo, err := buildOAuthUserInfo(ctx, source, req.Code, req.State, frontendLoginRedirectURL())
+	redirectURL, err := getFrontendLoginRedirectURL(ctx)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, util.Err(err.Error()))
+		return
+	}
+
+	userInfo, err := buildOAuthUserInfo(ctx, source, req.Code, req.State, redirectURL)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, util.Err(err.Error()))
 		return
