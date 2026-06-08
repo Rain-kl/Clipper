@@ -48,6 +48,7 @@ func SetupTestEnvironment(t *testing.T) (*gorm.DB, *miniredis.Miniredis, func())
 		&model.SystemConfig{},
 		&model.Upload{},
 		&model.TaskExecution{},
+		&model.Template{},
 	)
 	if err != nil {
 		t.Fatalf("failed to auto migrate tables: %v", err)

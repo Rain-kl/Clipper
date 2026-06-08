@@ -30,6 +30,7 @@ import {Label} from "@/components/ui/label"
 import {Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle} from "@/components/ui/dialog"
 import {useAuth} from "@/components/providers/auth-provider"
 import {AuthSourceModal} from "@/components/common/settings/auth-source-modal"
+import {TemplatesManager} from "@/components/common/settings/templates"
 import {AdminService, apiConfig} from "@/lib/services"
 import type {AuthSource, SystemConfig} from "@/lib/services/admin"
 import {toast} from "sonner"
@@ -73,8 +74,6 @@ const SECURITY_KEYS = [
     icon: Mail,
   },
 ] as const
-
-type SecurityKey = (typeof SECURITY_KEYS)[number]["key"]
 
 function systemConfigMap(configs: SystemConfig[]) {
   return configs.reduce<Record<string, SystemConfig>>((accumulator, config) => {
@@ -671,7 +670,9 @@ export function SecurityMain() {
             </Card>
           </div>
         </TabsContent>
-        <TabsContent value="operation" />
+        <TabsContent value="operation" className="pt-4">
+          <TemplatesManager />
+        </TabsContent>
         <TabsContent value="system" className="pt-4">
           <div className="space-y-6">
             {/* 通用设置 */}

@@ -4,6 +4,7 @@ import type {
   AuthSource,
   AuthSourceRequest,
   CreateSystemConfigRequest,
+  CreateTemplateRequest,
   CreateUserRequest,
   DispatchTaskRequest,
   ListTaskExecutionsRequest,
@@ -15,8 +16,10 @@ import type {
   TaskExecution,
   TaskMeta,
   TaskTypeResponse,
+  Template,
   ToggleAuthSourceRequest,
   UpdateSystemConfigRequest,
+  UpdateTemplateRequest,
   UpdateUserStatusRequest,
 } from './types';
 
@@ -361,5 +364,42 @@ export class AdminService extends BaseService {
     next_cursor: number;
   }> {
     return this.get('/logs', { cursor, limit });
+  }
+
+  // ==================== 模板管理 ====================
+
+  /**
+   * 获取模板列表
+   */
+  static async listTemplates(): Promise<Template[]> {
+    return this.get<Template[]>('/templates');
+  }
+
+  /**
+   * 获取单个模板
+   */
+  static async getTemplate(key: string): Promise<Template> {
+    return this.get<Template>(`/templates/${ key }`);
+  }
+
+  /**
+   * 创建模板
+   */
+  static async createTemplate(request: CreateTemplateRequest): Promise<Template> {
+    return this.post<Template>('/templates', request);
+  }
+
+  /**
+   * 更新模板
+   */
+  static async updateTemplate(key: string, request: UpdateTemplateRequest): Promise<Template> {
+    return this.put<Template>(`/templates/${ key }`, request);
+  }
+
+  /**
+   * 删除模板
+   */
+  static async deleteTemplate(key: string): Promise<void> {
+    return this.delete<void>(`/templates/${ key }`);
   }
 }

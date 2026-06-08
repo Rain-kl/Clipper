@@ -33,6 +33,7 @@ import (
 	admin_logs "github.com/Rain-kl/Wavelet/internal/apps/admin/logs"
 	admin_status "github.com/Rain-kl/Wavelet/internal/apps/admin/status"
 	admin_task "github.com/Rain-kl/Wavelet/internal/apps/admin/task"
+	admin_template "github.com/Rain-kl/Wavelet/internal/apps/admin/template"
 	admin_user "github.com/Rain-kl/Wavelet/internal/apps/admin/user"
 	capApp "github.com/Rain-kl/Wavelet/internal/apps/cap"
 	publicconfig "github.com/Rain-kl/Wavelet/internal/apps/config"
@@ -214,6 +215,17 @@ func Serve() {
 					systemConfigRouter.GET("", system_config.GetSystemConfig)
 					systemConfigRouter.PUT("", system_config.UpdateSystemConfig)
 					systemConfigRouter.DELETE("", system_config.DeleteSystemConfig)
+				}
+
+				// Templates
+				adminRouter.GET("/templates", admin_template.ListTemplates)
+				adminRouter.POST("/templates", admin_template.CreateTemplate)
+
+				templateRouter := adminRouter.Group("/templates/:key")
+				{
+					templateRouter.GET("", admin_template.GetTemplate)
+					templateRouter.PUT("", admin_template.UpdateTemplate)
+					templateRouter.DELETE("", admin_template.DeleteTemplate)
 				}
 
 				// Auth Sources

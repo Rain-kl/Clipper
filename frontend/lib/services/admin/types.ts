@@ -324,3 +324,43 @@ export interface SystemStatus {
   last_pause: string;
   num_gc: number;
 }
+
+/**
+ * 模板配置信息
+ */
+export interface Template {
+  id: string;
+  key: string;
+  name: string;
+  type: string;
+  subject: string;
+  content: string;
+  description: string;
+  is_system: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * 创建模板请求参数
+ */
+export interface CreateTemplateRequest {
+  key: string;
+  name: string;
+  type: string;
+  subject: string;
+  content: string;
+  description: string;
+}
+
+/**
+ * 更新模板请求参数
+ */
+export interface UpdateTemplateRequest {
+  name: string;
+  type: string;
+  subject: string;
+  content: string;
+  description: string;
+}
+

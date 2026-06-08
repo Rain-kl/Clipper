@@ -42,6 +42,7 @@ func Migrate() {
 		&model.Upload{},
 		&model.AccessToken{},
 		&model.TaskExecution{},
+		&model.Template{},
 	); err != nil {
 		log.Fatalf("[PostgreSQL] auto migrate failed: %v\n", err)
 	}
@@ -51,6 +52,8 @@ func Migrate() {
 	initSystemConfigs()
 	// 初始化默认管理员用户
 	initDefaultAdmin()
+	// 初始化系统内置模板
+	initTemplates()
 }
 
 // ensureConfigKeyExists ensures a system config key exists in the database
@@ -265,5 +268,57 @@ func initDefaultAdmin() {
 		log.Printf("[PostgreSQL] failed to create default admin user: %v\n", err)
 	} else {
 		log.Printf("[PostgreSQL] default admin user created successfully (username: admin, password: 12345678)\n")
+	}
+}
+
+// initTemplates 初始化系统内置模板
+func initTemplates() {
+	tx := db.DB(context.Background())
+	var count int64
+	if err := tx.Model(&model.Template{}).Count(&count).Error; err != nil {
+		log.Printf("[PostgreSQL] failed to check templates table: %v\n", err)
+		return
+	}
+
+	defaultTemplates := []model.Template{
+		{
+			Key:         "login_email",
+			Name:        "登录验证码邮件",
+			Type:        "email",
+			Subject:     "Wavelet 登录验证码",
+			Content:     "<h3>Wavelet 登录验证</h3><p>您的登录验证码为：<strong>{{.Code}}</strong>，5分钟内有效，请勿将验证码泄露给他人。</p>",
+			Description: "用户密码登录时发送的验证码邮件模板，支持变量：{{.Code}}",
+			IsSystem:    true,
+		},
+		{
+			Key:         "register_email",
+			Name:        "注册验证码邮件",
+			Type:        "email",
+			Subject:     "Wavelet 注册验证码",
+			Content:     "<h3>Wavelet 注册验证</h3><p>您的注册验证码为：<strong>{{.Code}}</strong>，5分钟内有效，请勿泄露给他人。</p>",
+			Description: "用户注册时发送的验证码邮件模板，支持变量：{{.Code}}",
+			IsSystem:    true,
+		},
+	}
+
+	if count > 0 {
+		// 确保系统预置模板存在
+		for _, dt := range defaultTemplates {
+			var t model.Template
+			if err := tx.Where("key = ?", dt.Key).First(&t).Error; err != nil {
+				if err := tx.Create(&dt).Error; err != nil {
+					log.Printf("[PostgreSQL] failed to create template key %s: %v\n", dt.Key, err)
+				} else {
+					log.Printf("[PostgreSQL] initialized template key %s\n", dt.Key)
+				}
+			}
+		}
+		return
+	}
+
+	if err := tx.Create(&defaultTemplates).Error; err != nil {
+		log.Printf("[PostgreSQL] failed to create default templates: %v\n", err)
+	} else {
+		log.Printf("[PostgreSQL] initialized %d default templates\n", len(defaultTemplates))
 	}
 }

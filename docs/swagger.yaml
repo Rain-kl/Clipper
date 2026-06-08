@@ -224,6 +224,29 @@ definitions:
     - TaskExecutionStatusRunning
     - TaskExecutionStatusSucceeded
     - TaskExecutionStatusFailed
+  model.Template:
+    properties:
+      content:
+        type: string
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      is_system:
+        type: boolean
+      key:
+        type: string
+      name:
+        type: string
+      subject:
+        type: string
+      type:
+        type: string
+      updated_at:
+        type: string
+    type: object
   model.Upload:
     properties:
       created_at:
@@ -546,6 +569,52 @@ definitions:
       Type:
         description: 类型：string, text, number
         type: string
+    type: object
+  template.CreateTemplateRequest:
+    properties:
+      content:
+        type: string
+      description:
+        maxLength: 255
+        type: string
+      key:
+        maxLength: 80
+        type: string
+      name:
+        maxLength: 100
+        type: string
+      subject:
+        maxLength: 255
+        type: string
+      type:
+        maxLength: 20
+        type: string
+    required:
+    - content
+    - key
+    - name
+    - type
+    type: object
+  template.UpdateTemplateRequest:
+    properties:
+      content:
+        type: string
+      description:
+        maxLength: 255
+        type: string
+      name:
+        maxLength: 100
+        type: string
+      subject:
+        maxLength: 255
+        type: string
+      type:
+        maxLength: 20
+        type: string
+    required:
+    - content
+    - name
+    - type
     type: object
   upload.batchDownloadRequest:
     properties:
@@ -1493,6 +1562,224 @@ paths:
       security:
       - SessionCookie: []
       summary: 获取支持的任务类型
+      tags:
+      - admin
+  /api/v1/admin/templates:
+    get:
+      description: 返回所有通知模板列表，需要管理员权限
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 模板列表
+          schema:
+            allOf:
+            - $ref: '#/definitions/util.ResponseAny'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/model.Template'
+                  type: array
+              type: object
+        "401":
+          description: 未登录
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+        "403":
+          description: 无管理员权限
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+        "500":
+          description: 内部错误
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      security:
+      - SessionCookie: []
+      summary: 获取模板列表
+      tags:
+      - admin
+    post:
+      consumes:
+      - application/json
+      description: 创建一条新的自定义通知模板，模板标识符（Key）不可重复，需要管理员权限
+      parameters:
+      - description: 创建请求参数
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/template.CreateTemplateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 创建成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/util.ResponseAny'
+            - properties:
+                data:
+                  type: string
+              type: object
+        "400":
+          description: 参数错误或模板标识符已存在
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+        "401":
+          description: 未登录
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+        "403":
+          description: 无管理员权限
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+        "500":
+          description: 内部错误
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      security:
+      - SessionCookie: []
+      summary: 创建模板
+      tags:
+      - admin
+  /api/v1/admin/templates/{key}:
+    delete:
+      description: 根据模板标识符删除对应模板，系统预置模板不可删除，需要管理员权限
+      parameters:
+      - description: 模板标识符
+        in: path
+        name: key
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 删除成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/util.ResponseAny'
+            - properties:
+                data:
+                  type: string
+              type: object
+        "400":
+          description: 不可删除系统模板
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+        "401":
+          description: 未登录
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+        "403":
+          description: 无管理员权限
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+        "404":
+          description: 模板不存在
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+        "500":
+          description: 内部错误
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      security:
+      - SessionCookie: []
+      summary: 删除模板
+      tags:
+      - admin
+    get:
+      description: 根据模板标识符获取对应的模板详情，需要管理员权限
+      parameters:
+      - description: 模板标识符
+        in: path
+        name: key
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 模板详情
+          schema:
+            allOf:
+            - $ref: '#/definitions/util.ResponseAny'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.Template'
+              type: object
+        "401":
+          description: 未登录
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+        "403":
+          description: 无管理员权限
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+        "404":
+          description: 模板不存在
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+        "500":
+          description: 内部错误
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      security:
+      - SessionCookie: []
+      summary: 获取单个模板
+      tags:
+      - admin
+    put:
+      consumes:
+      - application/json
+      description: 根据模板标识符更新对应的模板内容，需要管理员权限
+      parameters:
+      - description: 模板标识符
+        in: path
+        name: key
+        required: true
+        type: string
+      - description: 更新请求参数
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/template.UpdateTemplateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 更新成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/util.ResponseAny'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.Template'
+              type: object
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+        "401":
+          description: 未登录
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+        "403":
+          description: 无管理员权限
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+        "404":
+          description: 模板不存在
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+        "500":
+          description: 内部错误
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      security:
+      - SessionCookie: []
+      summary: 更新模板
       tags:
       - admin
   /api/v1/admin/users:

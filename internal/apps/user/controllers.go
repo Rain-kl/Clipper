@@ -180,11 +180,20 @@ func Login(c *gin.Context) {
 				// 存冷却，60秒有效
 				_ = db.SetJSON(ctx, cooldownKey, "1", 60*time.Second)
 
+				// 使用模板管理获取并渲染邮件标题和正文
+				emailSubject, emailBody := model.RenderTemplate(
+					ctx,
+					"login_email",
+					map[string]any{"Code": code},
+					"Wavelet 登录验证码",
+					fmt.Sprintf("<h3>Wavelet 登录验证</h3><p>您的登录验证码为：<strong>%s</strong>，5分钟内有效，请勿将验证码泄露给他人。</p>", code),
+				)
+
 				// 构建异步邮件发送任务
 				payload := SendEmailPayload{
 					To:      user.Email,
-					Subject: "Wavelet 登录验证码",
-					Body:    fmt.Sprintf("<h3>Wavelet 登录验证</h3><p>您的登录验证码为：<strong>%s</strong>，5分钟内有效，请勿将验证码泄露给他人。</p>", code),
+					Subject: emailSubject,
+					Body:    emailBody,
 				}
 				payloadBytes, _ := json.Marshal(payload)
 				_, err = task.DispatchTask(ctx, task.TaskTypeSendEmail, payloadBytes, "system")
@@ -516,11 +525,20 @@ func SendEmailCode(c *gin.Context) {
 	}
 	_ = db.SetJSON(ctx, cooldownKey, "1", 60*time.Second)
 
+	// 使用模板管理获取并渲染邮件标题和正文
+	emailSubject, emailBody := model.RenderTemplate(
+		ctx,
+		"register_email",
+		map[string]any{"Code": code},
+		"Wavelet 注册验证码",
+		fmt.Sprintf("<h3>Wavelet 注册验证</h3><p>您的注册验证码为：<strong>%s</strong>，5分钟内有效，请勿泄露给他人。</p>", code),
+	)
+
 	// 4. 投递异步邮件发送任务
 	payload := SendEmailPayload{
 		To:      req.Email,
-		Subject: "Wavelet 注册验证码",
-		Body:    fmt.Sprintf("<h3>Wavelet 注册验证</h3><p>您的注册验证码为：<strong>%s</strong>，5分钟内有效，请勿泄露给他人。</p>", code),
+		Subject: emailSubject,
+		Body:    emailBody,
 	}
 	payloadBytes, _ := json.Marshal(payload)
 	_, err = task.DispatchTask(ctx, task.TaskTypeSendEmail, payloadBytes, "system")
