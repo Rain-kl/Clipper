@@ -24,6 +24,13 @@ type TaskResult struct {
 	Detail  string // 可选的详细结果 JSON
 }
 
+// PayloadValidator 可选接口，带参数的任务 Handler 应实现此接口。
+// 框架在 Admin 下发时自动调用，完成参数校验和标准化（如 Trim 空白）。
+// 无参数的任务无需实现，框架会直接透传 payload。
+type PayloadValidator interface {
+	ValidatePayload(payload []byte) ([]byte, error)
+}
+
 // TaskHandler 异步任务处理器接口
 // 所有异步任务必须实现此接口，框架将自动管理任务执行记录的创建、状态流转和日志写入。
 //

@@ -46,6 +46,20 @@ func getHandler(asynqTaskType string) (TaskHandler, bool) {
 	return h, ok
 }
 
+// ValidateAndNormalizePayload 校验并标准化任务参数。
+// 如果 Handler 实现了 PayloadValidator，调用其 ValidatePayload 方法；
+// 否则直接返回原始 payload。
+func ValidateAndNormalizePayload(asynqTaskType string, payload []byte) ([]byte, error) {
+	handler, ok := getHandler(asynqTaskType)
+	if !ok {
+		return payload, nil
+	}
+	if validator, ok := handler.(PayloadValidator); ok {
+		return validator.ValidatePayload(payload)
+	}
+	return payload, nil
+}
+
 // contextKey 用于 context 存取 taskID
 type contextKey string
 

@@ -1,6 +1,6 @@
 ---
 name: "new-async-task"
-description: "项目专用：指导如何在本项目中新增异步任务（TaskHandler），包括常量定义、参数传递（TaskParam）、处理器实现、Admin 校验、注册、Cron 调度、AppendLog 日志规范等完整步骤。"
+description: "项目专用：指导如何在本项目中新增异步任务（TaskHandler），包括常量定义、参数传递（TaskParam）、PayloadValidator 接口、处理器实现、注册、Cron 调度、AppendLog 日志规范等完整步骤。"
 ---
 
 # 新增异步任务开发指南
@@ -26,9 +26,9 @@ TaskHandler.Execute (← 你写这一步)
 ```
 
 **关键文件**：
-- `internal/task/handler.go` — `TaskHandler` 接口、`TaskResult` 类型
+- `internal/task/handler.go` — `TaskHandler` 接口、`TaskResult` 类型、`PayloadValidator` 可选接口
 - `internal/task/constants.go` — 任务类型常量、`TaskMeta`、`TaskParam`、`DispatchableTasks`
-- `internal/task/executor.go` — 注册、下发、执行、日志追加
+- `internal/task/executor.go` — 注册、下发、执行、日志追加、参数校验分发
 - `internal/task/worker/worker.go` — Worker 启动、处理器注册、路由
 - `internal/task/scheduler/scheduler.go` — Cron 定时调度
 - `internal/model/task_execution.go` — `TaskExecution` GORM 模型
@@ -119,13 +119,15 @@ const TaskTypeCleanupUploads = "cleanup_unused_uploads"
 | `Placeholder` | 前端输入框占位文字 |
 | `Description` | 前端显示的参数说明 |
 
-**注意**：`TaskParam` 纯粹是前端表单元数据。服务端不基于它做参数校验——校验逻辑在 Admin dispatch handler 和 Handler Execute 中各写一份。
+**注意**：`TaskParam` 纯粹是前端表单元数据。服务端参数校验通过 Handler 实现 `PayloadValidator` 接口完成（见第 2 步）。
 
-### 第 2 步：实现 TaskHandler
+### 第 2 步：实现 TaskHandler（+ 可选 PayloadValidator）
 
 在 `internal/apps/<module>/` 下创建 `tasks.go`。
 
-**无参数的任务**（参考 `internal/apps/upload/tasks.go`）：
+#### 无参数的任务（参考 `internal/apps/upload/tasks.go`）
+
+只需实现 `TaskHandler` 接口：
 
 ```go
 type CleanupUnusedUploadsHandler struct{}
@@ -137,9 +139,9 @@ func (h *CleanupUnusedUploadsHandler) Execute(ctx context.Context, payload []byt
 }
 ```
 
-**带参数的任务**（参考 `internal/apps/user/tasks.go`）：
+#### 带参数的任务（参考 `internal/apps/user/tasks.go`）
 
-需要定义自己的 Payload 结构体，在 `Execute` 中反序列化：
+需要定义 Payload 结构体，并实现 `PayloadValidator` 接口进行参数校验：
 
 ```go
 // 定义载荷结构体（字段与 TaskParam.Name 对应）
@@ -151,16 +153,40 @@ type SendEmailPayload struct {
 
 type SendEmailHandler struct{}
 
-func (h *SendEmailHandler) Execute(ctx context.Context, payload []byte) (*task.TaskResult, error) {
-    // 第一步：反序列化参数
+// ValidatePayload 实现 task.PayloadValidator 接口
+// 框架在 Admin 下发时自动调用，校验失败返回 error，前端收到 400 + 错误信息
+func (h *SendEmailHandler) ValidatePayload(payload []byte) ([]byte, error) {
+    if len(payload) == 0 {
+        return nil, errors.New("任务参数不能为空")
+    }
+
     var req SendEmailPayload
     if err := json.Unmarshal(payload, &req); err != nil {
-        task.AppendLog(ctx, "解析参数失败: %v", err)
+        return nil, fmt.Errorf("无效的 JSON 格式: %w", err)
+    }
+
+    // 标准化：Trim 空白
+    req.To = strings.TrimSpace(req.To)
+    req.Subject = strings.TrimSpace(req.Subject)
+    req.Body = strings.TrimSpace(req.Body)
+
+    // 校验必填字段
+    if req.To == "" || req.Subject == "" || req.Body == "" {
+        return nil, errors.New("to、subject、body 不能为空")
+    }
+
+    // 返回标准化后的 bytes，会作为最终 payload 存入 DB 和入队
+    return json.Marshal(req)
+}
+
+// Execute 实现 task.TaskHandler 接口
+func (h *SendEmailHandler) Execute(ctx context.Context, payload []byte) (*task.TaskResult, error) {
+    var req SendEmailPayload
+    if err := json.Unmarshal(payload, &req); err != nil {
         return nil, fmt.Errorf("解析参数失败: %w", err)
     }
 
     task.AppendLog(ctx, "开始发送邮件到: %s, 主题: %s", req.To, req.Subject)
-
     // ... 业务逻辑 ...
 
     msg := fmt.Sprintf("邮件成功发送至: %s", req.To)
@@ -169,77 +195,28 @@ func (h *SendEmailHandler) Execute(ctx context.Context, payload []byte) (*task.T
 }
 ```
 
+**`PayloadValidator` 接口说明**：
+
+```go
+type PayloadValidator interface {
+    ValidatePayload(payload []byte) ([]byte, error)
+}
+```
+
+这是一个**可选接口**。框架在 Admin 下发任务时通过 `task.ValidateAndNormalizePayload` 自动检测：
+
+- Handler 实现了 `PayloadValidator` → 调用 `ValidatePayload`，校验通过返回标准化后的 bytes，失败返回 error（前端收到 400）
+- Handler 没实现 → 直接透传原始 payload，不做任何校验
+
+**不需要修改 Admin dispatch handler**。`routers.go` 中的 `DispatchTask` 函数已经是通用的，会自动调用对应 Handler 的 `ValidatePayload`。
+
+**`Execute` 中仍然需要 `json.Unmarshal`**，因为任务可能通过 Scheduler 或重试触发，不经过 Admin 校验路径。但不需要重复必填校验。
+
 **返回值约定**：
 - 成功：返回 `&task.TaskResult{Message: "摘要", Detail: "可选详细JSON"}`。`ProcessTask` 会将 `Message + "\n" + Detail` 存入 `TaskExecution.Result`。
 - 失败：返回 `nil, fmt.Errorf("...")`。`ProcessTask` 会将错误信息存入 `TaskExecution.ErrorMessage`，状态标记为 `failed`，并将 error 返回给 Asynq 触发自动重试。
 
-### 第 3 步：在 Admin dispatch handler 中添加参数校验
-
-打开 `internal/apps/admin/task/routers.go`，在 `DispatchTask` 函数中为新任务类型添加校验逻辑。
-
-下发请求结构体中，前端传入的参数通过 `Payload` 字段（JSON 字符串）传递：
-
-```go
-type DispatchTaskRequest struct {
-    TaskType  string     `json:"task_type" binding:"required"`
-    StartTime *time.Time `json:"start_time"`
-    EndTime   *time.Time `json:"end_time"`
-    UserID    *uint64    `json:"user_id"`
-    Payload   string     `json:"payload"`   // ← 前端传的参数 JSON 字符串
-}
-```
-
-在 `DispatchTask` 函数中按 task type 分支校验：
-
-```go
-var payloadBytes []byte
-if req.TaskType == task.TaskTypeSendEmail {
-    // 校验 payload 非空
-    if strings.TrimSpace(req.Payload) == "" {
-        c.JSON(http.StatusBadRequest, util.Err("任务参数 Payload 不能为空"))
-        return
-    }
-    // 解析 JSON 并校验必填字段
-    var mailPayload struct {
-        To      string `json:"to"`
-        Subject string `json:"subject"`
-        Body    string `json:"body"`
-    }
-    if err := json.Unmarshal([]byte(req.Payload), &mailPayload); err != nil {
-        c.JSON(http.StatusBadRequest, util.Err("无效的 JSON 格式: "+err.Error()))
-        return
-    }
-    // Trim + 必填校验
-    mailPayload.To = strings.TrimSpace(mailPayload.To)
-    mailPayload.Subject = strings.TrimSpace(mailPayload.Subject)
-    mailPayload.Body = strings.TrimSpace(mailPayload.Body)
-    if mailPayload.To == "" || mailPayload.Subject == "" || mailPayload.Body == "" {
-        c.JSON(http.StatusBadRequest, util.Err("to、subject、body 不能为空"))
-        return
-    }
-    // 序列化回 bytes 传给 DispatchTask
-    payloadBytes, _ = json.Marshal(mailPayload)
-} else {
-    // 无参数任务：直接透传 payload
-    if req.Payload != "" {
-        payloadBytes = []byte(req.Payload)
-    }
-}
-
-taskID, err := task.DispatchTask(c.Request.Context(), req.TaskType, payloadBytes, "manual")
-```
-
-**参数传递的完整链路**：
-
-```
-前端表单（根据 TaskMeta.Params 动态渲染）
-  → POST /api/v1/admin/tasks/dispatch { task_type, payload: JSON字符串 }
-  → Admin DispatchTask handler 校验 + json.Marshal
-  → task.DispatchTask(payloadBytes) 存入 DB + 入队 Asynq
-  → ProcessTask → handler.Execute(payload) → handler 内 json.Unmarshal
-```
-
-### 第 4 步：在 worker.go 注册
+### 第 3 步：在 worker.go 注册
 
 打开 `internal/task/worker/worker.go`，做两件事：
 
@@ -263,7 +240,7 @@ mux.HandleFunc(task.SendEmailTask, task.ProcessTask)
 
 所有路由都指向同一个 `task.ProcessTask`，它内部根据 Asynq task type 查找对应的 handler 分发执行。
 
-### 第 5 步（可选）：添加 Cron 定时调度
+### 第 4 步（可选）：添加 Cron 定时调度
 
 如果任务需要定时执行，编辑 `internal/task/scheduler/scheduler.go`，在 `StartScheduler()` 中注册：
 
@@ -297,6 +274,21 @@ scheduler:
 
 **注意**：通过 Scheduler 定时触发的任务不会创建 `TaskExecution` 记录（直接入队 Asynq）。`ProcessTask` 执行时若在数据库中找不到对应记录，会打印警告日志但仍会正常执行业务逻辑。如果需要状态追踪，应通过 Admin API 手动下发。
 
+## 参数校验的完整链路
+
+```
+前端表单（根据 TaskMeta.Params 动态渲染）
+  → POST /api/v1/admin/tasks/dispatch { task_type, payload: JSON字符串 }
+  → task.ValidateAndNormalizePayload(asynqTaskType, payload)
+      → Handler 实现了 PayloadValidator？
+          → 是：调用 ValidatePayload()，校验 + 标准化
+          → 否：直接透传
+  → task.DispatchTask(validatedPayload) 存入 DB + 入队 Asynq
+  → ProcessTask → handler.Execute(payload) → handler 内 json.Unmarshal 使用参数
+```
+
+关键点：Admin dispatch handler (`routers.go`) 是**通用的**，不需要按任务类型写 if 分支。新增带参数的任务时，只需在 Handler 上实现 `ValidatePayload` 方法即可。
+
 ## AppendLog 使用指南
 
 `task.AppendLog(ctx, format string, args ...interface{})` 在 `TaskHandler.Execute` 内部调用，将日志追加到 `TaskExecution.Log` 字段。管理端 API 可查看完整执行日志。
@@ -320,8 +312,9 @@ scheduler:
 
 ## 框架自动处理的事项
 
-开发者不需要关心以下内容，全部由 `ProcessTask` 框架层透明处理：
+开发者不需要关心以下内容，全部由框架透明处理：
 
+- **参数校验分发**：`ValidateAndNormalizePayload` 自动检测 Handler 是否实现 `PayloadValidator`，实现了就调用，否则透传
 - **记录创建**：`DispatchTask` 自动创建 `TaskExecution` 记录，生成唯一 `TaskID`（格式 `{triggeredBy}_{taskType}_{snowflakeID}`）
 - **状态流转**：`pending` → `running` → `succeeded`/`failed`
 - **耗时统计**：自动记录 `StartedAt`、`FinishedAt`、`Duration`（毫秒）
@@ -343,5 +336,5 @@ scheduler:
 ## 参考：现有任务处理器
 
 - `internal/apps/upload/tasks.go` — `CleanupUnusedUploadsHandler`：无参数任务，展示游标分页批量处理、每批次 AppendLog、事务内操作、单条失败 continue 不终止。
-- `internal/apps/user/tasks.go` — `SendEmailHandler`：带参数任务，展示 Payload 结构体定义、json.Unmarshal 反序列化、参数日志记录。
+- `internal/apps/user/tasks.go` — `SendEmailHandler`：带参数任务，展示 Payload 结构体定义、`PayloadValidator` 实现（`ValidatePayload` 用于校验+标准化）、`Execute` 中 json.Unmarshal 使用参数。
 

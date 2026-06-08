@@ -22,6 +22,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/linux-do/credit/internal/model"
 	"github.com/linux-do/credit/internal/task"
@@ -37,6 +38,29 @@ type SendEmailPayload struct {
 
 // SendEmailHandler 发送验证码邮件的异步任务处理器
 type SendEmailHandler struct{}
+
+// ValidatePayload 实现 task.PayloadValidator 接口
+// 校验并标准化邮件发送参数，框架在 Admin 下发时自动调用
+func (h *SendEmailHandler) ValidatePayload(payload []byte) ([]byte, error) {
+	if len(payload) == 0 {
+		return nil, errors.New("任务参数不能为空")
+	}
+
+	var req SendEmailPayload
+	if err := json.Unmarshal(payload, &req); err != nil {
+		return nil, fmt.Errorf("无效的 JSON 格式: %w", err)
+	}
+
+	req.To = strings.TrimSpace(req.To)
+	req.Subject = strings.TrimSpace(req.Subject)
+	req.Body = strings.TrimSpace(req.Body)
+
+	if req.To == "" || req.Subject == "" || req.Body == "" {
+		return nil, errors.New("to、subject、body 不能为空")
+	}
+
+	return json.Marshal(req)
+}
 
 // Execute 执行邮件异步发送逻辑
 func (h *SendEmailHandler) Execute(ctx context.Context, payload []byte) (*task.TaskResult, error) {
