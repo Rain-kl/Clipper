@@ -154,9 +154,6 @@ export function AccessTokenMain() {
 
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b pb-5">
         <div className="flex items-center gap-4">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-500/20">
-            <Key className="size-6" />
-          </div>
           <div>
             <h1 className="text-xl font-bold tracking-tight bg-gradient-to-r from-foreground via-foreground/90 to-muted-foreground bg-clip-text text-transparent">个人访问令牌 (AccessToken)</h1>
             <p className="text-sm text-muted-foreground">管理您的 API 访问密钥，用于开发或第三方工具直接调用系统 API</p>
@@ -165,7 +162,7 @@ export function AccessTokenMain() {
         <Button
           type="button"
           onClick={() => setCreateDialogOpen(true)}
-          className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-600/10 transition-colors shrink-0"
+          variant={'secondary'}
         >
           <Plus className="mr-1.5 size-4" />
           生成新令牌
@@ -310,7 +307,7 @@ export function AccessTokenMain() {
               <Button
                 type="submit"
                 disabled={createTokenMutation.isPending}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs h-9"
+                variant={'secondary'}
               >
                 {createTokenMutation.isPending ? (
                   <>

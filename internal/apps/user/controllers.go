@@ -10,7 +10,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/linux-do/credit/internal/apps/oauth"
 	"github.com/linux-do/credit/internal/common"
-	"github.com/linux-do/credit/internal/common/bind"
 	"github.com/linux-do/credit/internal/db"
 	"github.com/linux-do/credit/internal/model"
 	"github.com/linux-do/credit/internal/util"
@@ -79,7 +78,8 @@ func Login(c *gin.Context) {
 		return
 	}
 	var req loginRequest
-	if !bind.JSON(c, &req) {
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, util.Err(err.Error()))
 		return
 	}
 	req.Username = strings.TrimSpace(req.Username)
@@ -154,7 +154,8 @@ func Register(c *gin.Context) {
 	}
 
 	var req registerRequest
-	if !bind.JSON(c, &req) {
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, util.Err(err.Error()))
 		return
 	}
 
@@ -253,7 +254,8 @@ type changePasswordRequest struct {
 // @Router /api/v1/user/change-password [post]
 func ChangePassword(c *gin.Context) {
 	var req changePasswordRequest
-	if !bind.JSON(c, &req) {
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, util.Err(err.Error()))
 		return
 	}
 
