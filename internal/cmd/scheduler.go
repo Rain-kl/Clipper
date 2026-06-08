@@ -26,7 +26,7 @@ import (
 
 var schedulerCmd = &cobra.Command{
 	Use:   "scheduler",
-	Short: "credit Scheduler",
+	Short: "wavelet Scheduler",
 	Run: func(cmd *cobra.Command, args []string) {
 		log.Println("[Scheduler] 启动定时任务调度服务")
 		if err := scheduler.StartScheduler(); err != nil {

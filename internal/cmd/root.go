@@ -24,7 +24,7 @@ import (
 )
 
 var rootCmd = &cobra.Command{
-	Use: "linux-do-credit",
+	Use: "wavelet",
 	PreRun: func(cmd *cobra.Command, args []string) {
 		migrator.Migrate()
 	},

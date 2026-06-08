@@ -5,4 +5,4 @@ build-embedded:
 	cd frontend && pnpm build:embed
 	rm -rf internal/router/dist
 	cp -R frontend/out internal/router/dist
-	go build -tags embed_frontend -o bin/credit main.go
+	go build -tags embed_frontend -o bin/wavelet main.go

@@ -1,4 +1,4 @@
-# Wavelet
+# wavelet
 
 🚀 A modern, production-ready full-stack boilerplate for building scalable web applications
 
@@ -11,7 +11,7 @@
 
 ## 📖 Introduction
 
-**Wavelet** is a generic, production-ready full-stack boilerplate built with **Go (Gin + GORM)** on the backend and **Next.js (App Router + Shadcn UI)** on the frontend. It ships with everything you need to bootstrap a modern SaaS, internal tool, or developer platform — without the boilerplate headaches.
+**wavelet** is a generic, production-ready full-stack boilerplate built with **Go (Gin + GORM)** on the backend and **Next.js (App Router + Shadcn UI)** on the frontend. It ships with everything you need to bootstrap a modern SaaS, internal tool, or developer platform — without the boilerplate headaches.
 
 The project was designed from the ground up to be **framework-first and business-agnostic**: plug in your own domain logic while reusing the battle-tested infrastructure that comes out of the box.
 
@@ -209,11 +209,11 @@ pnpm format
 ## 📁 Project Structure
 
 ```
-Refreshing/
+wavelet/
 ├── main.go                  # Entry point (delegates to internal/cmd)
 ├── config.example.yaml      # Configuration template
 ├── Makefile                 # Common commands (swagger, tidy, license)
-├── Dockerfile               # Container image build
+├── docker/                  # Docker image build files (integrated/frontend/backend)
 ├── docs/                    # Swagger auto-generated docs
 ├── frontend/                # Next.js frontend application
 │   ├── app/                 # App Router pages

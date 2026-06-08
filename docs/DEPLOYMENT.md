@@ -1,6 +1,6 @@
-# Wavelet 部署指南
+# wavelet 部署指南
 
-本文档详细介绍了 **Wavelet** 脚手架系统在不同业务阶段的部署方案，涵盖从**最小化单机部署**到**最大化高可用分布式部署**的全生命周期架构。
+本文档详细介绍了 **wavelet** 脚手架系统在不同业务阶段的部署方案，涵盖从**最小化单机部署**到**最大化高可用分布式部署**的全生命周期架构。
 
 ---
 
@@ -10,9 +10,9 @@
 
 | 组件名称 | 运行命令/形式 | 职责说明 | 必选/可选 |
 | :--- | :--- | :--- | :--- |
-| **HTTP API 服务** | `bin/credit api` | 接收并处理前端及第三方的 RESTful API 请求 | **必选** |
-| **异步任务工作进程** | `bin/credit worker` | 消费并处理异步队列任务（如邮件发送、清理上传文件等） | **必选** |
-| **定时任务调度器** | `bin/credit scheduler` | 定时向 Redis 队列下发 Cron 任务（仅负责触发，不负责执行） | **必选** |
+| **HTTP API 服务** | `bin/wavelet api` | 接收并处理前端及第三方的 RESTful API 请求 | **必选** |
+| **异步任务工作进程** | `bin/wavelet worker` | 消费并处理异步队列任务（如邮件发送、清理上传文件等） | **必选** |
+| **定时任务调度器** | `bin/wavelet scheduler` | 定时向 Redis 队列下发 Cron 任务（仅负责触发，不负责执行） | **必选** |
 | **前端服务 (Node.js)** | `pnpm start` | 提供 React/Next.js 页面服务（在分离部署时使用） | 分离模式必选 |
 | **PostgreSQL** | 关系型主数据库 | 存储用户、系统配置、认证源、任务执行记录等核心数据 | **必选** |
 | **Redis** | 缓存与消息队列中间件 | 存储 Session 会话、临时缓存以及 Asynq 异步任务队列数据 | **必选** |
@@ -99,12 +99,12 @@ docker compose up -d
 make build-embedded
 ```
 该命令会自动完成前端的静态编译导出 (`frontend/out`)、复制到 Go 后端目录，最后使用 `-tags embed_frontend` 生成后端单文件：
-- 产物路径：`bin/credit`
+- 产物路径：`bin/wavelet`
 
 #### 3. 进程管理 (使用 Systemd)
-将 `bin/credit` 拷贝到生产服务器 `/usr/local/bin/credit`，并为 `api`、`worker` 和 `scheduler` 配置 Systemd 管理服务。
+将 `bin/wavelet` 拷贝到生产服务器 `/usr/local/bin/wavelet`，并为 `api`、`worker` 和 `scheduler` 配置 Systemd 管理服务。
 
-新建 API 进程服务文件 `/etc/systemd/system/refreshing-api.service`：
+新建 API 进程服务文件 `/etc/systemd/system/wavelet-api.service`：
 ```ini
 [Unit]
 Description=Refreshing API Service
@@ -114,14 +114,14 @@ After=network.target
 Type=simple
 User=root
 WorkingDirectory=/app
-ExecStart=/usr/local/bin/credit api
+ExecStart=/usr/local/bin/wavelet api
 Restart=always
 RestartSec=5
 
 [Install]
 WantedBy=multi-user.target
 ```
-同理，新建 Worker 服务 `/etc/systemd/system/refreshing-worker.service`（将命令改为 `credit worker`），以及 Scheduler 服务 `/etc/systemd/system/refreshing-scheduler.service`（将命令改为 `credit scheduler`）。
+同理，新建 Worker 服务 `/etc/systemd/system/wavelet-worker.service`（将命令改为 `wavelet worker`），以及 Scheduler 服务 `/etc/systemd/system/wavelet-scheduler.service`（将命令改为 `wavelet scheduler`）。
 
 启动并启用所有服务：
 ```bash
@@ -171,9 +171,9 @@ server {
 #### 1. 部署后端 Go 服务
 1. 编译后端：
    ```bash
-   go build -o bin/credit main.go
+   go build -o bin/wavelet main.go
    ```
-2. 在后端服务器上，同样使用 Systemd 或 Docker 守护启动 `credit api`、`credit worker` 和 `credit scheduler`。
+2. 在后端服务器上，同样使用 Systemd 或 Docker 守护启动 `wavelet api`、`wavelet worker` 和 `wavelet scheduler`。
 3. 配置后端 Nginx 将客户端 API 请求（如 `/api/...`）反向代理至后端绑定的端口（如 `:8000`）。
 
 #### 2. 部署前端 Next.js 服务
@@ -301,9 +301,9 @@ s3:
 ```
 
 #### 4. 后端进程横向拆分部署
-- **API 集群**：启动数十个甚至上百个 `credit api` 无状态容器。它们可以通过负载均衡器直接挂载，支持随时弹性缩容扩容。
-- **Worker 集群**：启动多个 `credit worker` 容器。因为 `Asynq` 基于 Redis 分布式处理，多个 Worker 进程可以安全地同时运行并竞抢同一队列的异步任务，自动保障任务的并发吞吐能力。
-- **Scheduler 独占**：**【注意】** 为避免重复触发定时 Cron 任务，`credit scheduler` 定时调度器进程**同一时间应仅运行单个活跃实例**（主备高可用可以通过容器平台的单实例保障或 K8s Job 机制来限制实例数为 1）。
+- **API 集群**：启动数十个甚至上百个 `wavelet api` 无状态容器。它们可以通过负载均衡器直接挂载，支持随时弹性缩容扩容。
+- **Worker 集群**：启动多个 `wavelet worker` 容器。因为 `Asynq` 基于 Redis 分布式处理，多个 Worker 进程可以安全地同时运行并竞抢同一队列的异步任务，自动保障任务的并发吞吐能力。
+- **Scheduler 独占**：**【注意】** 为避免重复触发定时 Cron 任务，`wavelet scheduler` 定时调度器进程**同一时间应仅运行单个活跃实例**（主备高可用可以通过容器平台的单实例保障或 K8s Job 机制来限制实例数为 1）。
 
 #### 5. ClickHouse 高并发同步
 在大数据量、高频支付结算场景下，开启 ClickHouse 以接收系统的历史数据同步（如订单流水和任务大宽表），通过定时器把 PostgreSQL 的压力转移到 ClickHouse 列式存储中。

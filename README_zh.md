@@ -1,4 +1,4 @@
-# Wavelet
+# wavelet
 
 🚀 现代化、生产就绪的全栈应用脚手架
 
@@ -11,7 +11,7 @@
 
 ## 📖 项目简介
 
-**Wavelet** 是一个通用型、生产就绪的现代全栈脚手架，后端采用 **Go（Gin + GORM）**，前端采用 **Next.js（App Router + Shadcn UI）**。项目开箱即用，内置构建现代 SaaS、内部工具或开发者平台所需的核心基础设施。
+**wavelet** 是一个通用型、生产就绪的现代全栈脚手架，后端采用 **Go（Gin + GORM）**，前端采用 **Next.js（App Router + Shadcn UI）**。项目开箱即用，内置构建现代 SaaS、内部工具或开发者平台所需的核心基础设施。
 
 项目设计理念是 **框架优先、业务中立**：您可以在沿用经过实战检验的底层基础设施的同时，自由接入自己的业务逻辑。
 
@@ -209,11 +209,11 @@ pnpm format
 ## 📁 项目结构
 
 ```
-Refreshing/
+wavelet/
 ├── main.go                  # 程序入口（委托给 internal/cmd）
 ├── config.example.yaml      # 配置模板
 ├── Makefile                 # 常用命令（swagger、tidy、license）
-├── Dockerfile               # 容器镜像构建
+├── docker/                  # Docker 镜像构建文件（集成/前端/后端）
 ├── docs/                    # Swagger 自动生成文档
 ├── frontend/                # Next.js 前端应用
 │   ├── app/                 # App Router 页面

@@ -39,14 +39,17 @@
 以下是项目的顶层目录结构及其职责, 如果有新增目录或文件，请务必在此处同步更新：
 
 ```
-Refreshing/                        # 项目根目录（模块名: github.com/linux-do/credit）
+wavelet/                           # 项目根目录（模块名: github.com/linux-do/credit）
 ├── main.go                        # 程序入口，调用 internal/cmd
 ├── go.mod / go.sum                # Go 模块依赖
 ├── config.yaml                    # 运行时配置（不提交到 Git）
 ├── config.example.yaml            # 配置模板（需提交）
 ├── DEPLOYMENT_zh.md               # 部署说明文档（中文版）
 ├── Makefile                       # 常用命令（swagger/tidy/license）
-├── Dockerfile                     # 后端容器镜像构建
+├── docker/                        # Docker 镜像构建文件（集成/前端/后端）
+│   ├── Dockerfile                 # 标准集成镜像（前端静态导出嵌入后端）
+│   ├── Dockerfile.frontend        # 仅前端镜像（Next.js）
+│   └── Dockerfile.backend         # 仅后端镜像（Go API/Worker/Scheduler）
 ├── docker-compose.yml             # 本地依赖服务（PostgreSQL / Redis / ClickHouse）
 ├── .editorconfig                  # 编辑器格式规范
 ├── .gitignore

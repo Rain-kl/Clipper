@@ -23,7 +23,7 @@ import (
 
 var apiCmd = &cobra.Command{
 	Use:   "api",
-	Short: "credit API",
+	Short: "wavelet API",
 	Run: func(cmd *cobra.Command, args []string) {
 		router.Serve()
 	},
