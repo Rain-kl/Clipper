@@ -38,6 +38,13 @@ const (
 	ConfigKeyPasswordRegisterEnabled = "password_register_enabled" // 是否允许密码注册
 	ConfigKeyOIDCLoginEnabled        = "oidc_login_enabled"        // 是否允许 OIDC 登录
 	ConfigKeyMaxAPIKeysPerUser       = "max_api_keys_per_user"     // 每个用户最大 API Key 数量
+	ConfigKeyCapLoginEnabled         = "cap_login_enabled"         // 是否启用登录人机验证
+	ConfigKeyCapAutoSolve            = "cap_auto_solve"            // 打开页面后是否自动开始计算（false 则需用户手动点击）
+	ConfigKeyCapChallengeCount       = "cap_challenge_count"       // 客户端需求解的 PoW 难题总数，默认 1，推荐 1～5
+	ConfigKeyCapChallengeSize        = "cap_challenge_size"        // 人机验证盐值长度
+	ConfigKeyCapChallengeDifficulty  = "cap_challenge_difficulty"  // 人机验证 PoW 难度（目标前缀长度）
+	ConfigKeyCapChallengeTTL         = "cap_challenge_ttl_seconds" // 人机验证难题有效时间（秒）
+	ConfigKeyCapTokenTTL             = "cap_token_ttl_seconds"     // 人机验证兑换凭证有效时间（秒）
 )
 
 const (
@@ -56,20 +63,29 @@ type SystemConfig struct {
 
 // GetByKey 通过 key 查询配置（带 Redis 缓存）
 func (sc *SystemConfig) GetByKey(ctx context.Context, key string) error {
-	if err := db.HGetJSON(ctx, SystemConfigRedisHashKey, key, sc); err == nil {
-		return nil
-	} else if !errors.Is(err, redis.Nil) {
-		// Redis 服务错误，返回错误
-		return err
+	if db.Redis != nil {
+		if err := db.HGetJSON(ctx, SystemConfigRedisHashKey, key, sc); err == nil {
+			return nil
+		} else if !errors.Is(err, redis.Nil) {
+			// Redis 服务错误，返回错误
+			return err
+		}
 	}
 
 	// 查数据库
-	if err := db.DB(ctx).Where("key = ?", key).First(sc).Error; err != nil {
+	database := db.DB(ctx)
+	if database == nil {
+		return errors.New("database not initialized")
+	}
+
+	if err := database.Where("key = ?", key).First(sc).Error; err != nil {
 		return err
 	}
 
 	// 更新 Redis Hash 缓存
-	_ = db.HSetJSON(ctx, SystemConfigRedisHashKey, key, sc)
+	if db.Redis != nil {
+		_ = db.HSetJSON(ctx, SystemConfigRedisHashKey, key, sc)
+	}
 
 	return nil
 }

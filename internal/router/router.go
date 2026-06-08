@@ -29,13 +29,17 @@ import (
 
 	"github.com/linux-do/credit/internal/apps/admin"
 	admin_auth_source "github.com/linux-do/credit/internal/apps/admin/auth_source"
+	admin_status "github.com/linux-do/credit/internal/apps/admin/status"
 	admin_task "github.com/linux-do/credit/internal/apps/admin/task"
 	admin_user "github.com/linux-do/credit/internal/apps/admin/user"
+	capApp "github.com/linux-do/credit/internal/apps/cap"
 	publicconfig "github.com/linux-do/credit/internal/apps/config"
 	"github.com/linux-do/credit/internal/apps/health"
 	"github.com/linux-do/credit/internal/apps/upload"
 	"github.com/linux-do/credit/internal/apps/user"
+	"github.com/linux-do/credit/internal/model"
 	"github.com/linux-do/credit/internal/util"
+	capUtil "github.com/linux-do/credit/internal/util/cap"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/redis"
@@ -104,6 +108,13 @@ func Serve() {
 			apiGroup.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 		}
 
+		// CAPTCHA
+		capGroup := apiGroup.Group("/cap")
+		{
+			capGroup.POST("/challenge", capApp.Challenge)
+			capGroup.POST("/redeem", capApp.Redeem)
+		}
+
 		// API V1
 		apiV1Router := apiGroup.Group("/v1")
 		{
@@ -124,7 +135,13 @@ func Serve() {
 			// User
 			userRouter := apiV1Router.Group("/user")
 			{
-				userRouter.POST("/login", user.Login)
+				userRouter.POST("/login", capApp.VerifyMiddleware(capUtil.GetDefaultManager(), "login", func() bool {
+					enabled, err := model.GetBoolByKey(context.Background(), model.ConfigKeyCapLoginEnabled)
+					if err != nil {
+						return false
+					}
+					return enabled
+				}), user.Login)
 				userRouter.POST("/register", user.Register)
 				userRouter.GET("/logout", user.Logout)
 				userRouter.GET("/self", oauth.LoginRequired(), oauth.UserInfo)
@@ -162,6 +179,9 @@ func Serve() {
 			adminRouter := apiV1Router.Group("/admin")
 			adminRouter.Use(oauth.LoginRequired(), admin.LoginAdminRequired())
 			{
+				// System status
+				adminRouter.GET("/status", admin_status.GetSystemStatus)
+
 				// Task dispatch
 				adminRouter.GET("/tasks/types", admin_task.ListTaskTypes)
 				adminRouter.POST("/tasks/dispatch", admin_task.DispatchTask)

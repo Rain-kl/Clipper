@@ -105,6 +105,7 @@ export type {
   ListUsersRequest,
   ListUsersResponse,
   UpdateUserStatusRequest,
+  SystemStatus,
 } from './admin';
 
 // 用户服务

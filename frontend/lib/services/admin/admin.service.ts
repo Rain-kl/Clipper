@@ -11,6 +11,7 @@ import type {
   ListUsersRequest,
   ListUsersResponse,
   SystemConfig,
+  SystemStatus,
   TaskExecution,
   TaskMeta,
   TaskTypeResponse,
@@ -317,5 +318,15 @@ export class AdminService extends BaseService {
    */
   static async createUser(request: CreateUserRequest): Promise<AdminUser> {
     return this.post<AdminUser>('/users', request);
+  }
+
+  /**
+   * 获取系统状态
+   * @returns 系统状态指标数据
+   * @throws {UnauthorizedError} 当未登录时
+   * @throws {ForbiddenError} 当无管理员权限时
+   */
+  static async getSystemStatus(): Promise<SystemStatus> {
+    return this.get<SystemStatus>('/status');
   }
 }

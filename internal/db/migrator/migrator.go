@@ -52,6 +52,25 @@ func Migrate() {
 	initDefaultAdmin()
 }
 
+// ensureConfigKeyExists ensures a system config key exists in the database
+func ensureConfigKeyExists(key, value, configType, description string) {
+	tx := db.DB(context.Background())
+	var cfg model.SystemConfig
+	if err := tx.Where("key = ?", key).First(&cfg).Error; err != nil {
+		newConfig := model.SystemConfig{
+			Key:         key,
+			Value:       value,
+			Type:        configType,
+			Description: description,
+		}
+		if err := tx.Create(&newConfig).Error; err != nil {
+			log.Printf("[PostgreSQL] failed to create system config key %s: %v\n", key, err)
+		} else {
+			log.Printf("[PostgreSQL] initialized system config key %s\n", key)
+		}
+	}
+}
+
 // initSystemConfigs 初始化系统配置数据
 func initSystemConfigs() {
 	tx := db.DB(context.Background())
@@ -63,10 +82,59 @@ func initSystemConfigs() {
 	}
 
 	if count > 0 {
+		ensureConfigKeyExists(model.ConfigKeyCapLoginEnabled, "false", "system", "是否启用登录人机验证（true/false）")
+		ensureConfigKeyExists(model.ConfigKeyCapAutoSolve, "true", "system", "打开页面后是否自动开始计算，关闭则需用户手动点击触发")
+		ensureConfigKeyExists(model.ConfigKeyCapChallengeCount, "1", "system", "客户端需求解的 PoW 难题总数，默认 1，推荐 1～5")
+		ensureConfigKeyExists(model.ConfigKeyCapChallengeSize, "32", "system", "人机验证盐值长度")
+		ensureConfigKeyExists(model.ConfigKeyCapChallengeDifficulty, "4", "system", "人机验证 PoW 难度（目标前缀长度）")
+		ensureConfigKeyExists(model.ConfigKeyCapChallengeTTL, "600", "system", "人机验证难题有效时间（秒）")
+		ensureConfigKeyExists(model.ConfigKeyCapTokenTTL, "1200", "system", "人机验证兑换凭证有效时间（秒）")
 		return
 	}
 
 	defaultConfigs := []model.SystemConfig{
+		{
+			Key:         model.ConfigKeyCapLoginEnabled,
+			Value:       "false",
+			Type:        "system",
+			Description: "是否启用登录人机验证（true/false）",
+		},
+		{
+			Key:         model.ConfigKeyCapAutoSolve,
+			Value:       "true",
+			Type:        "system",
+			Description: "打开页面后是否自动开始计算，关闭则需用户手动点击触发",
+		},
+		{
+			Key:         model.ConfigKeyCapChallengeCount,
+			Value:       "1",
+			Type:        "system",
+			Description: "客户端需求解的 PoW 难题总数，默认 1，推荐 1～5",
+		},
+		{
+			Key:         model.ConfigKeyCapChallengeSize,
+			Value:       "32",
+			Type:        "system",
+			Description: "人机验证盐值长度",
+		},
+		{
+			Key:         model.ConfigKeyCapChallengeDifficulty,
+			Value:       "4",
+			Type:        "system",
+			Description: "人机验证 PoW 难度（目标前缀长度）",
+		},
+		{
+			Key:         model.ConfigKeyCapChallengeTTL,
+			Value:       "600",
+			Type:        "system",
+			Description: "人机验证难题有效时间（秒）",
+		},
+		{
+			Key:         model.ConfigKeyCapTokenTTL,
+			Value:       "1200",
+			Type:        "system",
+			Description: "人机验证兑换凭证有效时间（秒）",
+		},
 		{
 			Key:         model.ConfigKeyUploadAllowedExtensions,
 			Value:       "jpg,png,webp",

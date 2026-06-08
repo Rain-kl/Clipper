@@ -396,6 +396,58 @@ func ListUsers(c *gin.Context) {
 | 禁止行为 | 说明 |
 |----------|------|
 | **禁止删除 `node_modules` 目录** | `node_modules` 为前端依赖安装目录，删除会导致项目无法运行。如需重新安装依赖，使用 `pnpm install` 覆盖更新即可，严禁执行 `rm -rf node_modules`。 |
+| **`internal/util/` 下禁止引用框架包** | `util/` 及其子包（如 `util/cap`）定位为**纯工具层**，不得 `import` 任何 HTTP / ORM / 框架包，包括但不限于 `github.com/gin-gonic/gin`、`gorm.io/gorm`、`github.com/gin-contrib/sessions`。违反此约束会导致工具层与框架产生耦合，无法独立测试。详见 **6.11** 的建议方案。 |
+
+### 6.11 `util/` 包依赖约束与建议方案
+
+#### 约束范围
+
+`internal/util/` 及其全部子包（如 `util/cap`、`util/crypto` 等）只允许引用：
+
+- Go 标准库（`context`、`crypto`、`encoding`、`net/http` 原生包等）
+- 项目内同级别的纯工具包（`internal/config`、`internal/db`、`internal/model` 等无框架依赖的包）
+- 与框架无关的第三方库（如 `github.com/redis/go-redis`、`github.com/shopspring/decimal` 等）
+
+**严禁引用**：`github.com/gin-gonic/gin`、`gorm.io/gorm`、`github.com/gin-contrib/sessions` 及任何 HTTP 框架 / Web 中间件相关包。
+
+#### 常见误区与建议方案
+
+| 误区 | 建议方案 |
+|------|----------|
+| 在 `util/` 中写 `gin.HandlerFunc` 形式的中间件 | 将中间件移至对应的 `apps/<module>/middleware.go`，通过**函数参数**接收 `util/` 层的核心对象（如 `*cap.Manager`） |
+| 在 `util/` 中通过 `*gin.Context` 写响应 | 只在 `util/` 中计算/校验逻辑并返回 `(result, error)`，由 `apps/` 层的 Handler 负责调用 `c.AbortWithStatusJSON` 写响应 |
+| 在 `util/` 中使用 `gorm.DB` 直接查询 | 将数据库查询封装在 `internal/model/` 层方法中，`util/` 只接收已查出的数据结构 |
+
+#### 正确示例
+
+```go
+// ✅ internal/util/cap/manager.go — 纯逻辑，无框架依赖
+func (m *Manager) VerifyToken(ctx context.Context, token, scope string) (bool, error) {
+    // 只依赖 context、标准库、redis client
+    ...
+}
+
+// ✅ internal/apps/cap/middleware.go — 框架胶水层，持有 gin 依赖
+func VerifyMiddleware(mgr *caputil.Manager, scope string, enabledFunc func() bool) gin.HandlerFunc {
+    return func(c *gin.Context) {
+        valid, err := mgr.VerifyToken(c.Request.Context(), token, scope) // 调用纯逻辑
+        if err != nil || !valid {
+            c.AbortWithStatusJSON(http.StatusUnauthorized, util.Err("验证码校验失败"))
+            return
+        }
+        c.Next()
+    }
+}
+```
+
+#### 错误示例（禁止）
+
+```go
+// ❌ internal/util/cap/middleware.go — util/ 层不应出现 gin
+import "github.com/gin-gonic/gin"
+
+func (m *Manager) VerifyMiddleware(...) gin.HandlerFunc { ... }
+```
 
 ---
 

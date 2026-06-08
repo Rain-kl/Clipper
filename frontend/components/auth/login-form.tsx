@@ -1,6 +1,6 @@
 "use client"
 
-import {useMemo, useState} from "react"
+import {useMemo, useRef, useState} from "react"
 import {useMutation, useQuery} from "@tanstack/react-query"
 import {useRouter, useSearchParams} from "next/navigation"
 import {KeyRound, ShieldCheck, UserPlus} from "lucide-react"
@@ -13,7 +13,9 @@ import {Separator} from "@/components/ui/separator"
 import {Spinner} from "@/components/ui/spinner"
 import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs"
 import {Card, CardContent} from "@/components/ui/card"
+import {CapWidget} from "@/components/auth/cap-widget"
 import services from "@/lib/services"
+import type {LoginRequest, RegisterRequest} from "@/lib/services/auth/types"
 
 function getRedirectTarget(searchParams: ReturnType<typeof useSearchParams>) {
   const callbackUrl = searchParams.get("callbackUrl")
@@ -44,6 +46,12 @@ export function LoginForm() {
   const [nickname, setNickname] = useState("")
   const [errorMessage, setErrorMessage] = useState("")
 
+  // Cap token management — ref to hold latest token without triggering re-render
+  const capTokenRef = useRef<string | null>(null)
+  const [capReady, setCapReady] = useState(false)
+  const [capError, setCapError] = useState(false)
+  const [capResetKey, setCapResetKey] = useState(0)
+
   const publicConfigQuery = useQuery({
     queryKey: ["public-config"],
     queryFn: () => services.config.getPublicConfig(),
@@ -60,19 +68,36 @@ export function LoginForm() {
     [searchParams],
   )
 
+  const capEnabled = publicConfigQuery.data?.cap_login_enabled ?? false
+  const capAutoSolve = publicConfigQuery.data?.cap_auto_solve ?? true
+
   const loginMutation = useMutation({
-    mutationFn: (req: any) => services.auth.login(req),
+    mutationFn: (req: LoginRequest) => {
+      const headers: Record<string, string> = {}
+      if (capEnabled && capTokenRef.current) {
+        headers["X-Cap-Token"] = capTokenRef.current
+        // Consume the token — next login attempt will need a new one
+        capTokenRef.current = null
+        setCapReady(false)
+      }
+      return services.auth.login(req, Object.keys(headers).length ? headers : undefined)
+    },
     onSuccess: (user) => {
       setUser(user)
       router.replace(redirectTarget)
     },
     onError: (error: Error) => {
-      setErrorMessage(error.message || "登录失败，请重试")
+      toast.error(error.message || "登录失败，请重试")
+      if (capEnabled) {
+        capTokenRef.current = null
+        setCapReady(false)
+        setCapResetKey((key) => key + 1)
+      }
     },
   })
 
   const registerMutation = useMutation({
-    mutationFn: (req: any) => services.auth.register(req),
+    mutationFn: (req: RegisterRequest) => services.auth.register(req),
     onSuccess: (user) => {
       setUser(user)
       router.replace(redirectTarget)
@@ -84,8 +109,23 @@ export function LoginForm() {
 
   const handlePasswordLogin = () => {
     setErrorMessage("")
+    const trimmedUsername = username.trim()
+    if (!trimmedUsername || !password) {
+      toast.error("账号或密码未填写完整", {
+        description: "请先输入账号和密码后再登录",
+      })
+      return
+    }
+    if (capEnabled && !capReady) {
+      toast.error(
+        capAutoSolve
+          ? "人机验证尚未完成，请稍候…"
+          : "请先点击「开始验证」完成人机验证",
+      )
+      return
+    }
     loginMutation.mutate({
-      username: username.trim(),
+      username: trimmedUsername,
       password,
     })
   }
@@ -110,6 +150,18 @@ export function LoginForm() {
     }
   }
 
+  const handleCapToken = (token: string) => {
+    capTokenRef.current = token
+    setCapReady(true)
+    setCapError(false)
+  }
+
+  const handleCapError = () => {
+    capTokenRef.current = null
+    setCapReady(false)
+    setCapError(true)
+  }
+
   const registrationEnabled =
     (publicConfigQuery.data?.registration_enabled ?? true) &&
     (publicConfigQuery.data?.password_register_enabled ?? true)
@@ -117,6 +169,16 @@ export function LoginForm() {
   const passwordLoginEnabled = publicConfigQuery.data?.password_login_enabled ?? true
 
   const authSources = authSourcesQuery.data ?? []
+
+  // Login button disabled when:
+  //   - password login is off, OR
+  //   - login mutation is pending, OR
+  //   - cap is enabled AND auto-solve mode AND not yet solved (and not in error state)
+  // When autoStart=false (manual mode), idle means the user hasn't clicked yet — don't block.
+  const loginDisabled =
+    !passwordLoginEnabled ||
+    loginMutation.isPending ||
+    (capEnabled && capAutoSolve && !capReady && !capError)
 
   return (
     <Card className="w-full border-border/60 bg-background/80 shadow-2xl backdrop-blur">
@@ -143,6 +205,7 @@ export function LoginForm() {
                   onChange={(e) => setUsername(e.target.value)}
                   placeholder="用户名"
                   autoComplete="username"
+                  onKeyDown={(e) => e.key === "Enter" && handlePasswordLogin()}
                 />
                 <Input
                   value={password}
@@ -150,21 +213,26 @@ export function LoginForm() {
                   type="password"
                   placeholder="密码"
                   autoComplete="current-password"
+                  onKeyDown={(e) => e.key === "Enter" && handlePasswordLogin()}
                 />
               </div>
 
-              {errorMessage ? (
-                <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
-                  {errorMessage}
-                </div>
-              ) : null}
+              {/* Cap 人机验证 */}
+              {capEnabled && (
+                <CapWidget
+                  key={capResetKey}
+                  onToken={handleCapToken}
+                  onError={handleCapError}
+                  autoStart={capAutoSolve}
+                />
+              )}
 
               <Button
                 type="button"
                 className="w-full"
                 variant={"secondary"}
                 onClick={handlePasswordLogin}
-                disabled={!passwordLoginEnabled || loginMutation.isPending}
+                disabled={loginDisabled}
               >
                 {loginMutation.isPending ? (
                   <>
@@ -238,7 +306,7 @@ export function LoginForm() {
 
         {authSources.length > 0 ? (
           authSources.map((source) => (
-            <div className="space-y-3">
+            <div className="space-y-3" key={source.id}>
               <div className="flex items-center gap-2 text-sm font-medium text-foreground">
                 <ShieldCheck className="size-4" />
                 第三方认证源

@@ -15,6 +15,91 @@
     },
     "basePath": "/",
     "paths": {
+        "/api/cap/challenge": {
+            "post": {
+                "description": "客户端获取 PoW 难题和签名的 JWT Token，并在后台计算。",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "cap"
+                ],
+                "summary": "生成人机验证难题",
+                "parameters": [
+                    {
+                        "description": "可选范围限制参数",
+                        "name": "request",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/cap.challengeRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功返回 PoW 难题",
+                        "schema": {
+                            "$ref": "#/definitions/cap.ChallengeResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "内部服务错误",
+                        "schema": {
+                            "$ref": "#/definitions/cap.RedeemResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/cap/redeem": {
+            "post": {
+                "description": "提交 PoW 解答进行核销，成功后返回一次性 X-Cap-Token 凭证",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "cap"
+                ],
+                "summary": "校验人机验证解答",
+                "parameters": [
+                    {
+                        "description": "难题 Token 与解答 solutions 数组",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/cap.redeemRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "核销成功，返回 X-Cap-Token",
+                        "schema": {
+                            "$ref": "#/definitions/cap.RedeemResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "参数错误或核销失败",
+                        "schema": {
+                            "$ref": "#/definitions/cap.RedeemResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "内部服务错误",
+                        "schema": {
+                            "$ref": "#/definitions/cap.RedeemResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/admin/auth-sources": {
             "get": {
                 "security": [
@@ -343,6 +428,55 @@
                         "description": "验证失败或认证源不存在",
                         "schema": {
                             "$ref": "#/definitions/util.ResponseAny"
+                        }
+                    },
+                    "401": {
+                        "description": "未登录",
+                        "schema": {
+                            "$ref": "#/definitions/util.ResponseAny"
+                        }
+                    },
+                    "403": {
+                        "description": "无管理员权限",
+                        "schema": {
+                            "$ref": "#/definitions/util.ResponseAny"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/admin/status": {
+            "get": {
+                "security": [
+                    {
+                        "SessionCookie": []
+                    }
+                ],
+                "description": "获取后端服务运行状态、Goroutine、内存指标等详细统计数据，需要管理员权限",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin"
+                ],
+                "summary": "获取系统状态信息",
+                "responses": {
+                    "200": {
+                        "description": "获取成功",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/util.ResponseAny"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/status.SystemStatusResponse"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "401": {
@@ -2595,6 +2729,78 @@
                 }
             }
         },
+        "cap.ChallengeResponse": {
+            "type": "object",
+            "properties": {
+                "challenge": {
+                    "type": "object",
+                    "properties": {
+                        "c": {
+                            "type": "integer"
+                        },
+                        "d": {
+                            "type": "integer"
+                        },
+                        "s": {
+                            "type": "integer"
+                        }
+                    }
+                },
+                "expires": {
+                    "description": "ms timestamp",
+                    "type": "integer"
+                },
+                "token": {
+                    "type": "string"
+                }
+            }
+        },
+        "cap.RedeemResponse": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string"
+                },
+                "expires": {
+                    "type": "integer"
+                },
+                "success": {
+                    "type": "boolean"
+                },
+                "token": {
+                    "type": "string"
+                }
+            }
+        },
+        "cap.challengeRequest": {
+            "type": "object",
+            "properties": {
+                "scope": {
+                    "type": "string"
+                }
+            }
+        },
+        "cap.redeemRequest": {
+            "type": "object",
+            "required": [
+                "solutions",
+                "token"
+            ],
+            "properties": {
+                "scope": {
+                    "type": "string"
+                },
+                "solutions": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "token": {
+                    "type": "string"
+                }
+            }
+        },
         "model.AccessToken": {
             "type": "object",
             "properties": {
@@ -2992,6 +3198,95 @@
                 },
                 "user": {
                     "$ref": "#/definitions/oauth.BasicUserInfo"
+                }
+            }
+        },
+        "status.SystemStatusResponse": {
+            "type": "object",
+            "properties": {
+                "alloc": {
+                    "type": "string"
+                },
+                "buck_hash_sys": {
+                    "type": "string"
+                },
+                "frees": {
+                    "type": "integer"
+                },
+                "gc_sys": {
+                    "type": "string"
+                },
+                "heap_alloc": {
+                    "type": "string"
+                },
+                "heap_idle": {
+                    "type": "string"
+                },
+                "heap_inuse": {
+                    "type": "string"
+                },
+                "heap_objects": {
+                    "type": "integer"
+                },
+                "heap_released": {
+                    "type": "string"
+                },
+                "heap_sys": {
+                    "type": "string"
+                },
+                "last_gc_time": {
+                    "type": "string"
+                },
+                "last_pause": {
+                    "type": "string"
+                },
+                "lookups": {
+                    "type": "integer"
+                },
+                "mallocs": {
+                    "type": "integer"
+                },
+                "mcache_inuse": {
+                    "type": "string"
+                },
+                "mcache_sys": {
+                    "type": "string"
+                },
+                "mspan_inuse": {
+                    "type": "string"
+                },
+                "mspan_sys": {
+                    "type": "string"
+                },
+                "next_gc": {
+                    "type": "string"
+                },
+                "num_gc": {
+                    "type": "integer"
+                },
+                "num_goroutine": {
+                    "type": "integer"
+                },
+                "other_sys": {
+                    "type": "string"
+                },
+                "pause_total_ns": {
+                    "type": "string"
+                },
+                "stack_inuse": {
+                    "type": "string"
+                },
+                "stack_sys": {
+                    "type": "string"
+                },
+                "sys": {
+                    "type": "string"
+                },
+                "total_alloc": {
+                    "type": "string"
+                },
+                "uptime": {
+                    "type": "string"
                 }
             }
         },

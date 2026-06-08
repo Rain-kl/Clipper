@@ -26,6 +26,53 @@ definitions:
       is_active:
         type: boolean
     type: object
+  cap.ChallengeResponse:
+    properties:
+      challenge:
+        properties:
+          c:
+            type: integer
+          d:
+            type: integer
+          s:
+            type: integer
+        type: object
+      expires:
+        description: ms timestamp
+        type: integer
+      token:
+        type: string
+    type: object
+  cap.RedeemResponse:
+    properties:
+      error:
+        type: string
+      expires:
+        type: integer
+      success:
+        type: boolean
+      token:
+        type: string
+    type: object
+  cap.challengeRequest:
+    properties:
+      scope:
+        type: string
+    type: object
+  cap.redeemRequest:
+    properties:
+      scope:
+        type: string
+      solutions:
+        items:
+          type: integer
+        type: array
+      token:
+        type: string
+    required:
+    - solutions
+    - token
+    type: object
   model.AccessToken:
     properties:
       created_at:
@@ -297,6 +344,65 @@ definitions:
       user:
         $ref: '#/definitions/oauth.BasicUserInfo'
     type: object
+  status.SystemStatusResponse:
+    properties:
+      alloc:
+        type: string
+      buck_hash_sys:
+        type: string
+      frees:
+        type: integer
+      gc_sys:
+        type: string
+      heap_alloc:
+        type: string
+      heap_idle:
+        type: string
+      heap_inuse:
+        type: string
+      heap_objects:
+        type: integer
+      heap_released:
+        type: string
+      heap_sys:
+        type: string
+      last_gc_time:
+        type: string
+      last_pause:
+        type: string
+      lookups:
+        type: integer
+      mallocs:
+        type: integer
+      mcache_inuse:
+        type: string
+      mcache_sys:
+        type: string
+      mspan_inuse:
+        type: string
+      mspan_sys:
+        type: string
+      next_gc:
+        type: string
+      num_gc:
+        type: integer
+      num_goroutine:
+        type: integer
+      other_sys:
+        type: string
+      pause_total_ns:
+        type: string
+      stack_inuse:
+        type: string
+      stack_sys:
+        type: string
+      sys:
+        type: string
+      total_alloc:
+        type: string
+      uptime:
+        type: string
+    type: object
   system_config.CreateSystemConfigRequest:
     properties:
       description:
@@ -496,6 +602,61 @@ info:
   title: LINUX DO Credit
   version: 1.0.0
 paths:
+  /api/cap/challenge:
+    post:
+      consumes:
+      - application/json
+      description: 客户端获取 PoW 难题和签名的 JWT Token，并在后台计算。
+      parameters:
+      - description: 可选范围限制参数
+        in: body
+        name: request
+        schema:
+          $ref: '#/definitions/cap.challengeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功返回 PoW 难题
+          schema:
+            $ref: '#/definitions/cap.ChallengeResponse'
+        "500":
+          description: 内部服务错误
+          schema:
+            $ref: '#/definitions/cap.RedeemResponse'
+      summary: 生成人机验证难题
+      tags:
+      - cap
+  /api/cap/redeem:
+    post:
+      consumes:
+      - application/json
+      description: 提交 PoW 解答进行核销，成功后返回一次性 X-Cap-Token 凭证
+      parameters:
+      - description: 难题 Token 与解答 solutions 数组
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/cap.redeemRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 核销成功，返回 X-Cap-Token
+          schema:
+            $ref: '#/definitions/cap.RedeemResponse'
+        "400":
+          description: 参数错误或核销失败
+          schema:
+            $ref: '#/definitions/cap.RedeemResponse'
+        "500":
+          description: 内部服务错误
+          schema:
+            $ref: '#/definitions/cap.RedeemResponse'
+      summary: 校验人机验证解答
+      tags:
+      - cap
   /api/v1/admin/auth-sources:
     get:
       description: 返回所有已配置的 OAuth/OIDC 认证源列表，包括已启用和未启用的，需要管理员权限
@@ -701,6 +862,34 @@ paths:
       security:
       - SessionCookie: []
       summary: 切换认证源启用状态
+      tags:
+      - admin
+  /api/v1/admin/status:
+    get:
+      description: 获取后端服务运行状态、Goroutine、内存指标等详细统计数据，需要管理员权限
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 获取成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/util.ResponseAny'
+            - properties:
+                data:
+                  $ref: '#/definitions/status.SystemStatusResponse'
+              type: object
+        "401":
+          description: 未登录
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+        "403":
+          description: 无管理员权限
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      security:
+      - SessionCookie: []
+      summary: 获取系统状态信息
       tags:
       - admin
   /api/v1/admin/system-configs:

@@ -16,4 +16,8 @@ export interface PublicConfigResponse {
   oidc_login_enabled: boolean;
   /** 每个用户最大 API Key 数量 */
   max_api_keys_per_user: number;
+  /** 是否启用 Cap 人机验证 */
+  cap_login_enabled: boolean;
+  /** 是否自动解题 */
+  cap_auto_solve: boolean;
 }

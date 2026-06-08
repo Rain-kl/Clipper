@@ -1,16 +1,16 @@
-import axios, { AxiosError, AxiosResponse, CancelTokenSource, InternalAxiosRequestConfig } from 'axios';
-import { toast } from 'sonner';
-import { apiConfig } from './config';
+import axios, {AxiosError, AxiosResponse, CancelTokenSource, InternalAxiosRequestConfig} from 'axios';
+import {toast} from 'sonner';
+import {apiConfig} from './config';
 import {
   ApiErrorBase,
-  NetworkError,
-  TimeoutError,
   ForbiddenError,
+  NetworkError,
   NotFoundError,
   ServerError,
+  TimeoutError,
   ValidationError,
 } from './errors';
-import { ApiError, ApiResponse } from './types';
+import {ApiError, ApiResponse} from './types';
 
 /**
  * API 客户端实例
@@ -101,6 +101,11 @@ apiClient.interceptors.response.use(
     const requestKey = getRequestKey(response.config);
     cancelTokens.delete(requestKey);
     pendingRequests.delete(requestKey);
+
+    const resData = response.data as any;
+    if (resData && resData.error_msg) {
+      return Promise.reject(new ApiErrorBase(resData.error_msg));
+    }
 
     return response;
   },

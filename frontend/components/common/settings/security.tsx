@@ -3,17 +3,16 @@
 import {useEffect, useMemo, useState} from "react"
 import {useMutation, useQuery, useQueryClient} from "@tanstack/react-query"
 import {
-  CalendarClock,
   Fingerprint,
   Globe,
   Info,
   Loader2,
   Lock,
-  Monitor,
   Pencil,
   Plus,
   Server,
   Settings,
+  Shield,
   Trash2,
   UserPlus
 } from "lucide-react"
@@ -25,11 +24,14 @@ import {Button} from "@/components/ui/button"
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "@/components/ui/card"
 import {Switch} from "@/components/ui/switch"
 import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs"
+import {Input} from "@/components/ui/input"
+import {Label} from "@/components/ui/label"
 import {useAuth} from "@/components/providers/auth-provider"
 import {AuthSourceModal} from "@/components/common/settings/auth-source-modal"
 import {AdminService, apiConfig} from "@/lib/services"
 import type {AuthSource, SystemConfig} from "@/lib/services/admin"
 import {toast} from "sonner"
+import {SystemStatusManager} from "@/components/common/admin/status"
 
 const SECURITY_KEYS = [
   {
@@ -76,10 +78,7 @@ function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
   )
 }
 
-function formatBooleanConfig(config?: SystemConfig) {
-  if (!config) return "未配置"
-  return config.value === "true" ? "启用" : "禁用"
-}
+
 
 export function SecurityMain() {
   const queryClient = useQueryClient()
@@ -87,13 +86,13 @@ export function SecurityMain() {
   const router = useRouter()
   const [authSourceModalOpen, setAuthSourceModalOpen] = useState(false)
   const [selectedSource, setSelectedSource] = useState<AuthSource | null>(null)
-  const [runtimeInfo, setRuntimeInfo] = useState({
-    language: "-",
-    platform: "-",
-    timezone: "-",
-    viewport: "-",
-    userAgent: "-",
-  })
+
+  const [capCount, setCapCount] = useState("")
+  const [capDifficulty, setCapDifficulty] = useState("")
+  const [capSize, setCapSize] = useState("")
+  const [capTTL, setCapTTL] = useState("")
+  const [capTokenTTL, setCapTokenTTL] = useState("")
+  const [capAutoSolve, setCapAutoSolve] = useState(true)
 
   const systemConfigsQuery = useQuery({
     queryKey: ["admin", "system-configs"],
@@ -119,17 +118,19 @@ export function SecurityMain() {
   }, [user, loading, router])
 
   useEffect(() => {
-    setRuntimeInfo({
-      language: navigator.language || "-",
-      platform: navigator.platform || "-",
-      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "-",
-      viewport: `${window.innerWidth} x ${window.innerHeight}`,
-      userAgent: navigator.userAgent || "-",
-    })
-  }, [])
+    if (systemConfigsQuery.data) {
+      const cfgMap = systemConfigMap(systemConfigsQuery.data)
+      setCapCount(cfgMap["cap_challenge_count"]?.value || "1")
+      setCapDifficulty(cfgMap["cap_challenge_difficulty"]?.value || "4")
+      setCapSize(cfgMap["cap_challenge_size"]?.value || "32")
+      setCapTTL(cfgMap["cap_challenge_ttl_seconds"]?.value || "600")
+      setCapTokenTTL(cfgMap["cap_token_ttl_seconds"]?.value || "1200")
+      setCapAutoSolve(cfgMap["cap_auto_solve"]?.value !== "false")
+    }
+  }, [systemConfigsQuery.data])
 
   const updateConfigMutation = useMutation({
-    mutationFn: async ({ key, value }: { key: SecurityKey; value: boolean }) => {
+    mutationFn: async ({ key, value }: { key: string; value: boolean }) => {
       const config = configs[key]
       if (!config) {
         throw new Error(`缺少配置项: ${key}`)
@@ -176,8 +177,41 @@ export function SecurityMain() {
     },
   })
 
-  const handleToggle = (key: SecurityKey, checked: boolean) => {
+  const handleToggle = (key: string, checked: boolean) => {
     updateConfigMutation.mutate({ key, value: checked })
+  }
+
+  const saveCapMutation = useMutation({
+    mutationFn: async () => {
+      const updates = [
+        { key: "cap_challenge_count", value: capCount },
+        { key: "cap_challenge_difficulty", value: capDifficulty },
+        { key: "cap_challenge_size", value: capSize },
+        { key: "cap_challenge_ttl_seconds", value: capTTL },
+        { key: "cap_token_ttl_seconds", value: capTokenTTL },
+        { key: "cap_auto_solve", value: capAutoSolve ? "true" : "false" },
+      ]
+
+      for (const update of updates) {
+        const currentCfg = configs[update.key]
+        await AdminService.updateSystemConfig(update.key, {
+          value: update.value,
+          description: currentCfg?.description || "",
+        })
+      }
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["admin", "system-configs"] })
+      toast.success("人机验证配置已成功保存")
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "保存配置失败")
+    },
+  })
+
+  const handleCapSave = (e: React.FormEvent) => {
+    e.preventDefault()
+    saveCapMutation.mutate()
   }
 
   if (loading || !user || !user.is_admin) {
@@ -198,13 +232,16 @@ export function SecurityMain() {
       <Tabs defaultValue="security" className="w-full">
         <TabsList className="w-full overflow-x-auto">
           <TabsTrigger value="security" className="px-0 pb-2 text-xs font-semibold">
-            系统安全设置
+            安全设置
           </TabsTrigger>
           <TabsTrigger value="operation" className="px-0 pb-2 text-xs font-semibold">
             运营设置
           </TabsTrigger>
           <TabsTrigger value="system" className="px-0 pb-2 text-xs font-semibold">
             系统设置
+          </TabsTrigger>
+          <TabsTrigger value="status" className="px-0 pb-2 text-xs font-semibold">
+            系统状态
           </TabsTrigger>
           <TabsTrigger value="other" className="px-0 pb-2 text-xs font-semibold">
             其他设置
@@ -376,10 +413,138 @@ export function SecurityMain() {
                 )}
               </CardContent>
             </Card>
+
+            {/* 人机验证配置 (Cap CAPTCHA) */}
+            <Card className="border border-dashed shadow-sm">
+              <CardHeader className="border-b border-dashed pb-4 flex flex-row items-center justify-between gap-4">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 rounded-lg bg-indigo-500/10 text-indigo-500">
+                    <Shield className="size-4" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base font-semibold">人机验证配置 (Cap CAPTCHA)</CardTitle>
+                    <CardDescription className="text-xs">配置基于 Proof-of-Work (PoW) 的无感人机验证，保护系统登录免受暴力破解和撞库攻击</CardDescription>
+                  </div>
+                </div>
+                <Switch
+                  checked={configs["cap_login_enabled"]?.value === "true"}
+                  disabled={updateConfigMutation.isPending}
+                  onCheckedChange={(checked) => handleToggle("cap_login_enabled", checked)}
+                />
+              </CardHeader>
+              <CardContent className="pt-6">
+                {/* 自动开始计算 Switch */}
+                <div className="flex items-center justify-between rounded-xl border border-dashed p-4 bg-card mb-4">
+                  <div className="space-y-0.5">
+                    <p className="text-sm font-semibold">打开页面后自动开始计算</p>
+                  </div>
+                  <Switch
+                    checked={capAutoSolve}
+                    onCheckedChange={setCapAutoSolve}
+                  />
+                </div>
+                <form onSubmit={handleCapSave} className="space-y-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="cap_challenge_count" className="text-xs font-semibold">难题数量 (Count)</Label>
+                      <Input
+                        id="cap_challenge_count"
+                        type="number"
+                        min={1}
+                        max={100}
+                        value={capCount}
+                        onChange={(e) => setCapCount(e.target.value)}
+                        placeholder="50"
+                        className="bg-card border-dashed text-xs"
+                      />
+                      <p className="text-[10px] text-muted-foreground leading-normal">客户端需求解的难题总数。默认 1，推荐 1 至 5</p>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="cap_challenge_difficulty" className="text-xs font-semibold">验证难度 (Difficulty)</Label>
+                      <Input
+                        id="cap_challenge_difficulty"
+                        type="number"
+                        min={1}
+                        max={10}
+                        value={capDifficulty}
+                        onChange={(e) => setCapDifficulty(e.target.value)}
+                        placeholder="4"
+                        className="bg-card border-dashed text-xs"
+                      />
+                      <p className="text-[10px] text-muted-foreground leading-normal">PoW 前缀哈希位数，每加 1 计算时间翻倍。默认 4，推荐 4</p>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="cap_challenge_size" className="text-xs font-semibold">盐值长度 (Size)</Label>
+                      <Input
+                        id="cap_challenge_size"
+                        type="number"
+                        min={8}
+                        max={64}
+                        value={capSize}
+                        onChange={(e) => setCapSize(e.target.value)}
+                        placeholder="32"
+                        className="bg-card border-dashed text-xs"
+                      />
+                      <p className="text-[10px] text-muted-foreground leading-normal">难题盐值混淆字符长度。默认 32</p>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="cap_challenge_ttl" className="text-xs font-semibold">难题超时时长 (秒)</Label>
+                      <Input
+                        id="cap_challenge_ttl"
+                        type="number"
+                        min={10}
+                        value={capTTL}
+                        onChange={(e) => setCapTTL(e.target.value)}
+                        placeholder="600"
+                        className="bg-card border-dashed text-xs"
+                      />
+                      <p className="text-[10px] text-muted-foreground leading-normal">难题有效期限。默认 600 秒 (10 分钟)</p>
+                    </div>
+
+                    <div className="space-y-1.5 sm:col-span-2">
+                      <Label htmlFor="cap_token_ttl" className="text-xs font-semibold">验证凭证有效时长 (秒)</Label>
+                      <Input
+                        id="cap_token_ttl"
+                        type="number"
+                        min={10}
+                        value={capTokenTTL}
+                        onChange={(e) => setCapTokenTTL(e.target.value)}
+                        placeholder="1200"
+                        className="bg-card border-dashed text-xs"
+                      />
+                      <p className="text-[10px] text-muted-foreground leading-normal">PoW 计算求解通过后，签发的登录凭证有效时长。默认 1200 秒 (20 分钟)</p>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end pt-4 border-t border-dashed">
+                    <Button
+                      type="submit"
+                      size="sm"
+                      disabled={saveCapMutation.isPending}
+                    >
+                      {saveCapMutation.isPending ? (
+                        <>
+                          <Loader2 className="mr-1.5 size-3.5 animate-spin" />
+                          保存中...
+                        </>
+                      ) : (
+                        "保存配置"
+                      )}
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
           </div>
         </TabsContent>
         <TabsContent value="operation" />
         <TabsContent value="system" />
+        <TabsContent value="status" className="pt-4">
+          <SystemStatusManager />
+        </TabsContent>
         <TabsContent value="other" />
         <TabsContent value="info" className="pt-4">
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -422,48 +587,6 @@ export function SecurityMain() {
                 <InfoRow label="携带凭证" value={apiConfig.withCredentials ? "是" : "否"} />
                 <InfoRow label="系统配置项" value={`${systemConfigsQuery.data?.length ?? 0} 项`} />
                 <InfoRow label="认证源数量" value={`${authSourcesQuery.data?.length ?? 0} 个`} />
-              </CardContent>
-            </Card>
-
-            <Card className="border border-dashed shadow-sm">
-              <CardHeader className="border-b border-dashed pb-4">
-                <div className="flex items-center gap-2">
-                  <div className="p-1.5 rounded-lg bg-muted text-muted-foreground">
-                    <Monitor className="size-4" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-base font-semibold">运行环境</CardTitle>
-                    <CardDescription className="text-xs">当前浏览器会话的本地运行信息</CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="pt-4">
-                <InfoRow label="语言" value={runtimeInfo.language} />
-                <InfoRow label="平台" value={runtimeInfo.platform} />
-                <InfoRow label="时区" value={runtimeInfo.timezone} />
-                <InfoRow label="视口" value={runtimeInfo.viewport} />
-                <InfoRow label="User Agent" value={runtimeInfo.userAgent} />
-              </CardContent>
-            </Card>
-
-            <Card className="border border-dashed shadow-sm">
-              <CardHeader className="border-b border-dashed pb-4">
-                <div className="flex items-center gap-2">
-                  <div className="p-1.5 rounded-lg bg-muted text-muted-foreground">
-                    <CalendarClock className="size-4" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-base font-semibold">安全配置概览</CardTitle>
-                    <CardDescription className="text-xs">当前系统登录与注册开关状态</CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="pt-4">
-                <InfoRow label="密码登录" value={formatBooleanConfig(configs.password_login_enabled)} />
-                <InfoRow label="开放注册" value={formatBooleanConfig(configs.registration_enabled)} />
-                <InfoRow label="密码注册" value={formatBooleanConfig(configs.password_register_enabled)} />
-                <InfoRow label="OIDC 登录" value={formatBooleanConfig(configs.oidc_login_enabled)} />
-                <InfoRow label="配置加载状态" value={systemConfigsQuery.isFetching ? "刷新中" : "已加载"} />
               </CardContent>
             </Card>
           </div>

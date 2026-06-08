@@ -38,4 +38,5 @@ export type {
   ListUsersRequest,
   ListUsersResponse,
   UpdateUserStatusRequest,
+  SystemStatus,
 } from './types';

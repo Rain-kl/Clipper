@@ -254,3 +254,37 @@ export interface AuthSourceRequest {
 export interface ToggleAuthSourceRequest {
   is_active: boolean;
 }
+
+/**
+ * 系统状态信息
+ */
+export interface SystemStatus {
+  uptime: string;
+  num_goroutine: number;
+  alloc: string;
+  total_alloc: string;
+  sys: string;
+  lookups: number;
+  mallocs: number;
+  frees: number;
+  heap_alloc: string;
+  heap_sys: string;
+  heap_idle: string;
+  heap_inuse: string;
+  heap_released: string;
+  heap_objects: number;
+  stack_inuse: string;
+  stack_sys: string;
+  mspan_inuse: string;
+  mspan_sys: string;
+  mcache_inuse: string;
+  mcache_sys: string;
+  buck_hash_sys: string;
+  gc_sys: string;
+  other_sys: string;
+  next_gc: string;
+  last_gc_time: string;
+  pause_total_ns: string;
+  last_pause: string;
+  num_gc: number;
+}

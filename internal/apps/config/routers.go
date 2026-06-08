@@ -33,6 +33,8 @@ type PublicConfigResponse struct {
 	PasswordRegisterEnabled bool   `json:"password_register_enabled"` // 是否允许密码注册
 	OIDCLoginEnabled        bool   `json:"oidc_login_enabled"`        // 是否允许 OIDC 登录
 	MaxAPIKeysPerUser       int    `json:"max_api_keys_per_user"`     // 每个用户最大 API Key 数量
+	CapLoginEnabled         bool   `json:"cap_login_enabled"`         // 是否启用人机验证
+	CapAutoSolve            bool   `json:"cap_auto_solve"`            // 打开页面后是否自动开始计算
 }
 
 // GetPublicConfig 获取公共配置
@@ -83,6 +85,18 @@ func GetPublicConfig(c *gin.Context) {
 		oidcLoginEnabled = val
 	}
 
+	// 3.4 cap_login_enabled
+	var capLoginEnabled bool
+	if val, err := model.GetBoolByKey(ctx, model.ConfigKeyCapLoginEnabled); err == nil {
+		capLoginEnabled = val
+	}
+
+	// 3.5 cap_auto_solve
+	capAutoSolve := true // 默认自动开始
+	if val, err := model.GetBoolByKey(ctx, model.ConfigKeyCapAutoSolve); err == nil {
+		capAutoSolve = val
+	}
+
 	// 4. max_api_keys_per_user
 	var maxAPIKeys int
 	if val, err := model.GetIntByKey(ctx, model.ConfigKeyMaxAPIKeysPerUser); err == nil {
@@ -97,6 +111,8 @@ func GetPublicConfig(c *gin.Context) {
 		PasswordRegisterEnabled: passwordRegisterEnabled,
 		OIDCLoginEnabled:        oidcLoginEnabled,
 		MaxAPIKeysPerUser:       maxAPIKeys,
+		CapLoginEnabled:         capLoginEnabled,
+		CapAutoSolve:            capAutoSolve,
 	}
 
 	c.JSON(http.StatusOK, util.OK(response))

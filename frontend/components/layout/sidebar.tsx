@@ -67,16 +67,17 @@ const data = {
     { title: "首页", url: "/home", icon: Home },
   ],
   admin: [
-    { title: "系统设置", url: "/admin/settings", icon: Settings },
-    { title: "系统配置", url: "/admin/system", icon: ShieldCheck },
     { title: "用户管理", url: "/admin/users", icon: UserRound },
-    { title: "任务管理", url: "/admin/tasks", icon: Layers },
     { title: "文件管理", url: "/admin/files", icon: FolderOpen },
+    { title: "任务管理", url: "/admin/tasks", icon: Layers },
+    { title: "系统配置", url: "/admin/system", icon: ShieldCheck },
+    { title: "系统设置", url: "/admin/settings", icon: Settings },
+
   ],
   document: [
+    { title: "组件库", url: "/components", icon: Palette },
     { title: "接口文档", url: "/docs/api", icon: CreditCard, external: true },
     { title: "使用文档", url: "/docs/how-to-use", icon: FileText, external: true },
-    { title: "组件库", url: "/components", icon: Palette },
   ],
 }
 

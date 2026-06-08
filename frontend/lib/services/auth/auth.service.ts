@@ -103,8 +103,8 @@ export class AuthService extends BaseService {
     await this.get<void>('/oauth/logout');
   }
 
-  static async login(request: LoginRequest): Promise<User> {
-    return this.post<User>('/user/login', request);
+  static async login(request: LoginRequest, headers?: Record<string, string>): Promise<User> {
+    return this.post<User>('/user/login', request, headers ? { headers } as any : undefined);
   }
 
   static async register(request: RegisterRequest): Promise<User> {
