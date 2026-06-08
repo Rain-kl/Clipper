@@ -56,4 +56,4 @@ COPY docs ./docs
 EXPOSE 8000
 
 ENTRYPOINT ["./wavelet"]
-CMD ["api"]
+CMD ["all"]
