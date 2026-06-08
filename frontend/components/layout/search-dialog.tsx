@@ -63,45 +63,7 @@ const getTips = (metaKey: string) => [
     <>
       <span className="text-muted-foreground/80 lowercase">你知道吗：搜索功能还在持续升级中</span>
     </>
-  ),
-  (
-    <>
-      <span className="text-muted-foreground/80 lowercase">你知道吗：积分会在每天 0 点更新</span>
-    </>
-  ),
-  (
-    <>
-      <span className="text-muted-foreground/80 lowercase">你知道吗：新用户前三天享有划转掉分保护</span>
-    </>
-  ),
-  (
-    <>
-      <span className="text-muted-foreground/80 lowercase">想实时查看积分变化？试试这个</span>
-      <a
-        href="https://linux.do/t/topic/1365853"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="text-primary hover:underline mx-1"
-      >
-        脚本
-      </a>
-    </>
-  ),
-  (
-    <>
-      <span className="text-muted-foreground/80 lowercase">遇到问题？欢迎提交</span>
-      <a
-        href="https://github.com/Rain-kl/Wavelet/issues"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="text-primary hover:underline mx-1"
-      >
-        Issue
-      </a>
-      <span className="text-muted-foreground/80 lowercase">反馈</span>
-    </>
   )
-
 ]
 
 export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {

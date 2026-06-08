@@ -371,11 +371,11 @@ export function SecurityMain() {
           <TabsTrigger value="system" className="px-0 pb-2 text-xs font-semibold">
             系统设置
           </TabsTrigger>
-          <TabsTrigger value="status" className="px-0 pb-2 text-xs font-semibold">
-            系统状态
-          </TabsTrigger>
           <TabsTrigger value="other" className="px-0 pb-2 text-xs font-semibold">
             其他设置
+          </TabsTrigger>
+          <TabsTrigger value="status" className="px-0 pb-2 text-xs font-semibold">
+            系统状态
           </TabsTrigger>
           <TabsTrigger value="info" className="px-0 pb-2 text-xs font-semibold">
             系统信息
