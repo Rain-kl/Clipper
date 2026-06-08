@@ -18,6 +18,7 @@ limitations under the License.
 package model
 
 import (
+	"context"
 	"errors"
 	"strconv"
 	"strings"
@@ -127,8 +128,13 @@ func (u *User) CheckActive() error {
 	return nil
 }
 
-// CreateUser 创建新用户
-func (u *User) CreateUser(tx *gorm.DB, oauthInfo *OAuthUserInfo) error {
+// CreateUser 创建新用户（用于 OAuth/OIDC 自动注册，含底层权限校验）
+func (u *User) CreateUser(ctx context.Context, tx *gorm.DB, oauthInfo *OAuthUserInfo) error {
+	enabled, err := GetBoolByKey(ctx, ConfigKeyRegistrationEnabled)
+	if err == nil && !enabled {
+		return errors.New("注册已关闭")
+	}
+
 	now := time.Now()
 	newUser := User{
 		ID:          oauthInfo.GetID(),
@@ -145,5 +151,38 @@ func (u *User) CreateUser(tx *gorm.DB, oauthInfo *OAuthUserInfo) error {
 	}
 
 	*u = newUser
+	return nil
+}
+
+// RegisterUser 创建新用户并注册（用于本地密码注册，含全局开关和唯一性多重底层校验）
+func (u *User) RegisterUser(ctx context.Context, tx *gorm.DB) error {
+	enabled, err := GetBoolByKey(ctx, ConfigKeyRegistrationEnabled)
+	if err == nil && !enabled {
+		return errors.New("注册已关闭")
+	}
+
+	// 检查用户名冲突
+	var count int64
+	if err := tx.Model(&User{}).Where("username = ?", u.Username).Count(&count).Error; err != nil {
+		return err
+	}
+	if count > 0 {
+		return errors.New("用户名已存在")
+	}
+
+	// 检查邮箱冲突
+	if u.Email != "" {
+		var emailCount int64
+		if err := tx.Model(&User{}).Where("email = ?", u.Email).Count(&emailCount).Error; err != nil {
+			return err
+		}
+		if emailCount > 0 {
+			return errors.New("该邮箱已被其他账号绑定")
+		}
+	}
+
+	if err := tx.Create(u).Error; err != nil {
+		return err
+	}
 	return nil
 }

@@ -354,29 +354,6 @@ func Register(c *gin.Context) {
 		_ = db.Redis.Del(ctx, db.PrefixedKey(codeKey)).Err()
 	}
 
-	var count int64
-	if err := db.DB(ctx).Model(&model.User{}).Where("username = ?", req.Username).Count(&count).Error; err != nil {
-		c.JSON(http.StatusOK, util.Err(err.Error()))
-		return
-	}
-	if count > 0 {
-		c.JSON(http.StatusOK, util.Err("用户名已存在"))
-		return
-	}
-
-	// 校验邮箱是否已被其他用户使用
-	if req.Email != "" {
-		var emailCount int64
-		if err := db.DB(ctx).Model(&model.User{}).Where("email = ?", req.Email).Count(&emailCount).Error; err != nil {
-			c.JSON(http.StatusOK, util.Err(err.Error()))
-			return
-		}
-		if emailCount > 0 {
-			c.JSON(http.StatusOK, util.Err("该邮箱已被其他账号绑定"))
-			return
-		}
-	}
-
 	user := model.User{
 		Username:    req.Username,
 		Nickname:    req.Nickname,
@@ -397,7 +374,7 @@ func Register(c *gin.Context) {
 		return
 	}
 
-	if err := db.DB(ctx).Create(&user).Error; err != nil {
+	if err := user.RegisterUser(ctx, db.DB(ctx)); err != nil {
 		c.JSON(http.StatusOK, util.Err(err.Error()))
 		return
 	}

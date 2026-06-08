@@ -508,7 +508,7 @@ func Callback(c *gin.Context) {
 			return
 		}
 		userInfo.Username = username
-		if err := user.CreateUser(db.DB(ctx), userInfo); err != nil {
+		if err := user.CreateUser(ctx, db.DB(ctx), userInfo); err != nil {
 			c.JSON(http.StatusInternalServerError, util.Err(err.Error()))
 			return
 		}
