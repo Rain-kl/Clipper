@@ -22,9 +22,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Rain-kl/Wavelet/internal/model"
+	"github.com/Rain-kl/Wavelet/internal/testhelper"
 	"github.com/hibiken/asynq"
-	"github.com/linux-do/credit/internal/model"
-	"github.com/linux-do/credit/internal/testhelper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -64,10 +64,19 @@ func failHandler() *mockHandler {
 const testTaskType = "test:mock_task"
 
 func setupTest(t *testing.T) func() {
-	_, _, cleanup := testhelper.SetupTestEnvironment(t)
+	_, mr, cleanup := testhelper.SetupTestEnvironment(t)
+	AsynqClient = asynq.NewClient(asynq.RedisClientOpt{
+		Addr: mr.Addr(),
+	})
 	// 注册测试用 handler
 	RegisterHandler(testTaskType, successHandler())
-	return cleanup
+	return func() {
+		if AsynqClient != nil {
+			AsynqClient.Close()
+			AsynqClient = nil
+		}
+		cleanup()
+	}
 }
 
 func TestRegisterAndGetHandler(t *testing.T) {
@@ -156,11 +165,6 @@ func TestProcessTaskSuccess(t *testing.T) {
 	err := model.CreateTaskExecution(ctx, execution)
 	require.NoError(t, err)
 
-	// 模拟 Asynq Task
-	asynqTask := asynq.NewTask(testTaskType, nil)
-	// 使用 ResultWriter 设置 TaskID
-	rw := asynq.NewResultWriter()
-	rw.SetTaskID("process_success_001")
 	// 通过 asynq 的 Task 不能直接设置 taskID，ProcessTask 通过 t.ResultWriter().TaskID() 获取
 	// 但 asynq.Task 在没有经过 asynq server 的情况下 ResultWriter 可能为 nil
 	// 我们需要在 ProcessTask 内部改用 taskID 注入的方式测试

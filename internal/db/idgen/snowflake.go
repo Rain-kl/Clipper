@@ -19,8 +19,8 @@ package idgen
 import (
 	"log"
 
+	"github.com/Rain-kl/Wavelet/internal/config"
 	"github.com/bwmarrin/snowflake"
-	"github.com/linux-do/credit/internal/config"
 )
 
 // 2025-12-01 00:00:00 UTC 的毫秒时间戳

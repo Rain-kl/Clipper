@@ -16,7 +16,7 @@ limitations under the License.
 
 package main
 
-import "github.com/linux-do/credit/internal/cmd"
+import "github.com/Rain-kl/Wavelet/internal/cmd"
 
 // @title LINUX DO Credit
 // @version 1.0.0

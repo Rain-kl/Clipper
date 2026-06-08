@@ -22,11 +22,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/linux-do/credit/internal/db"
-	"github.com/linux-do/credit/internal/model"
-	"github.com/linux-do/credit/internal/storage"
-	"github.com/linux-do/credit/internal/task"
-	"github.com/linux-do/credit/internal/testhelper"
+	"github.com/Rain-kl/Wavelet/internal/db"
+	"github.com/Rain-kl/Wavelet/internal/model"
+	"github.com/Rain-kl/Wavelet/internal/storage"
+	"github.com/Rain-kl/Wavelet/internal/task"
+	"github.com/Rain-kl/Wavelet/internal/testhelper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

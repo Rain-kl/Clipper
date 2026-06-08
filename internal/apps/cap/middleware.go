@@ -3,9 +3,9 @@ package cap
 import (
 	"net/http"
 
+	"github.com/Rain-kl/Wavelet/internal/util"
+	caputil "github.com/Rain-kl/Wavelet/internal/util/cap"
 	"github.com/gin-gonic/gin"
-	"github.com/linux-do/credit/internal/util"
-	caputil "github.com/linux-do/credit/internal/util/cap"
 )
 
 // VerifyMiddleware returns a Gin middleware that checks and consumes the X-Cap-Token header.

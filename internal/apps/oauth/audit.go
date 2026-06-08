@@ -20,9 +20,9 @@ import (
 	"context"
 	"encoding/json"
 
+	"github.com/Rain-kl/Wavelet/internal/logger"
+	"github.com/Rain-kl/Wavelet/internal/model"
 	"github.com/gin-gonic/gin"
-	"github.com/linux-do/credit/internal/logger"
-	"github.com/linux-do/credit/internal/model"
 )
 
 func LogForAudit(ctx context.Context, user *model.User, c *gin.Context) {

@@ -24,7 +24,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/linux-do/credit/internal/config"
+	"github.com/Rain-kl/Wavelet/internal/config"
 	"go.opentelemetry.io/otel/attribute"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"

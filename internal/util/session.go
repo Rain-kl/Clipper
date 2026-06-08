@@ -17,8 +17,8 @@ limitations under the License.
 package util
 
 import (
+	"github.com/Rain-kl/Wavelet/internal/config"
 	"github.com/gin-contrib/sessions"
-	"github.com/linux-do/credit/internal/config"
 )
 
 func GetSessionOptions(maxAge int) sessions.Options {

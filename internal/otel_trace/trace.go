@@ -18,9 +18,10 @@ package otel_trace
 
 import (
 	"context"
+	"log"
+
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/trace"
-	"log"
 )
 
 var Tracer trace.Tracer
@@ -40,7 +41,7 @@ func init() {
 	otel.SetTracerProvider(tracerProvider)
 
 	// 初始化 Tracer
-	Tracer = tracerProvider.Tracer("github.com/linux-do/credit")
+	Tracer = tracerProvider.Tracer("github.com/Rain-kl/Wavelet")
 }
 
 func Shutdown(ctx context.Context) {

@@ -21,11 +21,11 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/Rain-kl/Wavelet/internal/config"
+	"github.com/Rain-kl/Wavelet/internal/logger"
+	"github.com/Rain-kl/Wavelet/internal/model"
+	"github.com/Rain-kl/Wavelet/internal/otel_trace"
 	"github.com/gin-gonic/gin"
-	"github.com/linux-do/credit/internal/config"
-	"github.com/linux-do/credit/internal/logger"
-	"github.com/linux-do/credit/internal/model"
-	"github.com/linux-do/credit/internal/otel_trace"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 )

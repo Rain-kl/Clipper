@@ -20,7 +20,7 @@ import (
 	"context"
 	"os"
 
-	"github.com/linux-do/credit/internal/config"
+	"github.com/Rain-kl/Wavelet/internal/config"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"

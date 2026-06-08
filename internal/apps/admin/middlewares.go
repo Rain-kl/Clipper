@@ -19,13 +19,13 @@ package admin
 import (
 	"net/http"
 
-	"github.com/linux-do/credit/internal/logger"
-	"github.com/linux-do/credit/internal/model"
-	"github.com/linux-do/credit/internal/otel_trace"
-	"github.com/linux-do/credit/internal/util"
+	"github.com/Rain-kl/Wavelet/internal/logger"
+	"github.com/Rain-kl/Wavelet/internal/model"
+	"github.com/Rain-kl/Wavelet/internal/otel_trace"
+	"github.com/Rain-kl/Wavelet/internal/util"
 
+	"github.com/Rain-kl/Wavelet/internal/apps/oauth"
 	"github.com/gin-gonic/gin"
-	"github.com/linux-do/credit/internal/apps/oauth"
 )
 
 func LoginAdminRequired() gin.HandlerFunc {

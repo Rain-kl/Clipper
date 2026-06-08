@@ -10,14 +10,14 @@ import (
 
 	"strconv"
 
+	"github.com/Rain-kl/Wavelet/internal/common"
+	"github.com/Rain-kl/Wavelet/internal/db"
+	"github.com/Rain-kl/Wavelet/internal/model"
+	"github.com/Rain-kl/Wavelet/internal/util"
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/linux-do/credit/internal/common"
-	"github.com/linux-do/credit/internal/db"
-	"github.com/linux-do/credit/internal/model"
-	"github.com/linux-do/credit/internal/util"
 	"golang.org/x/oauth2"
 	"gorm.io/gorm"
 )

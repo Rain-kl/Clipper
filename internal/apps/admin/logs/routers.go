@@ -20,9 +20,9 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/Rain-kl/Wavelet/internal/logger"
+	"github.com/Rain-kl/Wavelet/internal/util"
 	"github.com/gin-gonic/gin"
-	"github.com/linux-do/credit/internal/logger"
-	"github.com/linux-do/credit/internal/util"
 )
 
 const defaultLimit = 200

@@ -17,7 +17,7 @@ limitations under the License.
 package cmd
 
 import (
-	"github.com/linux-do/credit/internal/router"
+	"github.com/Rain-kl/Wavelet/internal/router"
 	"github.com/spf13/cobra"
 )
 

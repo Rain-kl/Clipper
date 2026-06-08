@@ -88,7 +88,7 @@
 ### 1. 克隆仓库
 
 ```bash
-git clone https://github.com/linux-do/credit.git refreshing
+git clone https://github.com/Rain-kl/Wavelet.git refreshing
 cd refreshing
 ```
 

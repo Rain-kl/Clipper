@@ -8,12 +8,12 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/Rain-kl/Wavelet/internal/db"
+	"github.com/Rain-kl/Wavelet/internal/model"
+	"github.com/Rain-kl/Wavelet/internal/testhelper"
+	"github.com/Rain-kl/Wavelet/internal/util"
+	capUtil "github.com/Rain-kl/Wavelet/internal/util/cap"
 	"github.com/gin-gonic/gin"
-	"github.com/linux-do/credit/internal/db"
-	"github.com/linux-do/credit/internal/model"
-	"github.com/linux-do/credit/internal/testhelper"
-	"github.com/linux-do/credit/internal/util"
-	capUtil "github.com/linux-do/credit/internal/util/cap"
 )
 
 func TestCapEndpointsAndMiddleware(t *testing.T) {

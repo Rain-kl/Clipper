@@ -20,11 +20,11 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/Rain-kl/Wavelet/internal/db"
+	"github.com/Rain-kl/Wavelet/internal/model"
+	"github.com/Rain-kl/Wavelet/internal/util"
+	mail "github.com/Rain-kl/Wavelet/internal/util/mail"
 	"github.com/gin-gonic/gin"
-	"github.com/linux-do/credit/internal/db"
-	"github.com/linux-do/credit/internal/model"
-	"github.com/linux-do/credit/internal/util"
-	mail "github.com/linux-do/credit/internal/util/mail"
 	"gorm.io/gorm"
 )
 

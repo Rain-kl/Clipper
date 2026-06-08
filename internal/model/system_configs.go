@@ -26,7 +26,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"github.com/shopspring/decimal"
 
-	"github.com/linux-do/credit/internal/db"
+	"github.com/Rain-kl/Wavelet/internal/db"
 )
 
 // 配置键常量 - 所有系统配置的 key 定义

@@ -21,10 +21,10 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/Rain-kl/Wavelet/internal/db"
+	"github.com/Rain-kl/Wavelet/internal/model"
+	"github.com/Rain-kl/Wavelet/internal/storage"
 	"github.com/gin-gonic/gin"
-	"github.com/linux-do/credit/internal/db"
-	"github.com/linux-do/credit/internal/model"
-	"github.com/linux-do/credit/internal/storage"
 	"gorm.io/gorm"
 )
 

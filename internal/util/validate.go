@@ -19,7 +19,7 @@ package util
 import (
 	"errors"
 
-	"github.com/linux-do/credit/internal/common"
+	"github.com/Rain-kl/Wavelet/internal/common"
 	"github.com/shopspring/decimal"
 )
 

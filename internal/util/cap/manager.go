@@ -9,9 +9,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/linux-do/credit/internal/config"
-	"github.com/linux-do/credit/internal/db"
-	"github.com/linux-do/credit/internal/model"
+	"github.com/Rain-kl/Wavelet/internal/config"
+	"github.com/Rain-kl/Wavelet/internal/db"
+	"github.com/Rain-kl/Wavelet/internal/model"
 )
 
 // Config holds settings for the CAPTCHA manager

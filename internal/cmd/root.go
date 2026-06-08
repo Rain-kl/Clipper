@@ -19,7 +19,7 @@ package cmd
 import (
 	"log"
 
-	"github.com/linux-do/credit/internal/db/migrator"
+	"github.com/Rain-kl/Wavelet/internal/db/migrator"
 	"github.com/spf13/cobra"
 )
 

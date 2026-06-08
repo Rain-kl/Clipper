@@ -21,13 +21,31 @@ import (
 	"testing"
 	"time"
 
-	"github.com/linux-do/credit/internal/testhelper"
+	"github.com/Rain-kl/Wavelet/internal/db"
+	"github.com/glebarez/sqlite"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gorm.io/gorm"
 )
 
+func setupTaskExecutionTestEnvironment(t *testing.T) func() {
+	sqliteDB, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{
+		DisableForeignKeyConstraintWhenMigrating: true,
+	})
+	require.NoError(t, err)
+
+	err = sqliteDB.AutoMigrate(&TaskExecution{})
+	require.NoError(t, err)
+
+	db.SetDB(sqliteDB)
+
+	return func() {
+		db.SetDB(nil)
+	}
+}
+
 func TestCreateTaskExecution(t *testing.T) {
-	_, _, cleanup := testhelper.SetupTestEnvironment(t)
+	cleanup := setupTaskExecutionTestEnvironment(t)
 	defer cleanup()
 	ctx := context.Background()
 
@@ -51,7 +69,7 @@ func TestCreateTaskExecution(t *testing.T) {
 }
 
 func TestGetTaskExecutionByTaskID(t *testing.T) {
-	_, _, cleanup := testhelper.SetupTestEnvironment(t)
+	cleanup := setupTaskExecutionTestEnvironment(t)
 	defer cleanup()
 	ctx := context.Background()
 
@@ -83,7 +101,7 @@ func TestGetTaskExecutionByTaskID(t *testing.T) {
 }
 
 func TestGetTaskExecutionByID(t *testing.T) {
-	_, _, cleanup := testhelper.SetupTestEnvironment(t)
+	cleanup := setupTaskExecutionTestEnvironment(t)
 	defer cleanup()
 	ctx := context.Background()
 
@@ -104,7 +122,7 @@ func TestGetTaskExecutionByID(t *testing.T) {
 }
 
 func TestUpdateTaskExecution(t *testing.T) {
-	_, _, cleanup := testhelper.SetupTestEnvironment(t)
+	cleanup := setupTaskExecutionTestEnvironment(t)
 	defer cleanup()
 	ctx := context.Background()
 
@@ -149,7 +167,7 @@ func TestUpdateTaskExecution(t *testing.T) {
 }
 
 func TestUpdateTaskExecutionFailed(t *testing.T) {
-	_, _, cleanup := testhelper.SetupTestEnvironment(t)
+	cleanup := setupTaskExecutionTestEnvironment(t)
 	defer cleanup()
 	ctx := context.Background()
 
@@ -183,7 +201,7 @@ func TestUpdateTaskExecutionFailed(t *testing.T) {
 }
 
 func TestAppendTaskExecutionLog(t *testing.T) {
-	_, _, cleanup := testhelper.SetupTestEnvironment(t)
+	cleanup := setupTaskExecutionTestEnvironment(t)
 	defer cleanup()
 	ctx := context.Background()
 
@@ -216,7 +234,7 @@ func TestAppendTaskExecutionLog(t *testing.T) {
 }
 
 func TestAppendTaskExecutionLogNonExistent(t *testing.T) {
-	_, _, cleanup := testhelper.SetupTestEnvironment(t)
+	cleanup := setupTaskExecutionTestEnvironment(t)
 	defer cleanup()
 	ctx := context.Background()
 
@@ -227,7 +245,7 @@ func TestAppendTaskExecutionLogNonExistent(t *testing.T) {
 }
 
 func TestListTaskExecutions(t *testing.T) {
-	_, _, cleanup := testhelper.SetupTestEnvironment(t)
+	cleanup := setupTaskExecutionTestEnvironment(t)
 	defer cleanup()
 	ctx := context.Background()
 
@@ -284,7 +302,7 @@ func TestListTaskExecutions(t *testing.T) {
 }
 
 func TestListTaskExecutionsDefaultPaging(t *testing.T) {
-	_, _, cleanup := testhelper.SetupTestEnvironment(t)
+	cleanup := setupTaskExecutionTestEnvironment(t)
 	defer cleanup()
 	ctx := context.Background()
 

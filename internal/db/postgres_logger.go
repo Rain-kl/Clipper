@@ -23,7 +23,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/linux-do/credit/internal/logger"
+	"github.com/Rain-kl/Wavelet/internal/logger"
 	"gorm.io/gorm"
 	gormLogger "gorm.io/gorm/logger"
 )

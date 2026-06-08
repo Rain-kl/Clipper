@@ -19,10 +19,10 @@ package oauth
 import (
 	"net/http"
 
+	"github.com/Rain-kl/Wavelet/internal/model"
+	"github.com/Rain-kl/Wavelet/internal/util"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
-	"github.com/linux-do/credit/internal/model"
-	"github.com/linux-do/credit/internal/util"
 )
 
 type BasicUserInfo struct {

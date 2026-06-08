@@ -27,9 +27,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/linux-do/credit/internal/config"
-	"github.com/linux-do/credit/internal/logger"
-	"github.com/linux-do/credit/internal/otel_trace"
+	"github.com/Rain-kl/Wavelet/internal/config"
+	"github.com/Rain-kl/Wavelet/internal/logger"
+	"github.com/Rain-kl/Wavelet/internal/otel_trace"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/sync/singleflight"

@@ -21,8 +21,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/linux-do/credit/internal/db"
-	"github.com/linux-do/credit/internal/db/idgen"
+	"github.com/Rain-kl/Wavelet/internal/db"
+	"github.com/Rain-kl/Wavelet/internal/db/idgen"
 	"gorm.io/gorm"
 )
 

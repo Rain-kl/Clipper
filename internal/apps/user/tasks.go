@@ -24,9 +24,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/linux-do/credit/internal/model"
-	"github.com/linux-do/credit/internal/task"
-	"github.com/linux-do/credit/internal/util/mail"
+	"github.com/Rain-kl/Wavelet/internal/model"
+	"github.com/Rain-kl/Wavelet/internal/task"
+	"github.com/Rain-kl/Wavelet/internal/util/mail"
 )
 
 // SendEmailPayload 邮件发送任务载荷

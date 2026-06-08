@@ -24,7 +24,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/linux-do/credit/internal/config"
+	"github.com/Rain-kl/Wavelet/internal/config"
 	"github.com/redis/go-redis/extra/redisotel/v9"
 	"github.com/redis/go-redis/v9"
 	"go.opentelemetry.io/otel/attribute"

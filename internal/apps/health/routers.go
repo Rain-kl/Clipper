@@ -19,8 +19,8 @@ package health
 import (
 	"net/http"
 
+	"github.com/Rain-kl/Wavelet/internal/util"
 	"github.com/gin-gonic/gin"
-	"github.com/linux-do/credit/internal/util"
 )
 
 // Health 健康检查

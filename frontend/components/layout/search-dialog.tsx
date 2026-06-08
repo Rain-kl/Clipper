@@ -1,7 +1,7 @@
 "use client"
 
-import { useEffect, useState, useCallback } from "react"
-import { useRouter } from "next/navigation"
+import {useCallback, useEffect, useState} from "react"
+import {useRouter} from "next/navigation"
 import {
   CommandDialog,
   CommandEmpty,
@@ -10,10 +10,10 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command"
-import { Kbd, KbdGroup } from "@/components/ui/kbd"
-import { searchItems, type SearchItem } from "@/lib/utils/search-data"
-import { Home, Settings, FileText, Shield } from "lucide-react"
-import { useUser } from "@/contexts/user-context"
+import {Kbd, KbdGroup} from "@/components/ui/kbd"
+import {type SearchItem, searchItems} from "@/lib/utils/search-data"
+import {FileText, Home, Settings, Shield} from "lucide-react"
+import {useUser} from "@/contexts/user-context"
 
 interface SearchDialogProps {
   open: boolean
@@ -77,9 +77,9 @@ const getTips = (metaKey: string) => [
   (
     <>
       <span className="text-muted-foreground/80 lowercase">想实时查看积分变化？试试这个</span>
-      <a 
-        href="https://linux.do/t/topic/1365853" 
-        target="_blank" 
+      <a
+        href="https://linux.do/t/topic/1365853"
+        target="_blank"
         rel="noopener noreferrer"
         className="text-primary hover:underline mx-1"
       >
@@ -90,9 +90,9 @@ const getTips = (metaKey: string) => [
   (
     <>
       <span className="text-muted-foreground/80 lowercase">遇到问题？欢迎提交</span>
-      <a 
-        href="https://github.com/linux-do/credit/issues" 
-        target="_blank" 
+      <a
+        href="https://github.com/Rain-kl/Wavelet/issues"
+        target="_blank"
         rel="noopener noreferrer"
         className="text-primary hover:underline mx-1"
       >
@@ -170,8 +170,8 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
 
       if (e.key === '/'&& !e.ctrlKey && !e.metaKey && !e.altKey) {
         const target = e.target as HTMLElement
-        const isEditing = target.tagName === 'INPUT' || 
-                         target.tagName === 'TEXTAREA' || 
+        const isEditing = target.tagName === 'INPUT' ||
+                         target.tagName === 'TEXTAREA' ||
                          target.tagName === 'SELECT' ||
                          target.isContentEditable ||
                          target.closest('[contenteditable="true"]')

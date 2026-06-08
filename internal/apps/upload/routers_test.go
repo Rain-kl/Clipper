@@ -29,13 +29,13 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/Rain-kl/Wavelet/internal/apps/oauth"
+	"github.com/Rain-kl/Wavelet/internal/db"
+	"github.com/Rain-kl/Wavelet/internal/model"
+	"github.com/Rain-kl/Wavelet/internal/storage"
+	"github.com/Rain-kl/Wavelet/internal/testhelper"
+	"github.com/Rain-kl/Wavelet/internal/util"
 	"github.com/gin-gonic/gin"
-	"github.com/linux-do/credit/internal/apps/oauth"
-	"github.com/linux-do/credit/internal/db"
-	"github.com/linux-do/credit/internal/model"
-	"github.com/linux-do/credit/internal/storage"
-	"github.com/linux-do/credit/internal/testhelper"
-	"github.com/linux-do/credit/internal/util"
 )
 
 type testResponse struct {

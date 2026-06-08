@@ -92,8 +92,8 @@ func TestLogRingBuffer_QueryByCursorWithLimit(t *testing.T) {
 	entries, hasMore := rb.Query(4, 2)
 	assert.True(t, hasMore)
 	assert.Equal(t, 2, len(entries))
-	assert.Equal(t, "b", entries[0].Data)
-	assert.Equal(t, "c", entries[1].Data)
+	assert.Equal(t, "c", entries[0].Data)
+	assert.Equal(t, "d", entries[1].Data)
 }
 
 func TestLogRingBuffer_QueryEmpty(t *testing.T) {
@@ -110,7 +110,9 @@ func TestLogRingBuffer_QueryNonExistentCursor(t *testing.T) {
 
 	entries, hasMore := rb.Query(999, 10)
 	assert.False(t, hasMore)
-	assert.Nil(t, entries)
+	assert.Equal(t, 2, len(entries))
+	assert.Equal(t, "a", entries[0].Data)
+	assert.Equal(t, "b", entries[1].Data)
 }
 
 func TestLogRingBuffer_Subscribe(t *testing.T) {
@@ -177,11 +179,8 @@ func TestLogRingBuffer_QueryAfterOverflow(t *testing.T) {
 
 	// Query by cursor - index 4 is "5", so cursor=4 should return index < 4
 	older, hasMore2 := rb.Query(4, 10)
-	assert.True(t, hasMore2) // there are entries 0,1,2 but they've been overwritten...
-	// Actually after overflow, entries 0,1,2 are gone from ring, so index < 4 should return nothing
-	// Let's check: ring has indices 4,5,6. Query(cursor=4) looks for index < 4 → none in ring
-	_ = older
-	_ = hasMore2
+	assert.False(t, hasMore2)
+	assert.Nil(t, older)
 }
 
 func TestLogRingBuffer_NextCursor(t *testing.T) {

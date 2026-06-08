@@ -1,4 +1,4 @@
-module github.com/linux-do/credit
+module github.com/Rain-kl/Wavelet
 
 go 1.25.5
 

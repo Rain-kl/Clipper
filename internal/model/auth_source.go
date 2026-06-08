@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/linux-do/credit/internal/db"
+	"github.com/Rain-kl/Wavelet/internal/db"
 	"gorm.io/gorm"
 )
 

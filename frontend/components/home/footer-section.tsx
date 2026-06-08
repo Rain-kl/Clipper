@@ -28,7 +28,7 @@ export const FooterSection = React.memo(function FooterSection({ className }: Fo
               通用的、现代化的后台管理系统脚手架。基于 Go + React 构建，开箱即用、完整基建、极易扩展。
             </p>
             <div className="flex gap-4 pt-2">
-              <SocialLink icon={Github} href="https://github.com/linux-do/credit/" />
+              <SocialLink icon={Github} href="https://github.com/Rain-kl/Wavelet/" />
             </div>
           </div>
 
@@ -45,15 +45,15 @@ export const FooterSection = React.memo(function FooterSection({ className }: Fo
             <ul className="space-y-4 text-sm text-muted-foreground">
               <li><FooterLink href="/docs/how-to-use">快速开始</FooterLink></li>
               <li><FooterLink href="/docs/api">API 文档</FooterLink></li>
-              <li><FooterLink href="https://github.com/linux-do/credit">源代码</FooterLink></li>
+              <li><FooterLink href="https://github.com/Rain-kl/Wavelet">源代码</FooterLink></li>
             </ul>
           </div>
 
           <div className="lg:col-span-1">
             <h3 className="font-semibold text-foreground mb-6">社区</h3>
             <ul className="space-y-4 text-sm text-muted-foreground">
-              <li><FooterLink href="https://github.com/linux-do/credit/issues">GitHub Issues</FooterLink></li>
-              <li><FooterLink href="https://github.com/linux-do/credit/discussions">讨论</FooterLink></li>
+              <li><FooterLink href="https://github.com/Rain-kl/Wavelet/issues">GitHub Issues</FooterLink></li>
+              <li><FooterLink href="https://github.com/Rain-kl/Wavelet/discussions">讨论</FooterLink></li>
               <li><FooterLink href="https://linux.do/">LINUX DO</FooterLink></li>
             </ul>
           </div>

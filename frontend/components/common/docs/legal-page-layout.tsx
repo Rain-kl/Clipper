@@ -2,11 +2,11 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { ArrowLeft, Calendar, Check, Copy, FileText } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
-import { motion, useScroll, useSpring } from "motion/react"
-import type { PolicySection } from "./types"
+import {ArrowLeft, Calendar, Check, Copy, FileText} from "lucide-react"
+import {Button} from "@/components/ui/button"
+import {cn} from "@/lib/utils"
+import {motion, useScroll, useSpring} from "motion/react"
+import type {PolicySection} from "./types"
 
 interface LegalPageLayoutProps {
   title: string
@@ -395,7 +395,7 @@ export function LegalPageLayout({
                   对这些内容有疑问？
                 </p>
                 <div className="flex justify-center gap-4">
-                  <Link href="https://github.com/linux-do/credit/issues" target="_blank">
+                  <Link href="https://github.com/Rain-kl/Wavelet/issues" target="_blank">
                     <Button variant="outline" className="h-9 text-xs">
                       联系支持
                     </Button>

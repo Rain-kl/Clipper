@@ -39,7 +39,7 @@
 以下是项目的顶层目录结构及其职责, 如果有新增目录或文件，请务必在此处同步更新：
 
 ```
-wavelet/                           # 项目根目录（模块名: github.com/linux-do/credit）
+wavelet/                           # 项目根目录（模块名: github.com/Rain-kl/Wavelet）
 ├── main.go                        # 程序入口，调用 internal/cmd
 ├── go.mod / go.sum                # Go 模块依赖
 ├── config.yaml                    # 运行时配置（不提交到 Git）

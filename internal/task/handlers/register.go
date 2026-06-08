@@ -1,5 +1,5 @@
 /*
-Copyright 2025 linux.do
+Copyright 2026 linux.do
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,23 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package cmd
+package handlers
 
 import (
-	"log"
-
-	"github.com/Rain-kl/Wavelet/internal/task/worker"
-
-	"github.com/spf13/cobra"
+	"github.com/Rain-kl/Wavelet/internal/apps/upload"
+	"github.com/Rain-kl/Wavelet/internal/apps/user"
+	"github.com/Rain-kl/Wavelet/internal/task"
 )
 
-var workerCmd = &cobra.Command{
-	Use:   "worker",
-	Short: "wavelet Worker",
-	Run: func(cmd *cobra.Command, args []string) {
-		log.Println("[Worker] 启动任务处理服务")
-		if err := worker.StartWorker(); err != nil {
-			log.Fatalf("[工作器] 启动失败: %v", err)
-		}
-	},
+// Register registers all built-in task handlers.
+func Register() {
+	task.RegisterHandler(task.CleanupUnusedUploadsTask, &upload.CleanupUnusedUploadsHandler{})
+	task.RegisterHandler(task.SendEmailTask, &user.SendEmailHandler{})
 }

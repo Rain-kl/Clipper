@@ -26,15 +26,30 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Rain-kl/Wavelet/internal/apps/oauth"
+	"github.com/Rain-kl/Wavelet/internal/model"
+	"github.com/Rain-kl/Wavelet/internal/task"
+	"github.com/Rain-kl/Wavelet/internal/testhelper"
+	"github.com/Rain-kl/Wavelet/internal/util"
 	"github.com/gin-gonic/gin"
-	"github.com/linux-do/credit/internal/apps/oauth"
-	"github.com/linux-do/credit/internal/model"
-	"github.com/linux-do/credit/internal/task"
-	"github.com/linux-do/credit/internal/testhelper"
-	"github.com/linux-do/credit/internal/util"
+	"github.com/hibiken/asynq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func setupTaskTestEnvironment(t *testing.T) func() {
+	_, mr, cleanup := testhelper.SetupTestEnvironment(t)
+	task.AsynqClient = asynq.NewClient(asynq.RedisClientOpt{
+		Addr: mr.Addr(),
+	})
+	return func() {
+		if task.AsynqClient != nil {
+			task.AsynqClient.Close()
+			task.AsynqClient = nil
+		}
+		cleanup()
+	}
+}
 
 func setupTestRouter(authUser *model.User) *gin.Engine {
 	gin.SetMode(gin.TestMode)
@@ -58,7 +73,7 @@ func setupTestRouter(authUser *model.User) *gin.Engine {
 }
 
 func TestListTaskTypes(t *testing.T) {
-	_, _, cleanup := testhelper.SetupTestEnvironment(t)
+	cleanup := setupTaskTestEnvironment(t)
 	defer cleanup()
 
 	adminUser := &model.User{ID: 1001, Username: "admin", IsAdmin: true}
@@ -96,7 +111,7 @@ func TestListTaskTypes(t *testing.T) {
 }
 
 func TestDispatchTask(t *testing.T) {
-	_, _, cleanup := testhelper.SetupTestEnvironment(t)
+	cleanup := setupTaskTestEnvironment(t)
 	defer cleanup()
 
 	adminUser := &model.User{ID: 1001, Username: "admin", IsAdmin: true}
@@ -206,7 +221,7 @@ func TestDispatchTask(t *testing.T) {
 }
 
 func TestListTaskExecutions(t *testing.T) {
-	_, _, cleanup := testhelper.SetupTestEnvironment(t)
+	cleanup := setupTaskTestEnvironment(t)
 	defer cleanup()
 
 	adminUser := &model.User{ID: 1001, Username: "admin", IsAdmin: true}
@@ -295,7 +310,7 @@ func TestListTaskExecutions(t *testing.T) {
 }
 
 func TestGetTaskExecution(t *testing.T) {
-	_, _, cleanup := testhelper.SetupTestEnvironment(t)
+	cleanup := setupTaskTestEnvironment(t)
 	defer cleanup()
 
 	adminUser := &model.User{ID: 1001, Username: "admin", IsAdmin: true}
@@ -358,7 +373,7 @@ func TestGetTaskExecution(t *testing.T) {
 }
 
 func TestRetryTask(t *testing.T) {
-	_, _, cleanup := testhelper.SetupTestEnvironment(t)
+	cleanup := setupTaskTestEnvironment(t)
 	defer cleanup()
 
 	adminUser := &model.User{ID: 1001, Username: "admin", IsAdmin: true}
@@ -465,7 +480,7 @@ func TestRetryTask(t *testing.T) {
 }
 
 func TestRetryTaskMaxRetryExceeded(t *testing.T) {
-	_, _, cleanup := testhelper.SetupTestEnvironment(t)
+	cleanup := setupTaskTestEnvironment(t)
 	defer cleanup()
 
 	adminUser := &model.User{ID: 1001, Username: "admin", IsAdmin: true}

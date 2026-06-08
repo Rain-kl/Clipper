@@ -88,7 +88,7 @@ The project was designed from the ground up to be **framework-first and business
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/linux-do/credit.git refreshing
+git clone https://github.com/Rain-kl/Wavelet.git refreshing
 cd refreshing
 ```
 

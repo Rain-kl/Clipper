@@ -24,7 +24,7 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/linux-do/credit/internal/config"
+	"github.com/Rain-kl/Wavelet/internal/config"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"

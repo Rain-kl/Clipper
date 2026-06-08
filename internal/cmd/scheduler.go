@@ -19,7 +19,7 @@ package cmd
 import (
 	"log"
 
-	"github.com/linux-do/credit/internal/task/scheduler"
+	"github.com/Rain-kl/Wavelet/internal/task/scheduler"
 
 	"github.com/spf13/cobra"
 )

@@ -3,8 +3,8 @@ package cap
 import (
 	"net/http"
 
+	"github.com/Rain-kl/Wavelet/internal/util/cap"
 	"github.com/gin-gonic/gin"
-	"github.com/linux-do/credit/internal/util/cap"
 )
 
 type challengeRequest struct {

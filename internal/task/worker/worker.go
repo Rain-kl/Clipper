@@ -19,17 +19,15 @@ package worker
 import (
 	"time"
 
+	"github.com/Rain-kl/Wavelet/internal/config"
+	"github.com/Rain-kl/Wavelet/internal/task"
+	taskhandlers "github.com/Rain-kl/Wavelet/internal/task/handlers"
 	"github.com/hibiken/asynq"
-	"github.com/linux-do/credit/internal/apps/upload"
-	"github.com/linux-do/credit/internal/apps/user"
-	"github.com/linux-do/credit/internal/config"
-	"github.com/linux-do/credit/internal/task"
 )
 
 func init() {
 	// 注册所有任务处理器
-	task.RegisterHandler(task.CleanupUnusedUploadsTask, &upload.CleanupUnusedUploadsHandler{})
-	task.RegisterHandler(task.SendEmailTask, &user.SendEmailHandler{})
+	taskhandlers.Register()
 }
 
 // StartWorker 启动任务处理服务器

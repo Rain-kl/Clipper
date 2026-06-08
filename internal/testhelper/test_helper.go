@@ -20,12 +20,10 @@ import (
 	"context"
 	"testing"
 
+	"github.com/Rain-kl/Wavelet/internal/db"
+	"github.com/Rain-kl/Wavelet/internal/model"
 	"github.com/alicebob/miniredis/v2"
 	"github.com/glebarez/sqlite"
-	"github.com/hibiken/asynq"
-	"github.com/linux-do/credit/internal/db"
-	"github.com/linux-do/credit/internal/model"
-	"github.com/linux-do/credit/internal/task"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
@@ -69,11 +67,6 @@ func SetupTestEnvironment(t *testing.T) (*gorm.DB, *miniredis.Miniredis, func())
 	})
 	db.Redis = redisClient
 
-	// Hook up AsynqClient to miniredis
-	task.AsynqClient = asynq.NewClient(asynq.RedisClientOpt{
-		Addr: mr.Addr(),
-	})
-
 	// Seed default configurations
 	seedDefaultConfigs(t, sqliteDB)
 
@@ -84,7 +77,6 @@ func SetupTestEnvironment(t *testing.T) (*gorm.DB, *miniredis.Miniredis, func())
 		// Reset database and Redis references
 		db.SetDB(nil)
 		db.Redis = nil
-		task.AsynqClient = nil
 	}
 
 	return sqliteDB, mr, cleanup

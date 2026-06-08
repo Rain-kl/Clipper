@@ -17,8 +17,8 @@ limitations under the License.
 package task
 
 import (
+	"github.com/Rain-kl/Wavelet/internal/config"
 	"github.com/hibiken/asynq"
-	"github.com/linux-do/credit/internal/config"
 )
 
 // RedisOpt asynq Redis 连接配置（兼容 Standalone/Sentinel/Cluster）

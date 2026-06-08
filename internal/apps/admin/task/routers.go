@@ -23,11 +23,16 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Rain-kl/Wavelet/internal/model"
+	"github.com/Rain-kl/Wavelet/internal/task"
+	taskhandlers "github.com/Rain-kl/Wavelet/internal/task/handlers"
+	"github.com/Rain-kl/Wavelet/internal/util"
 	"github.com/gin-gonic/gin"
-	"github.com/linux-do/credit/internal/model"
-	"github.com/linux-do/credit/internal/task"
-	"github.com/linux-do/credit/internal/util"
 )
+
+func init() {
+	taskhandlers.Register()
+}
 
 // ListTaskTypes 获取支持的任务类型列表
 // @Summary 获取支持的任务类型

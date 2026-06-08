@@ -22,8 +22,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/linux-do/credit/internal/common"
-	"github.com/linux-do/credit/internal/util"
+	"github.com/Rain-kl/Wavelet/internal/common"
+	"github.com/Rain-kl/Wavelet/internal/util"
 	"gorm.io/gorm"
 )
 
