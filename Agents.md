@@ -452,6 +452,36 @@ import "github.com/gin-gonic/gin"
 func (m *Manager) VerifyMiddleware(...) gin.HandlerFunc { ... }
 ```
 
+### 6.12 前端页面宽度自适应规范
+
+**开发或更新前端页面时，页面主容器必须支持全宽（Full Width）自适应。** 页面组件的根容器禁止硬编码固定最大宽度（如 `max-w-6xl`、`max-w-4xl` 等），而应统一使用 `w-full`。
+
+由于系统主布局（`MainLayout`）已包含全局 "切换全宽" 状态与按钮，页面主容器不设最大宽度即可让页面宽度完美跟随全局状态。默认情况下由主布局约束在正常宽度限制内，开启全宽后能自动拉伸至 `100%`。
+
+**错误示例（禁止限制宽度）**：
+```tsx
+// ❌ 禁止在页面外层组件硬编码 max-w 限制
+export function FeatureMain() {
+  return (
+    <div className="py-6 space-y-6 max-w-6xl mx-auto">
+      {/* 页面内容 */}
+    </div>
+  )
+}
+```
+
+**正确示例（推荐自适应全宽）**：
+```tsx
+// ✅ 容器使用 w-full，使其自适应外层 layout 的宽度调整
+export function FeatureMain() {
+  return (
+    <div className="py-6 space-y-6 w-full">
+      {/* 页面内容 */}
+    </div>
+  )
+}
+```
+
 ---
 
 ## 七、新增功能开发流程

@@ -38,7 +38,7 @@ export function SystemLogs() {
 
       {/* Tabs Layout */}
       <Tabs defaultValue="analytics" className="w-full flex-grow flex flex-col gap-2">
-        <TabsList className="mb-2 w-full sm:w-auto">
+        <TabsList variant={'line'} className="mb-2 w-full sm:w-auto">
           <TabsTrigger value="analytics" className="flex items-center gap-1.5 px-4">
             <BarChart3 className="size-3.5" />
             访问分析

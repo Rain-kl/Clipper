@@ -65,10 +65,10 @@ export function SystemSettingsMain() {
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, ease: "easeOut" }}
-      className="py-6 space-y-6 max-w-4xl mx-auto px-4"
+      className="py-6 space-y-6 w-full"
     >
       <Tabs defaultValue="security" className="w-full">
-        <TabsList className="w-full overflow-x-auto">
+        <TabsList variant={'line'} className="w-full">
           <TabsTrigger value="security" className="px-0 pb-2 text-xs font-semibold">
             安全设置
           </TabsTrigger>

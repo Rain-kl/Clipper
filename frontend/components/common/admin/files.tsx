@@ -164,7 +164,7 @@ export function FilesMain() {
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, ease: "easeOut" }}
-      className="py-6 space-y-6 max-w-6xl mx-auto"
+      className="py-6 space-y-6 w-full"
     >
 
       {/* 头部 */}
