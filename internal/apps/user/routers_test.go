@@ -117,6 +117,34 @@ func basicUserInfoFromResponse(t *testing.T, w *httptest.ResponseRecorder) oauth
 	return info
 }
 
+func TestEmailCooldownKeyIncludesScene(t *testing.T) {
+	email := "user@example.com"
+
+	loginKey := getEmailCooldownKey("login", email)
+	registerKey := getEmailCooldownKey("register", email)
+	if loginKey == registerKey {
+		t.Errorf("getEmailCooldownKey(%q, %q) = %q, want different key from register scene", "login", email, loginKey)
+	}
+	if want := "email_code:cooldown:login:user@example.com"; loginKey != want {
+		t.Errorf("getEmailCooldownKey(%q, %q) = %q, want %q", "login", email, loginKey, want)
+	}
+}
+
+func TestGenerateVerificationCode(t *testing.T) {
+	code, err := generateVerificationCode()
+	if err != nil {
+		t.Fatalf("generateVerificationCode() error = %v, want nil", err)
+	}
+	if len(code) != 6 {
+		t.Fatalf("generateVerificationCode() length = %d, want 6. Code: %q", len(code), code)
+	}
+	for _, r := range code {
+		if r < '0' || r > '9' {
+			t.Fatalf("generateVerificationCode() = %q, want only digits", code)
+		}
+	}
+}
+
 func TestRegisterCreatesAuthenticatedEncryptedUser(t *testing.T) {
 	dbConn, _, cleanup := testhelper.SetupTestEnvironment(t)
 	defer cleanup()

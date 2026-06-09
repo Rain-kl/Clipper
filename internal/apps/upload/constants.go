@@ -14,22 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package risk_control
+package upload
 
-import (
-	"time"
+const (
+	maxUploadSize      = 32 * 1024 * 1024 // 32MB
+	detectContentBytes = 512              // http.DetectContentType 需要的最小字节数
+	uploadDirPerm      = 0755             // 上传目录权限
+	uploadFilePerm     = 0644             // 上传文件权限
 )
-
-// UserAccessLog 用户访问记录
-type UserAccessLog struct {
-	ID        uint64    `json:"id,string"`
-	UserID    uint64    `json:"user_id,string"`
-	Path      string    `json:"path"`
-	Method    string    `json:"method"`
-	IP        string    `json:"ip"`
-	UserAgent string    `json:"user_agent"`
-	Headers   string    `json:"headers"`
-	Status    int32     `json:"status"`
-	Latency   int64     `json:"latency"` // 耗时毫秒
-	CreatedAt time.Time `json:"created_at"`
-}

@@ -49,13 +49,15 @@ type AuthSourceView struct {
 	ClientSecretConfigured bool   `json:"client_secret_configured"`
 }
 
-// AuthorizeResponse 授权 URL 响应
+// OAuthAuthorizeResponse 授权 URL 响应
+//
 //nolint:revive // OAuth 前缀保持包内语义清晰
 type OAuthAuthorizeResponse struct {
 	AuthorizeURL string `json:"authorize_url"`
 }
 
-// CallbackResult 回调处理结果
+// OAuthCallbackResult 回调处理结果
+//
 //nolint:revive // OAuth 前缀保持包内语义清晰
 type OAuthCallbackResult struct {
 	Status string         `json:"status"`
