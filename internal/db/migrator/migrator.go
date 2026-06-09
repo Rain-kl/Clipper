@@ -25,6 +25,7 @@ import (
 
 	"github.com/Rain-kl/Wavelet/internal/config"
 	"github.com/Rain-kl/Wavelet/internal/db"
+	"github.com/Rain-kl/Wavelet/internal/model"
 	"github.com/pressly/goose/v3"
 )
 
@@ -75,5 +76,16 @@ func Migrate() {
 		log.Fatalf("[%s] goose migrate failed: %v\n", dbType(), err)
 	}
 
+	clearSystemConfigCache()
+
 	log.Printf("[%s] goose migrate success\n", dbType())
+}
+
+func clearSystemConfigCache() {
+	if db.Redis == nil {
+		return
+	}
+	if err := db.Redis.Del(context.Background(), db.PrefixedKey(model.SystemConfigRedisHashKey)).Err(); err != nil {
+		log.Printf("[%s] clear system config cache failed: %v\n", dbType(), err)
+	}
 }
