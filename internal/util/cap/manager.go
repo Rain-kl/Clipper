@@ -30,6 +30,18 @@ import (
 	"github.com/Rain-kl/Wavelet/internal/model"
 )
 
+const (
+	managerDefaultChallengeCount      = 1
+	managerDefaultChallengeSize       = 32
+	defaultChallengeDifficulty = 4
+	defaultChallengeTTL        = 10 * time.Minute
+	defaultTokenTTL            = 20 * time.Minute
+	redeemTokenIDLength        = 8  // 兑换 Token ID 字节长度
+	redeemVerTokenLength       = 15 // 兑换验证 Token 字节长度
+	tokenPartsCount            = 2  // 兑换 Token 由两部分组成
+	valuePartsCount            = 2  // 存储值由 scope 和过期时间组成
+)
+
 // Config holds settings for the CAPTCHA manager
 type Config struct {
 	Secret              []byte        // HMAC signing key
@@ -49,19 +61,19 @@ type Manager struct {
 // NewManager creates a new CAPTCHA Manager
 func NewManager(conf Config, store Store) *Manager {
 	if conf.ChallengeCount <= 0 {
-		conf.ChallengeCount = 1
+		conf.ChallengeCount = managerDefaultChallengeCount
 	}
 	if conf.ChallengeSize <= 0 {
-		conf.ChallengeSize = 32
+		conf.ChallengeSize = managerDefaultChallengeSize
 	}
 	if conf.ChallengeDifficulty <= 0 {
-		conf.ChallengeDifficulty = 4
+		conf.ChallengeDifficulty = defaultChallengeDifficulty
 	}
 	if conf.ChallengeTTL <= 0 {
-		conf.ChallengeTTL = 10 * time.Minute
+		conf.ChallengeTTL = defaultChallengeTTL
 	}
 	if conf.TokenTTL <= 0 {
-		conf.TokenTTL = 20 * time.Minute
+		conf.TokenTTL = defaultTokenTTL
 	}
 	return &Manager{
 		conf:  conf,
@@ -116,8 +128,8 @@ func (m *Manager) Redeem(ctx context.Context, token string, solutions []int, sco
 	}
 
 	// Generate a redeem token formatted as "id:verToken"
-	id := randomHex(8)
-	verToken := randomHex(15)
+	id := randomHex(redeemTokenIDLength)
+	verToken := randomHex(redeemVerTokenLength)
 	verHashBytes := sha256.Sum256([]byte(verToken))
 	verHashHex := hex.EncodeToString(verHashBytes[:])
 
@@ -147,7 +159,7 @@ func (m *Manager) VerifyToken(ctx context.Context, token string, expectedScope s
 		return false, nil
 	}
 	parts := strings.Split(token, ":")
-	if len(parts) != 2 {
+	if len(parts) != tokenPartsCount {
 		return false, nil
 	}
 	id := parts[0]
@@ -169,7 +181,7 @@ func (m *Manager) VerifyToken(ctx context.Context, token string, expectedScope s
 	}
 
 	valParts := strings.Split(val, "|")
-	if len(valParts) != 2 {
+	if len(valParts) != valuePartsCount {
 		return false, nil
 	}
 
@@ -253,11 +265,11 @@ func GetDefaultManager() *Manager {
 			secret = []byte("default-captcha-secret-key-at-least-16-bytes")
 		}
 
-		challengeCount := 1
-		challengeSize := 32
-		challengeDifficulty := 4
-		challengeTTL := 10 * time.Minute
-		tokenTTL := 20 * time.Minute
+		challengeCount := managerDefaultChallengeCount
+		challengeSize := managerDefaultChallengeSize
+		challengeDifficulty := defaultChallengeDifficulty
+		challengeTTL := defaultChallengeTTL
+		tokenTTL := defaultTokenTTL
 
 		var store Store
 		if config.Config != nil && config.Config.Redis.Enabled && db.Redis != nil {

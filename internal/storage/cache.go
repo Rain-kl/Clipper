@@ -47,17 +47,21 @@ type metaInfo struct {
 	ContentLength int64  `json:"content_length"`
 }
 
+// cacheDirPerm 缓存目录权限
+const cacheDirPerm = 0755
+
 func init() {
 	cfg := config.Config.S3.LocalCache
 	localCacheEnabled = cfg.Enabled && cfg.CacheDir != ""
 	localCacheDir = strings.TrimSuffix(cfg.CacheDir, "/")
 	if localCacheEnabled {
-		if err := os.MkdirAll(cfg.CacheDir, 0755); err != nil {
+		if err := os.MkdirAll(cfg.CacheDir, cacheDirPerm); err != nil {
 			log.Fatalf("[Storage] failed to create local cache directory: %v\n", err)
 		}
 	}
 }
 
+// GetObjectViaCache 通过本地缓存获取对象，缓存未命中时从 S3/CDN 拉取
 func GetObjectViaCache(ctx context.Context, key string) (*ObjectInfo, error) {
 	// 没有开启本地缓存
 	if !localCacheEnabled {
@@ -156,7 +160,7 @@ func saveToLocalCache(ctx context.Context, localPath, metaPath string, objInfo *
 
 	// 创建目录
 	localDir := filepath.Dir(localPath)
-	if err := os.MkdirAll(localDir, 0755); err != nil {
+	if err := os.MkdirAll(localDir, cacheDirPerm); err != nil {
 		span.SetStatus(codes.Error, err.Error())
 		return err
 	}

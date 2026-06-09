@@ -73,7 +73,7 @@ func loggerMiddleware() gin.HandlerFunc {
 		}
 
 		// 设置 Span 状态
-		if c.Writer.Status() >= 400 {
+		if c.Writer.Status() >= http.StatusBadRequest {
 			span := trace.SpanFromContext(ctx)
 			span.SetStatus(codes.Error, strconv.Itoa(c.Writer.Status()))
 		}

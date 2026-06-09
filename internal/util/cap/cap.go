@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package cap 提供人机验证（CAPTCHA）功能
 package cap
 
 import (
@@ -29,7 +30,15 @@ import (
 	"time"
 )
 
-const jwtHeaderB64 = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"
+const (
+	jwtHeaderB64          = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"
+	jwtPartsCount         = 3    // JWT 三段结构
+	defaultChallengeCount = 50   // 默认 PoW 难题数
+	defaultChallengeSize  = 32   // 默认盐值长度
+	defaultDifficulty     = 4    // 默认难度
+	defaultNonceLength    = 25   // 随机 Nonce 字节长度
+	defaultExpires        = 10 * time.Minute // 默认过期时间
+)
 
 // ChallengeConfig holds parameters for the PoW challenge
 type ChallengeConfig struct {
@@ -104,7 +113,7 @@ func jwtSign(payload []byte, secret []byte) string {
 
 func jwtVerify(token string, secret []byte) ([]byte, error) {
 	parts := strings.Split(token, ".")
-	if len(parts) != 3 {
+	if len(parts) != jwtPartsCount {
 		return nil, errors.New(errInvalidTokenFormat)
 	}
 	if parts[0] != jwtHeaderB64 {
@@ -135,7 +144,7 @@ func jwtVerify(token string, secret []byte) ([]byte, error) {
 
 func jwtSigHex(token string) string {
 	parts := strings.Split(token, ".")
-	if len(parts) != 3 {
+	if len(parts) != jwtPartsCount {
 		return ""
 	}
 	sigBytes, err := b64urlDecode(parts[2])
@@ -148,23 +157,23 @@ func jwtSigHex(token string) string {
 // GenerateChallenge produces a new challenge and signed token
 func GenerateChallenge(secret []byte, conf ChallengeConfig, scope string) (*ChallengeResponse, error) {
 	if conf.Count <= 0 {
-		conf.Count = 50
+		conf.Count = defaultChallengeCount
 	}
 	if conf.Size <= 0 {
-		conf.Size = 32
+		conf.Size = defaultChallengeSize
 	}
 	if conf.Difficulty <= 0 {
-		conf.Difficulty = 4
+		conf.Difficulty = defaultDifficulty
 	}
 	if conf.Expires <= 0 {
-		conf.Expires = 10 * time.Minute
+		conf.Expires = defaultExpires
 	}
 
 	now := time.Now().UnixNano() / int64(time.Millisecond)
 	expires := now + int64(conf.Expires/time.Millisecond)
 
 	payload := ChallengePayload{
-		Nonce:      randomHex(25),
+		Nonce:      randomHex(defaultNonceLength),
 		Count:      conf.Count,
 		Size:       conf.Size,
 		Difficulty: conf.Difficulty,

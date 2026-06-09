@@ -26,9 +26,12 @@ import (
 	"github.com/google/uuid"
 )
 
+// uniqueIDBytes 生成唯一 ID 所需的随机字节长度
+const uniqueIDBytes = 32
+
 // GenerateUniqueIDSimple 生成 64 位唯一标识符
 func GenerateUniqueIDSimple() string {
-	randomBytes := make([]byte, 32)
+	randomBytes := make([]byte, uniqueIDBytes)
 	if _, err := io.ReadFull(rand.Reader, randomBytes); err != nil {
 		// 如果随机数生成失败，使用 UUID 作为后备
 		uuidBytes := []byte(uuid.NewString())

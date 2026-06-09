@@ -29,6 +29,9 @@ import (
 	gormLogger "gorm.io/gorm/logger"
 )
 
+// nanoToMilli 纳秒转毫秒的除数
+const nanoToMilli = 1e6
+
 type gormZapLogger struct {
 	logLevel                  gormLogger.LogLevel
 	ignoreRecordNotFoundError bool
@@ -65,24 +68,24 @@ func (l *gormZapLogger) Trace(ctx context.Context, begin time.Time, fc func() (s
 	case err != nil && l.logLevel >= gormLogger.Error && (!errors.Is(err, gorm.ErrRecordNotFound) || !l.ignoreRecordNotFoundError):
 		sql, rows := fc()
 		if rows == -1 {
-			logger.ErrorF(ctx, "%s\n[%.3fms] [rows:%v] %s", err, float64(elapsed.Nanoseconds())/1e6, "-", sql)
+			logger.ErrorF(ctx, "%s\n[%.3fms] [rows:%v] %s", err, float64(elapsed.Nanoseconds())/nanoToMilli, "-", sql)
 		} else {
-			logger.ErrorF(ctx, "%s\n[%.3fms] [rows:%v] %s", err, float64(elapsed.Nanoseconds())/1e6, rows, sql)
+			logger.ErrorF(ctx, "%s\n[%.3fms] [rows:%v] %s", err, float64(elapsed.Nanoseconds())/nanoToMilli, rows, sql)
 		}
 	case elapsed > l.slowThreshold && l.slowThreshold != 0 && l.logLevel >= gormLogger.Warn:
 		sql, rows := fc()
 		slowLog := fmt.Sprintf("SLOW SQL >= %v", l.slowThreshold)
 		if rows == -1 {
-			logger.WarnF(ctx, "%s\n[%.3fms] [rows:%v] %s", slowLog, float64(elapsed.Nanoseconds())/1e6, "-", sql)
+			logger.WarnF(ctx, "%s\n[%.3fms] [rows:%v] %s", slowLog, float64(elapsed.Nanoseconds())/nanoToMilli, "-", sql)
 		} else {
-			logger.WarnF(ctx, "%s\n[%.3fms] [rows:%v] %s", slowLog, float64(elapsed.Nanoseconds())/1e6, rows, sql)
+			logger.WarnF(ctx, "%s\n[%.3fms] [rows:%v] %s", slowLog, float64(elapsed.Nanoseconds())/nanoToMilli, rows, sql)
 		}
 	case l.logLevel == gormLogger.Info:
 		sql, rows := fc()
 		if rows == -1 {
-			logger.InfoF(ctx, "[%.3fms] [rows:%v] %s", float64(elapsed.Nanoseconds())/1e6, "-", sql)
+			logger.InfoF(ctx, "[%.3fms] [rows:%v] %s", float64(elapsed.Nanoseconds())/nanoToMilli, "-", sql)
 		} else {
-			logger.InfoF(ctx, "[%.3fms] [rows:%v] %s", float64(elapsed.Nanoseconds())/1e6, rows, sql)
+			logger.InfoF(ctx, "[%.3fms] [rows:%v] %s", float64(elapsed.Nanoseconds())/nanoToMilli, rows, sql)
 		}
 	}
 }

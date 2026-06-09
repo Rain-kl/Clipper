@@ -29,6 +29,9 @@ import (
 
 var logger *otelzap.Logger
 
+// ringBufferCapacity 环形缓冲区容量
+const ringBufferCapacity = 5000
+
 // GlobalRingBuffer 全局日志环形缓冲区，供 Admin 日志查询和 WebSocket 推送使用
 var GlobalRingBuffer *LogRingBuffer
 
@@ -39,7 +42,7 @@ func init() {
 	}
 
 	// 初始化 ring buffer（保留最近 5000 行日志）
-	GlobalRingBuffer = NewLogRingBuffer(5000)
+	GlobalRingBuffer = NewLogRingBuffer(ringBufferCapacity)
 
 	// 使用 multi writer 同时写入原始输出和 ring buffer
 	multiWriter := zapcore.NewMultiWriteSyncer(
@@ -60,21 +63,25 @@ func init() {
 	fmt.Printf("[Logger] %s\n", logger.Level())
 }
 
+// DebugF 输出 Debug 级别日志
 func DebugF(ctx context.Context, format string, args ...interface{}) {
 	msg := fmt.Sprintf(format, args...)
 	logger.Ctx(ctx).Debug(msg, getTraceIDFields(ctx)...)
 }
 
+// InfoF 输出 Info 级别日志
 func InfoF(ctx context.Context, format string, args ...interface{}) {
 	msg := fmt.Sprintf(format, args...)
 	logger.Ctx(ctx).Info(msg, getTraceIDFields(ctx)...)
 }
 
+// WarnF 输出 Warn 级别日志
 func WarnF(ctx context.Context, format string, args ...interface{}) {
 	msg := fmt.Sprintf(format, args...)
 	logger.Ctx(ctx).Warn(msg, getTraceIDFields(ctx)...)
 }
 
+// ErrorF 输出 Error 级别日志
 func ErrorF(ctx context.Context, format string, args ...interface{}) {
 	msg := fmt.Sprintf(format, args...)
 	logger.Ctx(ctx).Error(msg, getTraceIDFields(ctx)...)

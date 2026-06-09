@@ -15,9 +15,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package logs 提供日志查询与分析功能
 package logs
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -35,7 +37,14 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-const defaultLimit = 200
+const (
+	defaultLimit    = 200
+	maxLimit        = 500
+	maxPageSize     = 100
+	hoursInDay      = 24
+	analyticsDays   = 7
+	queryExtraArgs  = 2 // pageSize + offset
+)
 
 // logsResponse 历史日志查询响应
 type logsResponse struct {
@@ -68,8 +77,8 @@ func GetLogs(c *gin.Context) {
 	if _, err := parsePositiveInt(limitStr, &limit); err != nil || limit <= 0 {
 		limit = defaultLimit
 	}
-	if limit > 500 {
-		limit = 500
+	if limit > maxLimit {
+		limit = maxLimit
 	}
 
 	entries, hasMore := logger.GlobalRingBuffer.Query(cursor, limit)
@@ -162,68 +171,25 @@ type accessLogsResponse struct {
 	List  []accessLogItem `json:"list"`
 }
 
-// GetAccessLogs 获取 ClickHouse 异步采集的访问日志
-// @Summary 获取用户访问日志
-// @Description 分页并按照用户、接口路径、时间范围等维度检索 ClickHouse 用户访问日志列表（需要管理员权限，ClickHouse 未启用时报错）
-// @Tags admin
-// @Produce json
-// @Security SessionCookie
-// @Param page query int false "页码" default(1)
-// @Param page_size query int false "每页条数" default(20)
-// @Param username query string false "用户名模糊搜索"
-// @Param path query string false "接口路径模糊搜索"
-// @Param start_time query string false "起始时间（RFC3339 或 YYYY-MM-DD HH:MM:SS）"
-// @Param end_time query string false "结束时间（RFC3339 或 YYYY-MM-DD HH:MM:SS）"
-// @Success 200 {object} util.ResponseAny{data=logs.accessLogsResponse} "访问日志列表"
-// @Failure 400 {object} util.ResponseAny "ClickHouse 未启用或参数错误"
-// @Failure 401 {object} util.ResponseAny "未登录"
-// @Failure 403 {object} util.ResponseAny "无管理员权限"
-// @Router /api/v1/admin/logs/access [get]
-func GetAccessLogs(c *gin.Context) {
-	// 1. 检查 ClickHouse 是否启用
-	if !config.Config.ClickHouse.Enabled || db.ChConn == nil {
-		c.JSON(http.StatusBadRequest, util.Err("ClickHouse 存储服务未启用，无法检索访问日志"))
-		return
-	}
-
-	// 2. 解析分页参数
-	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	if page < 1 {
-		page = 1
-	}
-	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "20"))
-	if pageSize < 1 {
-		pageSize = 20
-	}
-	if pageSize > 100 {
-		pageSize = 100
-	}
-	offset := (page - 1) * pageSize
-
-	// 3. 按用户名过滤（预查 Postgres 映射 UserID）
+// buildAccessLogFilters 构建 ClickHouse 访问日志查询过滤条件
+func buildAccessLogFilters(ctx context.Context, c *gin.Context) ([]string, []interface{}, []uint64, error) {
+	var conditions []string
+	var args []interface{}
 	var userIDs []uint64
+
+	// 按用户名过滤
 	username := c.Query("username")
 	if username != "" {
-		err := db.DB(c.Request.Context()).Model(&model.User{}).
+		err := db.DB(ctx).Model(&model.User{}).
 			Where("username LIKE ?", "%"+username+"%").
 			Pluck("id", &userIDs).Error
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, util.Err("查询用户信息失败: "+err.Error()))
-			return
+			return nil, nil, nil, fmt.Errorf("查询用户信息失败: %w", err)
 		}
-		// 如果指定了用户名搜索，但在 Postgres 中没匹配到任何用户，则直接返回空结果
 		if len(userIDs) == 0 {
-			c.JSON(http.StatusOK, util.OK(accessLogsResponse{
-				Total: 0,
-				List:  []accessLogItem{},
-			}))
-			return
+			return nil, nil, nil, nil // 无匹配用户
 		}
 	}
-
-	// 4. 构建 ClickHouse 条件查询子句与参数
-	var conditions []string
-	var args []interface{}
 
 	if len(userIDs) > 0 {
 		placeholders := make([]string, len(userIDs))
@@ -259,29 +225,11 @@ func GetAccessLogs(c *gin.Context) {
 		}
 	}
 
-	whereClause := ""
-	if len(conditions) > 0 {
-		whereClause = "WHERE " + strings.Join(conditions, " AND ")
-	}
+	return conditions, args, userIDs, nil
+}
 
-	// 5. 查询日志总数
-	var total uint64
-	countQuery := fmt.Sprintf("SELECT count() FROM user_access_logs %s", whereClause)
-	err := db.ChConn.QueryRow(c.Request.Context(), countQuery, args...).Scan(&total)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, util.Err("查询 ClickHouse 日志统计失败: "+err.Error()))
-		return
-	}
-
-	if total == 0 {
-		c.JSON(http.StatusOK, util.OK(accessLogsResponse{
-			Total: 0,
-			List:  []accessLogItem{},
-		}))
-		return
-	}
-
-	// 6. 分页查询明细数据
+// fetchAccessLogDetails 查询 ClickHouse 访问日志明细并填充用户名
+func fetchAccessLogDetails(ctx context.Context, whereClause string, args []interface{}, pageSize int, offset int) ([]accessLogItem, error) {
 	dataQuery := fmt.Sprintf(`
 		SELECT id, user_id, path, method, ip, user_agent, headers, status, latency, created_at
 		FROM user_access_logs
@@ -290,11 +238,13 @@ func GetAccessLogs(c *gin.Context) {
 		LIMIT ? OFFSET ?
 	`, whereClause)
 
-	selectArgs := append(args, pageSize, offset)
-	rows, err := db.ChConn.Query(c.Request.Context(), dataQuery, selectArgs...)
+	selectArgs := make([]interface{}, len(args), len(args)+queryExtraArgs)
+	copy(selectArgs, args)
+	selectArgs = append(selectArgs, pageSize, offset)
+
+	rows, err := db.ChConn.Query(ctx, dataQuery, selectArgs...)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, util.Err("查询 ClickHouse 日志明细失败: "+err.Error()))
-		return
+		return nil, fmt.Errorf("查询 ClickHouse 日志明细失败: %w", err)
 	}
 	defer func() { _ = rows.Close() }()
 
@@ -304,53 +254,105 @@ func GetAccessLogs(c *gin.Context) {
 	for rows.Next() {
 		var item accessLogItem
 		var createdAt time.Time
-		err := rows.Scan(
-			&item.ID,
-			&item.UserID,
-			&item.Path,
-			&item.Method,
-			&item.IP,
-			&item.UserAgent,
-			&item.Headers,
-			&item.Status,
-			&item.Latency,
-			&createdAt,
-		)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, util.Err("读取 ClickHouse 结果失败: "+err.Error()))
-			return
+		if err := rows.Scan(&item.ID, &item.UserID, &item.Path, &item.Method, &item.IP, &item.UserAgent, &item.Headers, &item.Status, &item.Latency, &createdAt); err != nil {
+			return nil, fmt.Errorf("读取 ClickHouse 结果失败: %w", err)
 		}
 		item.CreatedAt = createdAt.Format(time.RFC3339)
 		list = append(list, item)
 		fetchUserIDs = append(fetchUserIDs, item.UserID)
 	}
 
-	// 7. 反查 Postgres 关联 Username 和 Nickname
-	userMap := make(map[uint64]struct {
-		Username string
-		Nickname string
-	})
-
+	// 反查 Postgres 关联 Username 和 Nickname
 	if len(fetchUserIDs) > 0 {
+		userMap := make(map[uint64]struct{ Username, Nickname string })
 		var users []model.User
-		if err := db.DB(c.Request.Context()).Where("id IN ?", fetchUserIDs).Find(&users).Error; err == nil {
+		if err := db.DB(ctx).Where("id IN ?", fetchUserIDs).Find(&users).Error; err == nil {
 			for _, u := range users {
-				userMap[u.ID] = struct {
-					Username string
-					Nickname string
-				}{
-					Username: u.Username,
-					Nickname: u.Nickname,
-				}
+				userMap[u.ID] = struct{ Username, Nickname string }{Username: u.Username, Nickname: u.Nickname}
+			}
+		}
+		for i := range list {
+			if info, ok := userMap[list[i].UserID]; ok {
+				list[i].Username = info.Username
+				list[i].Nickname = info.Nickname
 			}
 		}
 	}
 
-	for i := range list {
-		if info, ok := userMap[list[i].UserID]; ok {
-			list[i].Username = info.Username
-			list[i].Nickname = info.Nickname
-		}
+	return list, nil
+}
+
+// GetAccessLogs 获取 ClickHouse 异步采集的访问日志
+// @Summary 获取用户访问日志
+// @Description 分页并按照用户、接口路径、时间范围等维度检索 ClickHouse 用户访问日志列表（需要管理员权限，ClickHouse 未启用时报错）
+// @Tags admin
+// @Produce json
+// @Security SessionCookie
+// @Param page query int false "页码" default(1)
+// @Param page_size query int false "每页条数" default(20)
+// @Param username query string false "用户名模糊搜索"
+// @Param path query string false "接口路径模糊搜索"
+// @Param start_time query string false "起始时间（RFC3339 或 YYYY-MM-DD HH:MM:SS）"
+// @Param end_time query string false "结束时间（RFC3339 或 YYYY-MM-DD HH:MM:SS）"
+// @Success 200 {object} util.ResponseAny{data=logs.accessLogsResponse} "访问日志列表"
+// @Failure 400 {object} util.ResponseAny "ClickHouse 未启用或参数错误"
+// @Failure 401 {object} util.ResponseAny "未登录"
+// @Failure 403 {object} util.ResponseAny "无管理员权限"
+// @Router /api/v1/admin/logs/access [get]
+func GetAccessLogs(c *gin.Context) {
+	// 1. 检查 ClickHouse 是否启用
+	if !config.Config.ClickHouse.Enabled || db.ChConn == nil {
+		c.JSON(http.StatusBadRequest, util.Err("ClickHouse 存储服务未启用，无法检索访问日志"))
+		return
+	}
+
+	// 2. 解析分页参数
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	if page < 1 {
+		page = 1
+	}
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "20"))
+	if pageSize < 1 {
+		pageSize = 20
+	}
+	if pageSize > maxPageSize {
+		pageSize = maxPageSize
+	}
+	offset := (page - 1) * pageSize
+
+	// 3. 构建过滤条件
+	conditions, args, userIDs, err := buildAccessLogFilters(c.Request.Context(), c)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, util.Err(err.Error()))
+		return
+	}
+	if userIDs != nil && len(userIDs) == 0 {
+		c.JSON(http.StatusOK, util.OK(accessLogsResponse{Total: 0, List: []accessLogItem{}}))
+		return
+	}
+
+	whereClause := ""
+	if len(conditions) > 0 {
+		whereClause = "WHERE " + strings.Join(conditions, " AND ")
+	}
+
+	// 4. 查询日志总数
+	var total uint64
+	countQuery := fmt.Sprintf("SELECT count() FROM user_access_logs %s", whereClause)
+	if err := db.ChConn.QueryRow(c.Request.Context(), countQuery, args...).Scan(&total); err != nil {
+		c.JSON(http.StatusInternalServerError, util.Err("查询 ClickHouse 日志统计失败: "+err.Error()))
+		return
+	}
+	if total == 0 {
+		c.JSON(http.StatusOK, util.OK(accessLogsResponse{Total: 0, List: []accessLogItem{}}))
+		return
+	}
+
+	// 5. 分页查询明细数据
+	list, err := fetchAccessLogDetails(c.Request.Context(), whereClause, args, pageSize, offset)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, util.Err(err.Error()))
+		return
 	}
 
 	c.JSON(http.StatusOK, util.OK(accessLogsResponse{
@@ -404,11 +406,24 @@ func GetLogsAnalytics(c *gin.Context) {
 		return
 	}
 
+	ctx := c.Request.Context()
 	// 7 天前 00:00:00
-	startTime := time.Now().AddDate(0, 0, -6).Truncate(24 * time.Hour)
+	startTime := time.Now().AddDate(0, 0, -(analyticsDays - 1)).Truncate(hoursInDay * time.Hour)
 
-	// 2. 查询 7 天访问趋势
-	trendRows, err := db.ChConn.Query(c.Request.Context(), `
+	trendList := queryAccessTrend(ctx, startTime)
+	browserList := queryBrowserDistribution(ctx, startTime)
+	topUsers := queryTopActiveUsers(ctx, startTime)
+
+	c.JSON(http.StatusOK, util.OK(logsAnalyticsResponse{
+		Trend:    trendList,
+		Browsers: browserList,
+		TopUsers: topUsers,
+	}))
+}
+
+// queryAccessTrend 查询最近 7 天的访问趋势
+func queryAccessTrend(ctx context.Context, startTime time.Time) []trendItem {
+	trendRows, err := db.ChConn.Query(ctx, `
 		SELECT toDate(created_at) as date, count() as count
 		FROM user_access_logs
 		WHERE created_at >= ?
@@ -417,8 +432,7 @@ func GetLogsAnalytics(c *gin.Context) {
 	`, startTime)
 
 	trendMap := make(map[string]uint64)
-	// 初始化最近 7 天的数据为 0，防止某天没有访问数据时导致日期断裂
-	for i := 0; i < 7; i++ {
+	for i := 0; i < analyticsDays; i++ {
 		dStr := time.Now().AddDate(0, 0, -i).Format("2006-01-02")
 		trendMap[dStr] = 0
 	}
@@ -436,16 +450,19 @@ func GetLogsAnalytics(c *gin.Context) {
 	}
 
 	var trendList []trendItem
-	for i := 6; i >= 0; i-- {
+	for i := analyticsDays - 1; i >= 0; i-- {
 		dStr := time.Now().AddDate(0, 0, -i).Format("2006-01-02")
 		trendList = append(trendList, trendItem{
 			Date:  dStr,
 			Count: trendMap[dStr],
 		})
 	}
+	return trendList
+}
 
-	// 3. 查询浏览器分布排行
-	uaRows, err := db.ChConn.Query(c.Request.Context(), `
+// queryBrowserDistribution 查询浏览器分布排行
+func queryBrowserDistribution(ctx context.Context, startTime time.Time) []browserItem {
+	uaRows, err := db.ChConn.Query(ctx, `
 		SELECT user_agent, count() as count
 		FROM user_access_logs
 		WHERE created_at >= ?
@@ -472,14 +489,15 @@ func GetLogsAnalytics(c *gin.Context) {
 			Count:   cnt,
 		})
 	}
-
-	// 排序：按访问次数降序
 	sort.Slice(browserList, func(i, j int) bool {
 		return browserList[i].Count > browserList[j].Count
 	})
+	return browserList
+}
 
-	// 4. 查询活跃用户 Top 10 (user_id > 0 代表已登录用户)
-	userRows, err := db.ChConn.Query(c.Request.Context(), `
+// queryTopActiveUsers 查询活跃用户 Top 10
+func queryTopActiveUsers(ctx context.Context, startTime time.Time) []topUserItem {
+	userRows, err := db.ChConn.Query(ctx, `
 		SELECT user_id, count() as count
 		FROM user_access_logs
 		WHERE created_at >= ? AND user_id > 0
@@ -509,10 +527,9 @@ func GetLogsAnalytics(c *gin.Context) {
 		Username string
 		Nickname string
 	})
-
 	if len(userIDs) > 0 {
 		var users []model.User
-		if errProfile := db.DB(c.Request.Context()).Where("id IN ?", userIDs).Find(&users).Error; errProfile == nil {
+		if errProfile := db.DB(ctx).Where("id IN ?", userIDs).Find(&users).Error; errProfile == nil {
 			for _, u := range users {
 				userProfileMap[u.ID] = struct {
 					Username string
@@ -534,12 +551,7 @@ func GetLogsAnalytics(c *gin.Context) {
 			Count:    userCountMap[uid],
 		})
 	}
-
-	c.JSON(http.StatusOK, util.OK(logsAnalyticsResponse{
-		Trend:    trendList,
-		Browsers: browserList,
-		TopUsers: topUsers,
-	}))
+	return topUsers
 }
 
 // parseBrowserName 简易的 User-Agent 浏览器类型识别

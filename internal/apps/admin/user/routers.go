@@ -30,6 +30,9 @@ import (
 	"gorm.io/gorm"
 )
 
+// minPasswordLength 密码最小长度
+const minPasswordLength = 8
+
 // listUsersRequest 用户列表查询请求
 type listUsersRequest struct {
 	Page     int     `form:"page" binding:"min=1"`
@@ -42,7 +45,7 @@ type user struct {
 	ID          uint64    `json:"id"`
 	Username    string    `json:"username"`
 	Nickname    string    `json:"nickname"`
-	AvatarUrl   string    `json:"avatar_url"`
+	AvatarURL   string    `json:"avatar_url"`
 	IsActive    bool      `json:"is_active"`
 	IsAdmin     bool      `json:"is_admin"`
 	LastLoginAt time.Time `json:"last_login_at"`
@@ -216,7 +219,7 @@ func CreateUser(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, util.Err(usernameRequired))
 		return
 	}
-	if len(req.Password) < 8 {
+	if len(req.Password) < minPasswordLength {
 		c.JSON(http.StatusBadRequest, util.Err(passwordTooShort))
 		return
 	}
@@ -258,7 +261,7 @@ func CreateUser(c *gin.Context) {
 		ID:          newUser.ID,
 		Username:    newUser.Username,
 		Nickname:    newUser.Nickname,
-		AvatarUrl:   newUser.AvatarUrl,
+		AvatarURL:   newUser.AvatarURL,
 		IsActive:    newUser.IsActive,
 		IsAdmin:     newUser.IsAdmin,
 		LastLoginAt: newUser.LastLoginAt,

@@ -29,6 +29,9 @@ import (
 	"io"
 )
 
+// aesKeyLength AES-256 密钥字节长度
+const aesKeyLength = 32
+
 // Encrypt 使用 SignKey 加密字符串数据
 // signKey: 64 字符 hex 编码的密钥（对应 32 字节，用于 AES-256）
 // plaintext: 要加密的明文字符串
@@ -56,7 +59,7 @@ func encryptBytes(signKey string, plaintext []byte) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf(errInvalidSignKey, err)
 	}
-	if len(key) != 32 {
+	if len(key) != aesKeyLength {
 		return "", errors.New(errSignKeyLengthInvalid)
 	}
 
@@ -92,7 +95,7 @@ func decryptBytes(signKey string, ciphertext string) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf(errInvalidSignKey, err)
 	}
-	if len(key) != 32 {
+	if len(key) != aesKeyLength {
 		return nil, errors.New(errSignKeyLengthInvalid)
 	}
 

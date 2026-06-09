@@ -163,10 +163,13 @@ func (r *LogRingBuffer) Query(cursor int, limit int) ([]LogEntry, bool) {
 	return ordered[start:cut], hasMore
 }
 
+// subscribeChanSize 订阅者 channel 缓冲区大小
+const subscribeChanSize = 64
+
 // Subscribe 订阅实时日志推送
 // 返回一个 channel，调用者应 defer Unsubscribe
 func (r *LogRingBuffer) Subscribe() chan LogEntry {
-	ch := make(chan LogEntry, 64)
+	ch := make(chan LogEntry, subscribeChanSize)
 	r.subMu.Lock()
 	r.subscribers[ch] = struct{}{}
 	r.subMu.Unlock()

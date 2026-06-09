@@ -15,6 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package config 负责应用配置的加载、解析与环境变量覆盖。
 package config
 
 import (
@@ -28,6 +29,14 @@ import (
 	"github.com/spf13/viper"
 )
 
+// 默认队列优先级
+const (
+	webhookQueuePriority    = 10
+	whitelistQueuePriority  = 5
+	defaultQueuePriority    = 3
+)
+
+// Config 全局配置单例，初始化后不可变
 var Config *configModel
 
 // findConfigPath searches upward for the config file to handle tests running in subdirectories.
@@ -37,7 +46,7 @@ func findConfigPath(configPath string) string {
 	}
 	dir := "."
 	for i := 0; i < 5; i++ {
-		dir = dir + "/.."
+		dir += "/.."
 		path := dir + "/" + configPath
 		if _, err := os.Stat(path); err == nil {
 			return path
@@ -177,7 +186,7 @@ func applyEnvOverrides(c *configModel) {
 	c.App.SessionSecret = envStr("APP_SESSION_SECRET", c.App.SessionSecret)
 	c.App.SessionDomain = envStr("APP_SESSION_DOMAIN", c.App.SessionDomain)
 	c.App.SessionAge = envInt("APP_SESSION_AGE", c.App.SessionAge)
-	c.App.SessionHttpOnly = envBool("APP_SESSION_HTTP_ONLY", c.App.SessionHttpOnly)
+	c.App.SessionHTTPOnly = envBool("APP_SESSION_HTTP_ONLY", c.App.SessionHTTPOnly)
 	c.App.SessionSecure = envBool("APP_SESSION_SECURE", c.App.SessionSecure)
 
 	// ─── Database ───
@@ -245,9 +254,9 @@ func applyEnvOverrides(c *configModel) {
 	// 无 yaml 且无环境变量时，使用代码级默认队列
 	if len(c.Worker.Queues) == 0 {
 		c.Worker.Queues = []QueueConfig{
-			{Name: "webhook", Priority: 10},
-			{Name: "whitelist_only", Priority: 5},
-			{Name: "default", Priority: 3},
+			{Name: "webhook", Priority: webhookQueuePriority},
+			{Name: "whitelist_only", Priority: whitelistQueuePriority},
+			{Name: "default", Priority: defaultQueuePriority},
 		}
 	}
 

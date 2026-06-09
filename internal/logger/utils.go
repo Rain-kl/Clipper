@@ -47,6 +47,9 @@ func GetLogWriter() (zapcore.WriteSyncer, error) {
 	return logWriter, initLogWriterErr
 }
 
+// logDirPerm 日志目录权限
+const logDirPerm = 0750
+
 func initWriter() (zapcore.WriteSyncer, error) {
 	logConfig := config.Config.Log
 
@@ -54,7 +57,7 @@ func initWriter() (zapcore.WriteSyncer, error) {
 		// 初始化日志目录
 		logPath := logConfig.FilePath
 		logDir := filepath.Dir(logPath)
-		if err := os.MkdirAll(logDir, 0750); err != nil {
+		if err := os.MkdirAll(logDir, logDirPerm); err != nil {
 			return nil, fmt.Errorf(errCreateLogFileDirFailed, err)
 		}
 

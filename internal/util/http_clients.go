@@ -38,20 +38,30 @@ func IsLocalhost(urlStr string) bool {
 	return hostname == "localhost" || hostname == "127.0.0.1" || hostname == "::1"
 }
 
+// HTTP 客户端配置常量
+const (
+	httpClientTimeout       = 10 // HTTP 客户端超时时间（秒）
+	httpMaxIdleConns        = 100
+	httpMaxIdleConnsPerHost = 20
+	httpIdleConnTimeout     = 60 // 空闲连接超时（秒）
+)
+
 // 配置HTTP客户端 使用 otelhttp 自动注入 trace span
 var httpClient = &http.Client{
-	Timeout: 10 * time.Second,
+	Timeout: httpClientTimeout * time.Second,
 	Transport: otelhttp.NewTransport(&http.Transport{
-		MaxIdleConns:        100,
-		MaxIdleConnsPerHost: 20,
-		IdleConnTimeout:     60 * time.Second,
+		MaxIdleConns:        httpMaxIdleConns,
+		MaxIdleConnsPerHost: httpMaxIdleConnsPerHost,
+		IdleConnTimeout:     httpIdleConnTimeout * time.Second,
 	}),
 }
 
+// SetHTTPClient 替换全局 HTTP 客户端实例
 func SetHTTPClient(c *http.Client) {
 	httpClient = c
 }
 
+// Request 发送 HTTP 请求，支持自定义 Headers 和 Cookies
 func Request(ctx context.Context, method, url string, body io.Reader, headers, cookies map[string]string) (*http.Response, error) {
 	req, err := http.NewRequestWithContext(ctx, method, url, body)
 	if err != nil {

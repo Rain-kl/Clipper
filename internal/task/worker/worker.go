@@ -26,6 +26,9 @@ import (
 	"github.com/hibiken/asynq"
 )
 
+// workerShutdownTimeout Worker 优雅关闭超时时间
+const workerShutdownTimeout = 3 * time.Minute
+
 func init() {
 	// 注册所有任务处理器
 	taskhandlers.Register()
@@ -37,7 +40,7 @@ func StartWorker() error {
 		task.RedisOpt,
 		asynq.Config{
 			Concurrency:     config.Config.Worker.Concurrency,
-			ShutdownTimeout: 3 * time.Minute,
+			ShutdownTimeout: workerShutdownTimeout,
 			Queues:          buildQueuesFromConfig(),
 			StrictPriority:  config.Config.Worker.StrictPriority,
 		},

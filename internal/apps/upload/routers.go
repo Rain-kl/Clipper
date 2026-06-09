@@ -20,12 +20,14 @@ package upload
 import (
 	"archive/zip"
 	"bytes"
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
 	"net/url"
 	"os"
@@ -46,7 +48,12 @@ import (
 	"gorm.io/gorm"
 )
 
-const maxUploadSize = 32 * 1024 * 1024 // 32MB
+const (
+	maxUploadSize      = 32 * 1024 * 1024 // 32MB
+	detectContentBytes = 512              // http.DetectContentType 需要的最小字节数
+	uploadDirPerm      = 0755             // 上传目录权限
+	uploadFilePerm     = 0644             // 上传文件权限
+)
 
 type batchDownloadRequest struct {
 	IDs []string `json:"ids" binding:"required,min=1"`
@@ -67,6 +74,8 @@ type batchDownloadRequest struct {
 // @Failure 401 {object} util.ResponseAny "未登录"
 // @Failure 500 {object} util.ResponseAny "内部错误"
 // @Router /api/v1/upload [post]
+//
+//nolint:revive
 func UploadFile(c *gin.Context) {
 	c.Header("X-Content-Type-Options", "nosniff")
 	c.Header("Content-Security-Policy", "sandbox")
@@ -104,20 +113,9 @@ func UploadFile(c *gin.Context) {
 	}
 
 	// 3. 校验文件后缀是否在允许的系统配置列表中
-	var sc model.SystemConfig
-	if err := sc.GetByKey(ctx, model.ConfigKeyUploadAllowedExtensions); err == nil && sc.Value != "" {
-		allowedExts := strings.Split(strings.ToLower(sc.Value), ",")
-		allowed := false
-		for _, allowedExt := range allowedExts {
-			if strings.TrimSpace(allowedExt) == ext {
-				allowed = true
-				break
-			}
-		}
-		if !allowed {
-			c.JSON(http.StatusOK, util.Err(ErrUnsupportedFormat))
-			return
-		}
+	if errMsg := validateUploadExtension(ctx, ext); errMsg != "" {
+		c.JSON(http.StatusOK, util.Err(errMsg))
+		return
 	}
 
 	// 4. 读取文件并计算 Hash
@@ -130,107 +128,39 @@ func UploadFile(c *gin.Context) {
 	}
 
 	fileHash := hex.EncodeToString(hashWriter.Sum(nil))
-
-	mimeType := http.DetectContentType(buf.Bytes()[:min(512, int(size))])
-	if mimeType == "application/octet-stream" && header.Header.Get("Content-Type") != "" {
-		mimeType = header.Header.Get("Content-Type")
-	}
+	mimeType := detectMimeType(&buf, header, size)
 
 	// 校验真实 MIME Type 是否与常见图片扩展名匹配，防止 Polyglot / HTML 注入攻击
-	isImageExt := false
-	for _, imgExt := range []string{"jpg", "jpeg", "png", "webp", "gif"} {
-		if ext == imgExt {
-			isImageExt = true
-			break
-		}
-	}
-	if isImageExt && !strings.HasPrefix(mimeType, "image/") {
+	if isImageExtension(ext) && !strings.HasPrefix(mimeType, "image/") {
 		c.JSON(http.StatusOK, util.Err(ErrFileContentExtensionMismatch))
 		return
 	}
 
 	// 6. 秒传匹配校验：校验数据库中是否存在相同 Hash 且大小一致的可用文件
-	var existing model.Upload
-	err = db.DB(ctx).Where("hash = ? AND file_size = ? AND status IN (?, ?)", fileHash, size, model.UploadStatusPending, model.UploadStatusUsed).First(&existing).Error
-	if err == nil {
-		// 命中了相同文件，直接生成新记录指向已有的存储路径（实现秒传）
-		id := idgen.NextUint64ID()
-		newUpload := model.Upload{
-			ID:            id,
-			UserID:        currUser.ID,
-			FileName:      origName,
-			FilePath:      existing.FilePath,
-			FileSize:      size,
-			MimeType:      mimeType,
-			Extension:     ext,
-			Hash:          fileHash,
-			StorageDriver: existing.StorageDriver,
-			Type:          c.DefaultPostForm("type", "generic"),
-			Status:        model.UploadStatusUsed,
-			Metadata:      existing.Metadata,
-		}
-
-		if err := db.DB(ctx).Create(&newUpload).Error; err != nil {
-			c.JSON(http.StatusOK, util.Err(ErrSaveUploadRecordFailed))
-			return
-		}
-
-		logger.InfoF(ctx, "文件触发秒传成功! ID: %d, Path: %s", id, existing.FilePath)
-		c.JSON(http.StatusOK, util.OK(newUpload))
+	handled, lookupErr := tryInstantUpload(ctx, c, currUser, fileHash, size, mimeType, ext, origName)
+	if handled {
 		return
-	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+	}
+	if lookupErr != nil && !errors.Is(lookupErr, gorm.ErrRecordNotFound) {
 		c.JSON(http.StatusOK, util.Err(ErrFileValidationFailed))
 		return
 	}
 
 	// 7. 解析可选元数据字段
-	metadataStr := c.DefaultPostForm("metadata", "")
-	var meta model.UploadMetadata
-	if metadataStr != "" {
-		if err := json.Unmarshal([]byte(metadataStr), &meta); err != nil {
-			c.JSON(http.StatusOK, util.Err(ErrInvalidMetadataJSON))
-			return
-		}
+	meta, errMsg := parseUploadMetadata(c, mimeType)
+	if errMsg != "" {
+		c.JSON(http.StatusOK, util.Err(errMsg))
+		return
 	}
-
-	meta.OriginalMime = mimeType
-	meta.UserAgent = c.Request.UserAgent()
-	meta.ClientIP = c.ClientIP()
 
 	id := idgen.NextUint64ID()
 	subPath := fmt.Sprintf("uploads/%s/%d.%s", time.Now().Format("2006/01/02"), id, ext)
 
-	var storageDriver string
-
 	// 8. 写入底层存储驱动 (优先 S3 驱动，无配置或未开启则 fallback 至本地文件)
-	if storage.IsEnabled() {
-		storageDriver = "s3"
-		meta.Bucket = config.Config.S3.Bucket
-		fullKey := storage.BuildKey(subPath)
-
-		err = storage.PutObject(ctx, fullKey, bytes.NewReader(buf.Bytes()), size, mimeType)
-		if err != nil {
-			logger.ErrorF(ctx, "S3 存储上传失败: %v", err)
-			c.JSON(http.StatusOK, util.Err(ErrSaveFileFailed))
-			return
-		}
-	} else {
-		storageDriver = "local"
-		localDir := filepath.Join("uploads", time.Now().Format("2006/01/02"))
-		if err := os.MkdirAll(localDir, 0755); err != nil {
-			logger.ErrorF(ctx, "创建本地上传目录失败: %v", err)
-			c.JSON(http.StatusOK, util.Err(ErrSaveFileFailed))
-			return
-		}
-
-		localPath := filepath.Join(localDir, fmt.Sprintf("%d.%s", id, ext))
-		if err := os.WriteFile(localPath, buf.Bytes(), 0644); err != nil {
-			logger.ErrorF(ctx, "本地磁盘写入文件失败: %v", err)
-			c.JSON(http.StatusOK, util.Err(ErrSaveFileFailed))
-			return
-		}
-		// 统一使用相对路径，方便将来环境移植或备份
-		subPath = localPath
+	storageDriver, subPath, errMsg := storeUploadFile(ctx, id, ext, subPath, size, mimeType, &buf, &meta)
+	if errMsg != "" {
+		c.JSON(http.StatusOK, util.Err(errMsg))
+		return
 	}
 
 	// 9. 保存文件记录至数据库
@@ -249,12 +179,8 @@ func UploadFile(c *gin.Context) {
 		Metadata:      meta,
 	}
 
-	if err := db.DB(ctx).Create(&newUpload).Error; err != nil {
-		// 失败时若为本地存储，可以尝试清理已保存的垃圾文件
-		if storageDriver == "local" {
-			_ = os.Remove(subPath)
-		}
-		c.JSON(http.StatusOK, util.Err(ErrSaveUploadRecordFailed))
+	if err := saveUploadRecord(ctx, &newUpload, storageDriver, subPath); err != "" {
+		c.JSON(http.StatusOK, util.Err(err))
 		return
 	}
 
@@ -548,9 +474,126 @@ func DeleteFile(c *gin.Context) {
 	c.JSON(http.StatusOK, util.OKNil())
 }
 
-func min(a, b int) int {
-	if a < b {
-		return a
+// validateUploadExtension 校验文件后缀是否在系统允许的上传扩展名列表中
+func validateUploadExtension(ctx context.Context, ext string) string {
+	var sc model.SystemConfig
+	if err := sc.GetByKey(ctx, model.ConfigKeyUploadAllowedExtensions); err == nil && sc.Value != "" {
+		allowedExts := strings.Split(strings.ToLower(sc.Value), ",")
+		allowed := false
+		for _, allowedExt := range allowedExts {
+			if strings.TrimSpace(allowedExt) == ext {
+				allowed = true
+				break
+			}
+		}
+		if !allowed {
+			return ErrUnsupportedFormat
+		}
 	}
-	return b
+	return ""
+}
+
+// tryInstantUpload 尝试秒传：若数据库已存在相同 Hash 且大小一致的可用文件，直接生成新记录
+func tryInstantUpload(ctx context.Context, c *gin.Context, currUser *model.User, fileHash string, size int64, mimeType, ext, origName string) (bool, error) {
+	var existing model.Upload
+	err := db.DB(ctx).Where("hash = ? AND file_size = ? AND status IN (?, ?)", fileHash, size, model.UploadStatusPending, model.UploadStatusUsed).First(&existing).Error
+	if err != nil {
+		return false, err
+	}
+
+	id := idgen.NextUint64ID()
+	newUpload := model.Upload{
+		ID:            id,
+		UserID:        currUser.ID,
+		FileName:      origName,
+		FilePath:      existing.FilePath,
+		FileSize:      size,
+		MimeType:      mimeType,
+		Extension:     ext,
+		Hash:          fileHash,
+		StorageDriver: existing.StorageDriver,
+		Type:          c.DefaultPostForm("type", "generic"),
+		Status:        model.UploadStatusUsed,
+		Metadata:      existing.Metadata,
+	}
+
+	if err := db.DB(ctx).Create(&newUpload).Error; err != nil {
+		c.JSON(http.StatusOK, util.Err(ErrSaveUploadRecordFailed))
+		return true, nil
+	}
+
+	logger.InfoF(ctx, "文件触发秒传成功! ID: %d, Path: %s", id, existing.FilePath)
+	c.JSON(http.StatusOK, util.OK(newUpload))
+	return true, nil
+}
+
+// storeUploadFile 将文件写入底层存储驱动（S3 或本地磁盘）
+func storeUploadFile(ctx context.Context, id uint64, ext, subPath string, size int64, mimeType string, buf *bytes.Buffer, meta *model.UploadMetadata) (string, string, string) {
+	if storage.IsEnabled() {
+		meta.Bucket = config.Config.S3.Bucket
+		fullKey := storage.BuildKey(subPath)
+		if err := storage.PutObject(ctx, fullKey, bytes.NewReader(buf.Bytes()), size, mimeType); err != nil {
+			logger.ErrorF(ctx, "S3 存储上传失败: %v", err)
+			return "", "", ErrSaveFileFailed
+		}
+		return "s3", subPath, ""
+	}
+
+	localDir := filepath.Join("uploads", time.Now().Format("2006/01/02"))
+	if err := os.MkdirAll(localDir, uploadDirPerm); err != nil {
+		logger.ErrorF(ctx, "创建本地上传目录失败: %v", err)
+		return "", "", ErrSaveFileFailed
+	}
+
+	localPath := filepath.Join(localDir, fmt.Sprintf("%d.%s", id, ext))
+	if err := os.WriteFile(localPath, buf.Bytes(), uploadFilePerm); err != nil {
+		logger.ErrorF(ctx, "本地磁盘写入文件失败: %v", err)
+		return "", "", ErrSaveFileFailed
+	}
+	return "local", localPath, ""
+}
+
+// isImageExtension 判断文件扩展名是否属于常见图片格式
+func isImageExtension(ext string) bool {
+	for _, imgExt := range []string{"jpg", "jpeg", "png", "webp", "gif"} {
+		if ext == imgExt {
+			return true
+		}
+	}
+	return false
+}
+
+// parseUploadMetadata 解析上传元数据字段
+func parseUploadMetadata(c *gin.Context, mimeType string) (model.UploadMetadata, string) {
+	var meta model.UploadMetadata
+	metadataStr := c.DefaultPostForm("metadata", "")
+	if metadataStr != "" {
+		if err := json.Unmarshal([]byte(metadataStr), &meta); err != nil {
+			return meta, ErrInvalidMetadataJSON
+		}
+	}
+	meta.OriginalMime = mimeType
+	meta.UserAgent = c.Request.UserAgent()
+	meta.ClientIP = c.ClientIP()
+	return meta, ""
+}
+
+// detectMimeType 检测文件的 MIME 类型，优先使用 Content-Type 头部信息
+func detectMimeType(buf *bytes.Buffer, header *multipart.FileHeader, size int64) string {
+	mimeType := http.DetectContentType(buf.Bytes()[:min(detectContentBytes, int(size))])
+	if mimeType == "application/octet-stream" && header.Header.Get("Content-Type") != "" {
+		mimeType = header.Header.Get("Content-Type")
+	}
+	return mimeType
+}
+
+// saveUploadRecord 保存上传记录到数据库，失败时清理本地垃圾文件
+func saveUploadRecord(ctx context.Context, upload *model.Upload, storageDriver, filePath string) string {
+	if err := db.DB(ctx).Create(upload).Error; err != nil {
+		if storageDriver == "local" {
+			_ = os.Remove(filePath)
+		}
+		return ErrSaveUploadRecordFailed
+	}
+	return ""
 }

@@ -15,13 +15,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package task 定义异步任务类型与调度常量
 package task
 
+// 异步任务类型标识
 const (
 	CleanupUnusedUploadsTask = "upload:cleanup_unused"
 	SendEmailTask            = "mail:send"
 )
 
+// 任务队列名称
 const (
 	QueueDefault = "default"
 )
@@ -32,7 +35,11 @@ const (
 	TaskTypeSendEmail      = "send_email"
 )
 
+// defaultMaxRetry 任务默认最大重试次数
+const defaultMaxRetry = 3
+
 // TaskParam 任务参数定义
+//nolint:revive // TaskParam 保留完整名称以避免与通用 Param 混淆
 type TaskParam struct {
 	Name        string `json:"Name"`        // 参数键名
 	Label       string `json:"Label"`       // 显示名称
@@ -43,6 +50,7 @@ type TaskParam struct {
 }
 
 // TaskMeta 任务元数据
+//nolint:revive // TaskMeta 保留完整名称以避免与通用 Meta 混淆
 type TaskMeta struct {
 	Type         string
 	AsynqTask    string
@@ -63,7 +71,7 @@ var DispatchableTasks = []TaskMeta{
 		Name:         "清理未使用上传",
 		Description:  "清理超过1小时未使用的上传文件",
 		SupportsTime: false,
-		MaxRetry:     3,
+		MaxRetry:     defaultMaxRetry,
 		Queue:        QueueDefault,
 		Retryable:    true,
 	},
@@ -73,7 +81,7 @@ var DispatchableTasks = []TaskMeta{
 		Name:         "发送邮件",
 		Description:  "异步发送系统邮件",
 		SupportsTime: false,
-		MaxRetry:     3,
+		MaxRetry:     defaultMaxRetry,
 		Queue:        QueueDefault,
 		Retryable:    true,
 		Params: []TaskParam{

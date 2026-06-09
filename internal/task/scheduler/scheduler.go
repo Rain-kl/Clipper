@@ -28,6 +28,11 @@ import (
 	"github.com/hibiken/asynq"
 )
 
+const (
+	cleanupDedupWindow = 23 * time.Hour // 清理任务去重窗口
+	cleanupMaxRetry    = 3              // 清理任务最大重试次数
+)
+
 var (
 	scheduler     *asynq.Scheduler
 	schedulerOnce sync.Once
@@ -62,8 +67,8 @@ func StartScheduler() error {
 		if _, err = scheduler.Register(
 			config.Config.Scheduler.CleanupUnusedUploadsTaskCron,
 			asynq.NewTask(task.CleanupUnusedUploadsTask, nil),
-			asynq.Unique(23*time.Hour),
-			asynq.MaxRetry(3),
+			asynq.Unique(cleanupDedupWindow),
+			asynq.MaxRetry(cleanupMaxRetry),
 		); err != nil {
 			return
 		}

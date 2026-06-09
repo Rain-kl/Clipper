@@ -27,6 +27,12 @@ import (
 	"time"
 )
 
+const (
+	smtpSSLPort         = 465               // SMTP SSL 端口
+	smtpDialTimeout     = 5 * time.Second   // SMTP 连接超时
+	smtpSessionDeadline = 10 * time.Second  // SMTP 会话截止时间
+)
+
 // Config represents SMTP mail configuration
 type Config struct {
 	Host     string
@@ -61,49 +67,8 @@ func SendMailHTML(cfg Config, to string, subject, body string) error {
 	auth := smtp.PlainAuth("", cfg.Username, cfg.Password, cfg.Host)
 
 	// If using SSL port 465, we connection via TLS dial
-	if cfg.Port == 465 {
-		tlsConfig := &tls.Config{
-			InsecureSkipVerify: true,
-			ServerName:         cfg.Host,
-		}
-		dialer := &net.Dialer{Timeout: 5 * time.Second}
-		conn, err := tls.DialWithDialer(dialer, "tcp", addr, tlsConfig)
-		if err != nil {
-			return fmt.Errorf(errDialTLSFailed, err)
-		}
-		defer func() { _ = conn.Close() }()
-		_ = conn.SetDeadline(time.Now().Add(10 * time.Second))
-
-		client, err := smtp.NewClient(conn, cfg.Host)
-		if err != nil {
-			return fmt.Errorf(errSMTPClientCreationFailed, err)
-		}
-		defer func() { _ = client.Close() }()
-
-		if err = client.Auth(auth); err != nil {
-			return fmt.Errorf(errSMTPAuthFailed, err)
-		}
-
-		if err = client.Mail(cfg.Username); err != nil {
-			return fmt.Errorf(errSMTPMailCommandFailed, err)
-		}
-
-		if err = client.Rcpt(to); err != nil {
-			return fmt.Errorf(errSMTPRcptCommandFailed, err)
-		}
-
-		w, err := client.Data()
-		if err != nil {
-			return fmt.Errorf(errSMTPDataCommandFailed, err)
-		}
-		defer func() { _ = w.Close() }()
-
-		_, err = w.Write([]byte(message))
-		if err != nil {
-			return fmt.Errorf(errSMTPWritingBodyFailed, err)
-		}
-
-		return nil
+	if cfg.Port == smtpSSLPort {
+		return sendMailViaSSL(addr, auth, cfg, to, message)
 	}
 
 	// For standard port (587 / 25), use smtp.SendMail directly (handles STARTTLS automatically if server supports it)
@@ -112,6 +77,49 @@ func SendMailHTML(cfg Config, to string, subject, body string) error {
 		return fmt.Errorf(errSendMailFailed, err)
 	}
 
+	return nil
+}
+
+// sendMailViaSSL 通过 TLS 直接连接 SMTP SSL 端口发送邮件
+func sendMailViaSSL(addr string, auth smtp.Auth, cfg Config, to, message string) error {
+	tlsConfig := &tls.Config{
+		InsecureSkipVerify: true,
+		ServerName:         cfg.Host,
+	}
+	dialer := &net.Dialer{Timeout: smtpDialTimeout}
+	conn, err := tls.DialWithDialer(dialer, "tcp", addr, tlsConfig)
+	if err != nil {
+		return fmt.Errorf(errDialTLSFailed, err)
+	}
+	defer func() { _ = conn.Close() }()
+	_ = conn.SetDeadline(time.Now().Add(smtpSessionDeadline))
+
+	client, err := smtp.NewClient(conn, cfg.Host)
+	if err != nil {
+		return fmt.Errorf(errSMTPClientCreationFailed, err)
+	}
+	defer func() { _ = client.Close() }()
+
+	if err = client.Auth(auth); err != nil {
+		return fmt.Errorf(errSMTPAuthFailed, err)
+	}
+	if err = client.Mail(cfg.Username); err != nil {
+		return fmt.Errorf(errSMTPMailCommandFailed, err)
+	}
+	if err = client.Rcpt(to); err != nil {
+		return fmt.Errorf(errSMTPRcptCommandFailed, err)
+	}
+
+	w, err := client.Data()
+	if err != nil {
+		return fmt.Errorf(errSMTPDataCommandFailed, err)
+	}
+	defer func() { _ = w.Close() }()
+
+	_, err = w.Write([]byte(message))
+	if err != nil {
+		return fmt.Errorf(errSMTPWritingBodyFailed, err)
+	}
 	return nil
 }
 
@@ -127,8 +135,8 @@ func SendMailWithLog(cfg Config, to string, subject, body string) (string, error
 
 	var conn net.Conn
 	var err error
-	dialer := &net.Dialer{Timeout: 5 * time.Second}
-	if cfg.Port == 465 {
+	dialer := &net.Dialer{Timeout: smtpDialTimeout}
+	if cfg.Port == smtpSSLPort {
 		tlsConfig := &tls.Config{
 			InsecureSkipVerify: true,
 			ServerName:         cfg.Host,
@@ -145,7 +153,7 @@ func SendMailWithLog(cfg Config, to string, subject, body string) (string, error
 	logLine("System", "Connected successfully.")
 
 	// Set a 10-second session deadline for read/write operations
-	_ = conn.SetDeadline(time.Now().Add(10 * time.Second))
+	_ = conn.SetDeadline(time.Now().Add(smtpSessionDeadline))
 
 	client, err := smtp.NewClient(conn, cfg.Host)
 	if err != nil {
@@ -155,7 +163,7 @@ func SendMailWithLog(cfg Config, to string, subject, body string) (string, error
 	defer func() { _ = client.Close() }()
 
 	// If not 465, support STARTTLS if available
-	if cfg.Port != 465 {
+	if cfg.Port != smtpSSLPort {
 		if ok, _ := client.Extension("STARTTLS"); ok {
 			logLine("C", "STARTTLS")
 			tlsConfig := &tls.Config{

@@ -37,6 +37,14 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+const (
+	verificationCodeRange  = 900000     // 验证码随机范围
+	verificationCodeOffset = 100000     // 验证码偏移量（保证 6 位）
+	emailCodeExpiry        = 5 * time.Minute // 验证码有效期
+	emailCodeCooldown      = 60 * time.Second // 验证码发送冷却时间
+	minPasswordLength      = 8          // 密码最小长度
+)
+
 type loginRequest struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
@@ -91,8 +99,8 @@ func isSMTPConfigured(ctx context.Context) bool {
 }
 
 func generateVerificationCode() string {
-	n, _ := rand.Int(rand.Reader, big.NewInt(900000))
-	return fmt.Sprintf("%06d", n.Int64()+100000)
+	n, _ := rand.Int(rand.Reader, big.NewInt(verificationCodeRange))
+	return fmt.Sprintf("%06d", n.Int64()+verificationCodeOffset)
 }
 
 func getEmailCodeKey(scene, email string) string {
@@ -124,11 +132,11 @@ func sendEmailVerificationCode(ctx context.Context, email, scene, templateName s
 	}
 
 	// 存验证码，5分钟有效
-	if err := db.SetJSON(ctx, codeKey, code, 5*time.Minute); err != nil {
+	if err := db.SetJSON(ctx, codeKey, code, emailCodeExpiry); err != nil {
 		return errors.New(errGenerateEmailCodeFailed)
 	}
 	// 存冷却，60秒有效
-	_ = db.SetJSON(ctx, cooldownKey, "1", 60*time.Second)
+	_ = db.SetJSON(ctx, cooldownKey, "1", emailCodeCooldown)
 
 	// 构建异步邮件发送任务
 	payload := SendEmailPayload{
@@ -192,6 +200,40 @@ func setLoginSession(c *gin.Context, user *model.User) error {
 	return nil
 }
 
+// handleLoginEmailVerification 处理登录时的邮箱验证码校验流程
+func handleLoginEmailVerification(ctx context.Context, c *gin.Context, req *loginRequest, user *model.User) error {
+	if user.Email == "" {
+		c.JSON(http.StatusOK, util.Err(errLoginEmailMissing))
+		return errors.New("handled")
+	}
+
+	if req.Code == "" {
+		// 校验 Redis 发送冷却时间
+		cooldownKey := getEmailCooldownKey(user.Email)
+		var temp string
+		err := db.GetJSON(ctx, cooldownKey, &temp)
+		if err != nil {
+			// 没有冷却，触发验证码发送
+			if err := sendEmailVerificationCode(ctx, user.Email, "login", "login_email"); err != nil {
+				c.JSON(http.StatusOK, util.Err(err.Error()))
+				return errors.New("handled")
+			}
+		}
+
+		// 脱敏邮箱并返回错误，提示前端需要输入验证码
+		maskedEmail := util.MaskEmail(user.Email)
+		c.JSON(http.StatusOK, util.Err(errNeedEmailCodePrefix+maskedEmail))
+		return errors.New("handled")
+	}
+
+	// 校验验证码
+	if !verifyEmailCode(ctx, user.Email, "login", req.Code) {
+		c.JSON(http.StatusOK, util.Err(errEmailCodeInvalidOrExpired))
+		return errors.New("handled")
+	}
+	return nil
+}
+
 // Login 用户密码登录
 // @Summary 用户密码登录
 // @Description 使用用户名和密码登录，登录成功后建立 Session。若管理员已关闭密码登录功能则返回错误。
@@ -239,33 +281,7 @@ func Login(c *gin.Context) {
 	}
 
 	if isEmailLoginVerificationEnabled() {
-		if user.Email == "" {
-			c.JSON(http.StatusOK, util.Err(errLoginEmailMissing))
-			return
-		}
-
-		if req.Code == "" {
-			// 校验 Redis 发送冷却时间
-			cooldownKey := getEmailCooldownKey(user.Email)
-			var temp string
-			err := db.GetJSON(ctx, cooldownKey, &temp)
-			if err != nil {
-				// 没有冷却，触发验证码发送
-				if err := sendEmailVerificationCode(ctx, user.Email, "login", "login_email"); err != nil {
-					c.JSON(http.StatusOK, util.Err(err.Error()))
-					return
-				}
-			}
-
-			// 脱敏邮箱并返回错误，提示前端需要输入验证码
-			maskedEmail := util.MaskEmail(user.Email)
-			c.JSON(http.StatusOK, util.Err(errNeedEmailCodePrefix+maskedEmail))
-			return
-		}
-
-		// 校验验证码
-		if !verifyEmailCode(ctx, user.Email, "login", req.Code) {
-			c.JSON(http.StatusOK, util.Err(errEmailCodeInvalidOrExpired))
+		if emailErr := handleLoginEmailVerification(ctx, c, &req, &user); emailErr != nil {
 			return
 		}
 	}
@@ -297,41 +313,7 @@ func Login(c *gin.Context) {
 	}
 
 	// 检查是否有未完成 of OAuth/OIDC 绑定
-	pendingSourceID := session.Get(oauth.PendingOAuthSourceIDKey)
-	pendingExternalID := session.Get(oauth.PendingOAuthExternalIDKey)
-	pendingExternalUsername := session.Get(oauth.PendingOAuthExternalUsernameKey)
-	pendingEmail := session.Get(oauth.PendingOAuthEmailKey)
-
-	if pendingSourceID != nil && pendingExternalID != nil {
-		var sourceID uint64
-		switch v := pendingSourceID.(type) {
-		case uint64:
-			sourceID = v
-		case int:
-			sourceID = uint64(v)
-		case float64:
-			sourceID = uint64(v)
-		}
-		externalID, _ := pendingExternalID.(string)
-		externalUsername, _ := pendingExternalUsername.(string)
-		email, _ := pendingEmail.(string)
-
-		if sourceID != 0 && externalID != "" {
-			_ = model.BindExternalAccount(&model.ExternalAccount{
-				AuthSourceID:     sourceID,
-				UserID:           user.ID,
-				ExternalID:       externalID,
-				ExternalUsername: externalUsername,
-				Email:            email,
-			})
-		}
-		// 清除 pending 信息
-		session.Delete(oauth.PendingOAuthSourceIDKey)
-		session.Delete(oauth.PendingOAuthExternalIDKey)
-		session.Delete(oauth.PendingOAuthExternalUsernameKey)
-		session.Delete(oauth.PendingOAuthEmailKey)
-		_ = session.Save()
-	}
+	completePendingOAuthBinding(session, &user)
 
 	c.JSON(http.StatusOK, util.OK(oauth.BuildBasicUserInfo(&user, needChangePassword)))
 }
@@ -370,7 +352,7 @@ func Register(c *gin.Context) {
 		c.JSON(http.StatusOK, util.Err(errInvalidParams))
 		return
 	}
-	if len(req.Password) < 8 {
+	if len(req.Password) < minPasswordLength {
 		c.JSON(http.StatusOK, util.Err(errPasswordTooShort))
 		return
 	}
@@ -378,23 +360,16 @@ func Register(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	// 邮箱注册验证校验
-	if isEmailRegisterVerificationEnabled() {
-		if req.Email == "" || req.Code == "" {
-			c.JSON(http.StatusOK, util.Err(errEmailOrCodeRequired))
-			return
-		}
-
-		if !verifyEmailCode(ctx, req.Email, "register", req.Code) {
-			c.JSON(http.StatusOK, util.Err(errEmailCodeInvalidOrExpired))
-			return
-		}
+	if err := validateRegisterEmailVerification(ctx, &req); err != nil {
+		c.JSON(http.StatusOK, util.Err(err.Error()))
+		return
 	}
 
 	user := model.User{
 		Username:    req.Username,
 		Nickname:    req.Nickname,
 		Email:       req.Email,
-		AvatarUrl:   "",
+		AvatarURL:   "",
 		IsActive:    true,
 		IsAdmin:     false,
 		LastLoginAt: time.Now(),
@@ -473,7 +448,7 @@ func ChangePassword(c *gin.Context) {
 		c.JSON(http.StatusOK, util.Err(errInvalidParams))
 		return
 	}
-	if len(req.NewPassword) < 8 {
+	if len(req.NewPassword) < minPasswordLength {
 		c.JSON(http.StatusOK, util.Err(errNewPasswordTooShort))
 		return
 	}
@@ -578,7 +553,7 @@ func SendEmailCode(c *gin.Context) {
 type updateProfileRequest struct {
 	Nickname  string `json:"nickname"`
 	Email     string `json:"email"`
-	AvatarUrl string `json:"avatar_url"`
+	AvatarURL string `json:"avatar_url"`
 	Bio       string `json:"bio"`
 	Phone     string `json:"phone"`
 	Gender    string `json:"gender"`
@@ -642,7 +617,7 @@ func UpdateProfile(c *gin.Context) {
 		dbUser.Nickname = dbUser.Username
 	}
 	dbUser.Email = req.Email
-	dbUser.AvatarUrl = req.AvatarUrl
+	dbUser.AvatarURL = req.AvatarURL
 	dbUser.Bio = req.Bio
 	dbUser.Phone = strings.TrimSpace(req.Phone)
 	dbUser.Gender = strings.TrimSpace(req.Gender)
@@ -658,4 +633,59 @@ func UpdateProfile(c *gin.Context) {
 	needChange := session.Get("need_change_password") == true
 
 	c.JSON(http.StatusOK, util.OK(oauth.BuildBasicUserInfo(&dbUser, needChange)))
+}
+
+// validateRegisterEmailVerification 校验注册时的邮箱验证码
+func validateRegisterEmailVerification(ctx context.Context, req *registerRequest) error {
+	if !isEmailRegisterVerificationEnabled() {
+		return nil
+	}
+	if req.Email == "" || req.Code == "" {
+		return errors.New(errEmailOrCodeRequired)
+	}
+	if !verifyEmailCode(ctx, req.Email, "register", req.Code) {
+		return errors.New(errEmailCodeInvalidOrExpired)
+	}
+	return nil
+}
+
+// completePendingOAuthBinding 完成登录后的 OAuth 待绑定绑定流程
+func completePendingOAuthBinding(session sessions.Session, user *model.User) {
+	pendingSourceID := session.Get(oauth.PendingOAuthSourceIDKey)
+	pendingExternalID := session.Get(oauth.PendingOAuthExternalIDKey)
+	pendingExternalUsername := session.Get(oauth.PendingOAuthExternalUsernameKey)
+	pendingEmail := session.Get(oauth.PendingOAuthEmailKey)
+
+	if pendingSourceID == nil || pendingExternalID == nil {
+		return
+	}
+
+	var sourceID uint64
+	switch v := pendingSourceID.(type) {
+	case uint64:
+		sourceID = v
+	case int:
+		sourceID = uint64(v)
+	case float64:
+		sourceID = uint64(v)
+	}
+	externalID, _ := pendingExternalID.(string)
+	externalUsername, _ := pendingExternalUsername.(string)
+	email, _ := pendingEmail.(string)
+
+	if sourceID != 0 && externalID != "" {
+		_ = model.BindExternalAccount(&model.ExternalAccount{
+			AuthSourceID:     sourceID,
+			UserID:           user.ID,
+			ExternalID:       externalID,
+			ExternalUsername: externalUsername,
+			Email:            email,
+		})
+	}
+	// 清除 pending 信息
+	session.Delete(oauth.PendingOAuthSourceIDKey)
+	session.Delete(oauth.PendingOAuthExternalIDKey)
+	session.Delete(oauth.PendingOAuthExternalUsernameKey)
+	session.Delete(oauth.PendingOAuthEmailKey)
+	_ = session.Save()
 }

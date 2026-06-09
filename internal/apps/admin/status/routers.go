@@ -15,6 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package status 提供系统状态查询接口
 package status
 
 import (
@@ -30,6 +31,17 @@ import (
 
 // startTime 记录服务启动时间
 var startTime = time.Now()
+
+const (
+	hoursInDay      = 24
+	minutesInHour   = 60
+	secondsInMinute = 60
+	nanosPerSecond  = 1e9
+	binaryKB        = 2
+	binaryMB        = 3
+	binaryGB        = 4
+	valueThreshold  = 10 // 格式化时区分整数显示的阈值
+)
 
 // SystemStatusResponse 系统状态响应结构体
 type SystemStatusResponse struct {
@@ -77,11 +89,11 @@ func formatBytes(bytes uint64) string {
 	value := float64(bytes) / float64(div)
 	var suffix string
 	switch exp {
-	case 0:
+	case binaryKB:
 		suffix = "KiB"
-	case 1:
+	case binaryMB:
 		suffix = "MiB"
-	case 2:
+	case binaryGB:
 		suffix = "GiB"
 	default:
 		suffix = "TiB"
@@ -93,7 +105,7 @@ func formatBytes(bytes uint64) string {
 	//   - 如果 < 10，则格式化为 "%.1f" (e.g. "9.0 KiB")
 	// - 如果不是整数（如 5.8, 9.1, 7.6, 4.8）：格式化为 "%.1f"
 	if value == math.Trunc(value) {
-		if value >= 10 {
+		if value >= valueThreshold {
 			return fmt.Sprintf("%.0f %s", value, suffix)
 		}
 		return fmt.Sprintf("%.1f %s", value, suffix)
@@ -103,10 +115,10 @@ func formatBytes(bytes uint64) string {
 
 // formatDuration 格式化时间持续时间
 func formatDuration(d time.Duration) string {
-	days := int(d.Hours()) / 24
-	hours := int(d.Hours()) % 24
-	minutes := int(d.Minutes()) % 60
-	seconds := int(d.Seconds()) % 60
+	days := int(d.Hours()) / hoursInDay
+	hours := int(d.Hours()) % hoursInDay
+	minutes := int(d.Minutes()) % minutesInHour
+	seconds := int(d.Seconds()) % secondsInMinute
 
 	var res string
 	if days > 0 {
@@ -150,7 +162,7 @@ func GetSystemStatus(c *gin.Context) {
 
 	var lastPause string
 	if m.NumGC > 0 {
-		lastPause = fmt.Sprintf("%.3fs", float64(m.PauseNs[(m.NumGC-1)%256])/1e9)
+		lastPause = fmt.Sprintf("%.3fs", float64(m.PauseNs[(m.NumGC-1)%256])/nanosPerSecond)
 	} else {
 		lastPause = "0.000s"
 	}
@@ -181,7 +193,7 @@ func GetSystemStatus(c *gin.Context) {
 		OtherSys:     formatBytes(m.OtherSys),
 		NextGC:       formatBytes(m.NextGC),
 		LastGCTime:   lastGCTime,
-		PauseTotalNs: fmt.Sprintf("%.1fs", float64(m.PauseTotalNs)/1e9),
+		PauseTotalNs: fmt.Sprintf("%.1fs", float64(m.PauseTotalNs)/nanosPerSecond),
 		LastPause:    lastPause,
 		NumGC:        m.NumGC,
 	}

@@ -15,6 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package db 提供数据库连接与基础设施
 package db
 
 import (
@@ -27,7 +28,13 @@ import (
 	"github.com/Rain-kl/Wavelet/internal/config"
 )
 
+const (
+	clickhouseMaxExecTime        = 60 // ClickHouse 最大执行时间（秒）
+	clickhouseReadTimeoutFactor  = 2  // ReadTimeout 为 DialTimeout 的倍数
+)
+
 var (
+	// ChConn ClickHouse 连接实例
 	ChConn driver.Conn
 )
 
@@ -48,7 +55,7 @@ func init() {
 			Password: cfg.Password,
 		},
 		Settings: clickhouse.Settings{
-			"max_execution_time": 60,
+			"max_execution_time": clickhouseMaxExecTime,
 		},
 		Compression: &clickhouse.Compression{
 			Method: clickhouse.CompressionLZ4,
@@ -57,7 +64,7 @@ func init() {
 		MaxOpenConns:    cfg.MaxOpenConn,
 		MaxIdleConns:    cfg.MaxIdleConn,
 		ConnMaxLifetime: time.Duration(cfg.ConnMaxLifetime) * time.Second,
-		ReadTimeout:     time.Duration(cfg.DialTimeout*2) * time.Second,
+		ReadTimeout:     time.Duration(cfg.DialTimeout*clickhouseReadTimeoutFactor) * time.Second,
 		BlockBufferSize: cfg.BlockBufferSize,
 	})
 
