@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
+import type {NextRequest} from 'next/server'
+import {NextResponse} from 'next/server'
 
 /**
  * Next.js 16 代理层
@@ -78,12 +78,12 @@ if (typeof setInterval !== 'undefined') {
 
 export function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl
-  const sessionCookieName = process.env.LINUX_DO_CREDIT_SESSION_COOKIE_NAME || 'linux_do_credit_session_id'
+  const sessionCookieName = process.env.WAVELET_SESSION_COOKIE_NAME || 'wavelet_session_id'
   const sessionCookie = request.cookies.get(sessionCookieName)
 
   /* API 请求：速率限制后放行 */
   if (pathname.startsWith('/api/')) {
-    const rateLimitEnabled = process.env.LINUX_DO_CREDIT_RATE_LIMIT_ENABLED === 'true'
+    const rateLimitEnabled = process.env.WAVELET_RATE_LIMIT_ENABLED === 'true'
 
     if (rateLimitEnabled && shouldRateLimit(pathname)) {
       const identifier = sessionCookie?.value ||

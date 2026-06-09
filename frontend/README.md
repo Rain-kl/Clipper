@@ -1,6 +1,6 @@
-# Linux Do Credit Frontend
+# Wavelet Frontend
 
-Modern frontend application for the Linux Do Credit system.
+Modern frontend application for the Wavelet scaffold framework.
 
 [中文](./README_zh.md) | English
 

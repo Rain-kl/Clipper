@@ -19,11 +19,11 @@ package main
 
 import "github.com/Rain-kl/Wavelet/internal/cmd"
 
-// @title LINUX DO Credit
+// @title Wavelet API
 // @version 1.0.0
-// @description LINUX DO Credit 平台后端 API，提供用户认证、商户 API Key 管理、系统配置等功能。
-// @contact.name LINUX DO Credit
-// @contact.url https://linux.do
+// @description Wavelet 平台后端 API，提供用户认证、系统配置、任务调度等通用功能。
+// @contact.name Wavelet
+// @contact.url https://github.com/Rain-kl/Wavelet
 // @license.name Apache 2.0
 // @license.url http://www.apache.org/licenses/LICENSE-2.0.html
 // @BasePath /

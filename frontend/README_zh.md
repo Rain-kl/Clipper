@@ -1,6 +1,6 @@
-# Linux Do Credit Frontend
+# Wavelet Frontend
 
-Linux Do Credit 系统的现代化前端应用。
+Wavelet 脚手架系统的现代化前端应用。
 
 [English](./README.md) | 中文
 

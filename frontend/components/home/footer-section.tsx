@@ -54,7 +54,6 @@ export const FooterSection = React.memo(function FooterSection({ className }: Fo
             <ul className="space-y-4 text-sm text-muted-foreground">
               <li><FooterLink href="https://github.com/Rain-kl/Wavelet/issues">GitHub Issues</FooterLink></li>
               <li><FooterLink href="https://github.com/Rain-kl/Wavelet/discussions">讨论</FooterLink></li>
-              <li><FooterLink href="https://linux.do/">LINUX DO</FooterLink></li>
             </ul>
           </div>
         </div>

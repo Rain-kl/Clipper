@@ -1,40 +1,16 @@
 "use client"
 
 import * as React from "react"
-import { useState, useMemo } from "react"
-import { motion, AnimatePresence } from "motion/react"
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription
-} from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Progress } from "@/components/ui/progress"
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
-import {
-  Coins,
-  Gift,
-  Layers,
-  Shield,
-  Info,
-  ArrowRight,
-  Activity,
-  User,
-  Code2,
-  Copy,
-  Check
-} from "lucide-react"
-import {
-  Area,
-  AreaChart,
-  XAxis,
-  ResponsiveContainer,
-  Tooltip as RechartsTooltip
-} from "recharts"
-import { toast } from "sonner"
+import {useMemo, useState} from "react"
+import {AnimatePresence, motion} from "motion/react"
+import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "@/components/ui/card"
+import {Badge} from "@/components/ui/badge"
+import {Button} from "@/components/ui/button"
+import {Progress} from "@/components/ui/progress"
+import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs"
+import {Activity, ArrowRight, Check, Code2, Coins, Copy, Gift, Info, Layers, Shield, User} from "lucide-react"
+import {Area, AreaChart, ResponsiveContainer, Tooltip as RechartsTooltip, XAxis} from "recharts"
+import {toast} from "sonner"
 
 // ==========================================
 // 1. 卡片类组件 (Cards)
@@ -650,7 +626,7 @@ export function MockTradeTabs() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <FeatureCard
                     title="接入官方 API 接口"
-                    description="使用官方 API 接口（兼容易支付），快速接入积分服务，支持异步通知和同步跳转。"
+                    description="使用系统内置的 API 接口，支持快速接入、异步通知和同步跳转等标准流程。"
                     linkText="查看文档"
                     href="/docs/api"
                   />
@@ -662,7 +638,7 @@ export function MockTradeTabs() {
                   />
                   <FeatureCard
                     title="面对面服务"
-                    description="通过 LINUX DO Credit 提供的面对面服务功能，扩展您的积分收益渠道，处理面对面服务场景。"
+                    description="通过系统支持的离线与面对面服务接口，扩展应用功能，处理各种场景下的交互需求。"
                     linkText="功能开发中，敬请期待"
                   />
                 </div>

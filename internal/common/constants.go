@@ -16,10 +16,3 @@ limitations under the License.
 */
 
 package common
-
-const (
-	// PayTypeLDCPay Linux Do Credit 支付类型标识
-	PayTypeLDCPay = "ldcpay"
-	// PayTypeEPay Epay 支付类型
-	PayTypeEPay = "epay"
-)

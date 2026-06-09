@@ -16,7 +16,7 @@ interface LogEntry {
 }
 
 function getApiBaseUrl(): string {
-  return process.env.NEXT_PUBLIC_LINUX_DO_CREDIT_BACKEND_URL || ""
+  return process.env.NEXT_PUBLIC_WAVELET_BACKEND_URL || ""
 }
 
 function buildWsUrl(): string {

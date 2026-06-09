@@ -43,7 +43,6 @@ Thumbs.db
 # go workspace
 go.work
 go.work.sum
-/credit
 main
 
 # upload

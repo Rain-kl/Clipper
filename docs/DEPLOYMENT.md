@@ -196,7 +196,7 @@ server {
          exec_mode: 'cluster',
          env: {
            NODE_ENV: 'production',
-           LINUX_DO_CREDIT_BACKEND_URL: 'https://api.yourdomain.com'
+           WAVELET_BACKEND_URL: 'https://api.yourdomain.com'
          }
        }
      ]

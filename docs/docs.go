@@ -10,8 +10,8 @@ const docTemplate = `{
         "description": "{{escape .Description}}",
         "title": "{{.Title}}",
         "contact": {
-            "name": "LINUX DO Credit",
-            "url": "https://linux.do"
+            "name": "Wavelet",
+            "url": "https://github.com/Rain-kl/Wavelet"
         },
         "license": {
             "name": "Apache 2.0",
@@ -4399,8 +4399,8 @@ var SwaggerInfo = &swag.Spec{
 	Host:             "",
 	BasePath:         "/",
 	Schemes:          []string{},
-	Title:            "LINUX DO Credit",
-	Description:      "LINUX DO Credit 平台后端 API，提供用户认证、商户 API Key 管理、系统配置等功能。",
+	Title:            "Wavelet API",
+	Description:      "Wavelet 平台后端 API，提供用户认证、系统配置、任务调度等通用功能。",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

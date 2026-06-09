@@ -16,8 +16,3 @@ limitations under the License.
 */
 
 package user
-
-const (
-	// linuxDoAPIRateLimitKey Redis 限流 Key
-	linuxDoAPIRateLimitKey = "linux_do:api:rate_limit"
-)

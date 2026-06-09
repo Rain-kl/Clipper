@@ -788,13 +788,13 @@ definitions:
     type: object
 info:
   contact:
-    name: LINUX DO Credit
-    url: https://linux.do
-  description: LINUX DO Credit 平台后端 API，提供用户认证、商户 API Key 管理、系统配置等功能。
+    name: Wavelet
+    url: https://github.com/Rain-kl/Wavelet
+  description: Wavelet 平台后端 API，提供用户认证、系统配置、任务调度等通用功能。
   license:
     name: Apache 2.0
     url: http://www.apache.org/licenses/LICENSE-2.0.html
-  title: LINUX DO Credit
+  title: Wavelet API
   version: 1.0.0
 paths:
   /api/cap/challenge:

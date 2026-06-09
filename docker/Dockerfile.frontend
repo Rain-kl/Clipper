@@ -12,10 +12,10 @@ RUN corepack enable && corepack prepare pnpm@10.10.0 --activate
 FROM base AS builder
 
 ENV NODE_ENV=production
-ENV NEXT_PUBLIC_LINUX_DO_CREDIT_BACKEND_URL=https://build-placeholder.invalid
-ENV LINUX_DO_CREDIT_SESSION_COOKIE_NAME=__LINUX_DO_CREDIT_SESSION_COOKIE_NAME__
-ENV LINUX_DO_CREDIT_RATE_LIMIT_ENABLED=__LINUX_DO_CREDIT_RATE_LIMIT_ENABLED__
-ENV LINUX_DO_CREDIT_BACKEND_URL=https://build-placeholder-2.invalid
+ENV NEXT_PUBLIC_WAVELET_BACKEND_URL=https://build-placeholder.invalid
+ENV WAVELET_SESSION_COOKIE_NAME=__WAVELET_SESSION_COOKIE_NAME__
+ENV WAVELET_RATE_LIMIT_ENABLED=__WAVELET_RATE_LIMIT_ENABLED__
+ENV WAVELET_BACKEND_URL=https://build-placeholder-2.invalid
 
 ARG VERSION=""
 ARG BUILD_DATE=""
@@ -36,8 +36,8 @@ RUN pnpm build
 RUN grep -rl \
       -e "https://build-placeholder.invalid" \
       -e "https://build-placeholder-2.invalid" \
-      -e "__LINUX_DO_CREDIT_SESSION_COOKIE_NAME__" \
-      -e "__LINUX_DO_CREDIT_RATE_LIMIT_ENABLED__" \
+      -e "__WAVELET_SESSION_COOKIE_NAME__" \
+      -e "__WAVELET_RATE_LIMIT_ENABLED__" \
       /app/.next > /app/.replace.files
 
 FROM base AS runner

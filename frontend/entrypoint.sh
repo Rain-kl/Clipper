@@ -31,9 +31,9 @@ replace_placeholder() {
   fi
 }
 
-replace_placeholder "https://build-placeholder.invalid" "$NEXT_PUBLIC_LINUX_DO_CREDIT_BACKEND_URL"
-replace_placeholder "https://build-placeholder-2.invalid" "$LINUX_DO_CREDIT_BACKEND_URL"
-replace_placeholder "__LINUX_DO_CREDIT_SESSION_COOKIE_NAME__" "$LINUX_DO_CREDIT_SESSION_COOKIE_NAME"
-replace_placeholder "__LINUX_DO_CREDIT_RATE_LIMIT_ENABLED__" "$LINUX_DO_CREDIT_RATE_LIMIT_ENABLED"
+replace_placeholder "https://build-placeholder.invalid" "$NEXT_PUBLIC_WAVELET_BACKEND_URL"
+replace_placeholder "https://build-placeholder-2.invalid" "$WAVELET_BACKEND_URL"
+replace_placeholder "__WAVELET_SESSION_COOKIE_NAME__" "$WAVELET_SESSION_COOKIE_NAME"
+replace_placeholder "__WAVELET_RATE_LIMIT_ENABLED__" "$WAVELET_RATE_LIMIT_ENABLED"
 
 exec "$@"

@@ -1,12 +1,12 @@
 import * as React from "react"
-import { motion } from "motion/react"
-import { Badge } from "@/components/ui/badge"
-import { cn } from "@/lib/utils"
-import { FileTextIcon } from "lucide-react"
+import {motion} from "motion/react"
+import {Badge} from "@/components/ui/badge"
+import {cn} from "@/lib/utils"
+import {FileTextIcon} from "lucide-react"
 
 /**
  * 加载页面组件
- * 
+ *
  * 用于统一显示加载状态
  * @example
  * ```tsx
@@ -74,7 +74,7 @@ function LoadingCard() {
               </div>
 
               <div className="font-serif italic text-xl font-bold tracking-widest text-white drop-shadow-md">
-                Credit
+                Wavelet
               </div>
             </div>
           </div>
@@ -114,7 +114,7 @@ function LoadingCard() {
 
 /**
  * 加载页面组件
- * 
+ *
  * 用于统一显示加载状态
  */
 export function LoadingPage({ text = "系统", badgeText = "系统" }: { text?: string, badgeText?: string }) {
@@ -130,8 +130,7 @@ export function LoadingPage({ text = "系统", badgeText = "系统" }: { text?: 
             transition={{ delay: 0.2 }}
             className="relative flex items-center justify-center gap-2"
           >
-            <span className="text-3xl font-bold tracking-tight text-foreground">LINUX DO</span>
-            <span className="text-4xl font-serif font-bold italic text-primary">Credit</span>
+            <span className="text-3xl font-bold tracking-tight text-foreground">Wavelet</span>
 
             {badgeText && (
               <div className="absolute left-full top-1/3 -translate-y-1/2 ml-2">
