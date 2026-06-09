@@ -1,5 +1,5 @@
-import { BaseService } from '../core/base.service';
-import type { PublicConfigResponse } from './types';
+import {BaseService} from '@/lib/services';
+import type {PublicConfigResponse} from './types';
 
 /**
  * 配置服务
@@ -11,7 +11,7 @@ export class ConfigService extends BaseService {
   /**
    * 获取公共配置
    * @returns 公共配置信息
-   * 
+   *
    * @example
    * ```typescript
    * const config = await ConfigService.getPublicConfig();

@@ -1,4 +1,4 @@
-import {BaseService} from '../core/base.service';
+import {BaseService} from '@/lib/services';
 import type {
   AdminUser,
   AuthSource,

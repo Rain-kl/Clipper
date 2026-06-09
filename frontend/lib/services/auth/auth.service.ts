@@ -1,5 +1,5 @@
-import type { InternalAxiosRequestConfig } from 'axios';
-import {BaseService} from '../core/base.service';
+import type {InternalAxiosRequestConfig} from 'axios';
+import {BaseService} from '@/lib/services';
 import type {
   AuthSource,
   ChangePasswordRequest,
