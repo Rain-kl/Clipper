@@ -102,7 +102,7 @@ export function SystemSettingsMain() {
           <SystemStatusManager />
         </TabsContent>
         <TabsContent value="other" className="pt-4">
-          <OtherTab configs={configs} systemConfigsQuery={systemConfigsQuery} />
+          <OtherTab configs={configs} />
         </TabsContent>
         <TabsContent value="info" className="pt-4">
           <InfoTab

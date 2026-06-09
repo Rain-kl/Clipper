@@ -1,10 +1,9 @@
 import * as React from "react";
 import Link from "next/link";
 import { motion } from "motion/react";
-import { ArrowRight, Zap, Shield, Globe, CreditCard, Wallet } from "lucide-react";
+import { ArrowRight, Zap, Shield, Globe, CreditCard } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { CountingNumber } from "@/components/animate-ui/primitives/texts/counting-number";
 
 export interface HeroSectionProps {
   className?: string;
@@ -14,17 +13,6 @@ export interface HeroSectionProps {
  * Hero Section - 首页 Hero 展示
  */
 export const HeroSection = React.memo(function HeroSection({ className }: HeroSectionProps) {
-  const [balance, setBalance] = React.useState(12450.0);
-  const [income, setIncome] = React.useState(240.0);
-
-  React.useEffect(() => {
-    const interval = setInterval(() => {
-      setBalance(Math.random() * (65123.45 - (-65)) + (-65));
-      setIncome(Math.random() * (656.56 - (-65.65)) + (-65.65));
-    }, 6565);
-
-    return () => clearInterval(interval);
-  }, []);
 
   return (
     <section className={cn("w-full", className)}>

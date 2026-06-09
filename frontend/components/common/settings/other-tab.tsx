@@ -53,10 +53,9 @@ const MENU_GROUPS = [
 
 interface OtherTabProps {
   configs: Record<string, SystemConfig>
-  systemConfigsQuery: any
 }
 
-export function OtherTab({ configs, systemConfigsQuery }: OtherTabProps) {
+export function OtherTab({ configs }: OtherTabProps) {
   const queryClient = useQueryClient()
 
   const menuDisplayConfig = useMemo(() => {

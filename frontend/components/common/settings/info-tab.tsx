@@ -38,8 +38,8 @@ export function InfoTab({ systemConfigsLength, authSourcesLength }: InfoTabProps
           <InfoRow label="应用名称" value={packageJson.name} />
           <InfoRow label="版本号" value={packageJson.version} />
           <InfoRow label="构建时间" value={packageJson.buildDate} />
-          <InfoRow label="Next.js" value={(packageJson as any).dependencies.next} />
-          <InfoRow label="React" value={(packageJson as any).dependencies.react} />
+          <InfoRow label="Next.js" value={(packageJson as { dependencies?: Record<string, string> }).dependencies?.next} />
+          <InfoRow label="React" value={(packageJson as { dependencies?: Record<string, string> }).dependencies?.react} />
         </CardContent>
       </Card>
 

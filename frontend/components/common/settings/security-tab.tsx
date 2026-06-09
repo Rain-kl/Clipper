@@ -1,7 +1,7 @@
 "use client"
 
 import {useEffect, useState} from "react"
-import {useMutation, useQuery, useQueryClient} from "@tanstack/react-query"
+import {useMutation, useQuery, useQueryClient, type UseQueryResult} from "@tanstack/react-query"
 import {Fingerprint, Globe, Loader2, Lock, Mail, Pencil, Plus, Settings, Shield, Trash2, UserPlus} from "lucide-react"
 
 import {Button} from "@/components/ui/button"
@@ -55,7 +55,7 @@ const SECURITY_KEYS = [
 
 interface SecurityTabProps {
   configs: Record<string, SystemConfig>
-  systemConfigsQuery: any
+  systemConfigsQuery: UseQueryResult<SystemConfig[], Error>
 }
 
 export function SecurityTab({ configs, systemConfigsQuery }: SecurityTabProps) {

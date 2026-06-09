@@ -1,3 +1,4 @@
+import type { InternalAxiosRequestConfig } from 'axios';
 import {BaseService} from '../core/base.service';
 import type {
   AuthSource,
@@ -105,7 +106,7 @@ export class AuthService extends BaseService {
   }
 
   static async login(request: LoginRequest, headers?: Record<string, string>): Promise<User> {
-    return this.post<User>('/user/login', request, headers ? { headers } as any : undefined);
+    return this.post<User>('/user/login', request, headers ? ({ headers } as unknown as InternalAxiosRequestConfig) : undefined);
   }
 
   static async register(request: RegisterRequest): Promise<User> {

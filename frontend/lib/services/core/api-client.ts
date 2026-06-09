@@ -102,7 +102,7 @@ apiClient.interceptors.response.use(
     cancelTokens.delete(requestKey);
     pendingRequests.delete(requestKey);
 
-    const resData = response.data as any;
+    const resData = response.data as ApiError & ApiResponse;
     if (resData && resData.error_msg) {
       return Promise.reject(new ApiErrorBase(resData.error_msg));
     }

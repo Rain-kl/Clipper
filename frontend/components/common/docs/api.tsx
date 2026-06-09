@@ -40,7 +40,7 @@ export const apiSections: PolicySection[] = [
             <DocsTableRow>
               <DocsTableCell className="font-mono text-xs">error_msg</DocsTableCell>
               <DocsTableCell>string</DocsTableCell>
-              <DocsTableCell>错误信息。请求成功时为空字符串 `""`，失败时包含错误详情描述。</DocsTableCell>
+              <DocsTableCell>错误信息。请求成功时为空字符串 `&quot;&quot;`，失败时包含错误详情描述。</DocsTableCell>
             </DocsTableRow>
             <DocsTableRow>
               <DocsTableCell className="font-mono text-xs">data</DocsTableCell>

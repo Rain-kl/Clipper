@@ -3,7 +3,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { motion } from "motion/react";
 import { Button } from "@/components/ui/button";
-import { Book, Check, Copy, Key, Terminal } from "lucide-react";
+import { Book, Check, Copy, Terminal } from "lucide-react";
 
 export interface DeveloperSectionProps {
   className?: string;

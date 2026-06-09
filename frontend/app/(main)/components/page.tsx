@@ -13,20 +13,16 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import {
   Coins,
   Gift,
-  Inbox,
   Layers,
   Shield,
   Info,
   ArrowRight,
-  Terminal,
   Activity,
   User,
-  ExternalLink,
   Code2,
   Copy,
   Check

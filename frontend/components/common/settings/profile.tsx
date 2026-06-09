@@ -92,7 +92,7 @@ export function ProfileMain() {
   }, [user, isEditDialogOpen])
 
   const changePasswordMutation = useMutation({
-    mutationFn: (req: any) => AuthService.changePassword(req),
+    mutationFn: AuthService.changePassword,
     onSuccess: () => {
       toast.success("密码修改成功")
       setOldPassword("")
@@ -122,7 +122,7 @@ export function ProfileMain() {
   }
 
   const updateProfileMutation = useMutation({
-    mutationFn: (req: any) => AuthService.updateProfile(req),
+    mutationFn: AuthService.updateProfile,
     onSuccess: () => {
       toast.success("个人信息修改成功")
       setIsEditDialogOpen(false)
@@ -197,8 +197,8 @@ export function ProfileMain() {
       setIsCropDialogOpen(false)
       setCropFile(null)
       toast.success("头像上传成功，点击保存以生效")
-    } catch (err: any) {
-      toast.error(err.message || "上传头像失败")
+    } catch (err) {
+      toast.error((err as Error).message || "上传头像失败")
     }
   }
 

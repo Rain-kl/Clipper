@@ -228,6 +228,7 @@ export const ImageCropContent = ({ style, className }: ImageCropContentProps) =>
       {...reactCropProps}
     >
       {imgSrc && (
+        // eslint-disable-next-line @next/next/no-img-element
         <img
           alt="crop"
           className="size-full"
@@ -261,14 +262,14 @@ export const ImageCropApply = ({
 
   if (asChild) {
     return (
-      <Slot onClick={handleClick} {...(props as any)}>
+      <Slot onClick={handleClick} {...(props as ComponentProps<"button">)}>
         {children}
       </Slot>
     )
   }
 
   return (
-    <Button onClick={handleClick} size="icon" variant="ghost" {...(props as any)}>
+    <Button onClick={handleClick} size="icon" variant="ghost" {...(props as ComponentProps<"button">)}>
       {children ?? <CropIcon className="size-4" />}
     </Button>
   )
@@ -293,14 +294,14 @@ export const ImageCropReset = ({
 
   if (asChild) {
     return (
-      <Slot onClick={handleClick} {...(props as any)}>
+      <Slot onClick={handleClick} {...(props as ComponentProps<"button">)}>
         {children}
       </Slot>
     )
   }
 
   return (
-    <Button onClick={handleClick} size="icon" variant="ghost" {...(props as any)}>
+    <Button onClick={handleClick} size="icon" variant="ghost" {...(props as ComponentProps<"button">)}>
       {children ?? <RotateCcwIcon className="size-4" />}
     </Button>
   )
@@ -330,7 +331,7 @@ export const Cropper = ({
     onChange={onChange}
     onComplete={onComplete}
     onCrop={onCrop}
-    {...(props as any)}
+    {...(props as Omit<ReactCropProps, "onChange" | "onComplete" | "children">)}
   >
     <ImageCropContent className={className} style={style} />
   </ImageCrop>

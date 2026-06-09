@@ -1,7 +1,7 @@
 "use client"
 
 import {useEffect, useState} from "react"
-import {useMutation, useQueryClient} from "@tanstack/react-query"
+import {useMutation, useQueryClient, type UseQueryResult} from "@tanstack/react-query"
 import {Loader2, Mail, Server} from "lucide-react"
 
 import {Button} from "@/components/ui/button"
@@ -15,7 +15,7 @@ import {toast} from "sonner"
 
 interface SystemTabProps {
   configs: Record<string, SystemConfig>
-  systemConfigsQuery: any
+  systemConfigsQuery: UseQueryResult<SystemConfig[], Error>
 }
 
 export function SystemTab({ configs, systemConfigsQuery }: SystemTabProps) {
