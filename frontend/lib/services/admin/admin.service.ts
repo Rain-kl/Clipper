@@ -351,6 +351,52 @@ export class AdminService extends BaseService {
     return this.get('/logs', { cursor, limit });
   }
 
+  /**
+   * 获取 ClickHouse 访问日志列表
+   */
+  static async getAccessLogs(params: {
+    page: number;
+    page_size: number;
+    username?: string;
+    path?: string;
+    start_time?: string;
+    end_time?: string;
+  }): Promise<{
+    total: number;
+    list: Array<{
+      id: string;
+      user_id: string;
+      username: string;
+      nickname: string;
+      path: string;
+      method: string;
+      ip: string;
+      user_agent: string;
+      headers: string;
+      status: number;
+      latency: number;
+      created_at: string;
+    }>;
+  }> {
+    return this.get('/logs/access', params as Record<string, unknown>);
+  }
+
+  /**
+   * 获取 ClickHouse 访问日志图表聚合指标
+   */
+  static async getLogsAnalytics(): Promise<{
+    trend: Array<{ date: string; count: number }>;
+    browsers: Array<{ browser: string; count: number }>;
+    top_users: Array<{
+      user_id: string;
+      username: string;
+      nickname: string;
+      count: number;
+    }>;
+  }> {
+    return this.get('/logs/analytics');
+  }
+
   // ==================== 模板管理 ====================
 
   /**

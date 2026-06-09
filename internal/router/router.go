@@ -38,6 +38,7 @@ import (
 	capApp "github.com/Rain-kl/Wavelet/internal/apps/cap"
 	publicconfig "github.com/Rain-kl/Wavelet/internal/apps/config"
 	"github.com/Rain-kl/Wavelet/internal/apps/health"
+	"github.com/Rain-kl/Wavelet/internal/apps/risk_control"
 	"github.com/Rain-kl/Wavelet/internal/apps/upload"
 	"github.com/Rain-kl/Wavelet/internal/apps/user"
 	"github.com/Rain-kl/Wavelet/internal/model"
@@ -62,6 +63,9 @@ func Serve() {
 	if config.Config.App.IsProduction() {
 		gin.SetMode(gin.ReleaseMode)
 	}
+
+	// 初始化 ClickHouse 异步日志写入器
+	risk_control.InitLogWriter()
 
 	// 初始化路由
 	r := gin.New()
@@ -100,7 +104,7 @@ func Serve() {
 	r.Use(sessions.Sessions(config.Config.App.SessionCookieName, sessionStore))
 
 	// 补充中间件
-	r.Use(otelgin.Middleware(config.Config.App.AppName), loggerMiddleware())
+	r.Use(otelgin.Middleware(config.Config.App.AppName), loggerMiddleware(), risk_control.RiskControlMiddleware())
 
 	// Serve files by ID
 	r.GET("/f/:id", upload.ServeFileByID)
@@ -193,6 +197,8 @@ func Serve() {
 
 				// System logs
 				adminRouter.GET("/logs", admin_logs.GetLogs)
+				adminRouter.GET("/logs/access", admin_logs.GetAccessLogs)
+				adminRouter.GET("/logs/analytics", admin_logs.GetLogsAnalytics)
 				adminRouter.GET("/logs/ws", admin_logs.HandleLogWebSocket)
 
 				// Task dispatch
