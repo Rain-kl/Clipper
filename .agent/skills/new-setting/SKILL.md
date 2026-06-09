@@ -1,6 +1,6 @@
 ---
 name: "new-setting"
-description: "Wavelet 项目专用：当新增或修改启动时设置、数据库系统设置、业务设置、公共设置、/admin/system 参数配置、/admin/settings 图形化设置界面，或前端公共配置消费逻辑时必须使用。本技能指导设置类型判定、配置字段创建、默认值初始化、热更新读取、公共配置暴露、shadcn 图形组件和验证流程。"
+description: "Wavelet 项目专用：当新增或修改启动时设置、数据库系统设置、业务设置、公共可见配置、/admin/system 参数配置、/admin/settings 图形化设置界面，或前端公共配置消费逻辑时必须使用。本技能指导设置类型判定、SystemConfig 字段与 visibility、goose SQL 初始化/升级、热更新读取、公共配置暴露、shadcn 图形组件和验证流程。"
 ---
 
 # 新增设置项
@@ -14,15 +14,15 @@ description: "Wavelet 项目专用：当新增或修改启动时设置、数据�
 Wavelet 当前有两套设置入口：
 
 - 启动时设置：来自 `config.yaml` 或环境变量，适合进程启动前必须确定、通常不热更新的基础配置。
-- 系统设置：保存于数据库，经 `model.SystemConfig` 和 Redis hash 缓存读取，支持运行时热更新。管理入口是 `/admin/system` 和 `/admin/settings`。
+- 系统设置：保存于数据库 `system_configs`，经 `model.SystemConfig` 和 Redis hash 缓存读取，支持运行时热更新。管理入口是 `/admin/system` 和 `/admin/settings`。
 
 系统设置分三种使用语义：
 
 - 业务设置：`type=business`，由管理员配置，影响业务规则，例如用户额度、业务限制。
 - 系统设置：`type=system`，由管理员配置，影响平台能力、基础开关、外部服务参数。
-- 公共设置：附加在业务设置或系统设置之上，表示需要通过公开接口返回给前端使用。公共设置不是第三种数据库 `type`，不要把 `type` 写成 `public`。
+- 公共可见配置：附加在业务设置或系统设置之上，由 `visibility=1` 控制是否通过公开接口返回给前端使用。它不是第三种数据库 `type`，不要把 `type` 写成 `public`。
 
-业务设置和系统设置互斥：一个配置项只能选择 `business` 或 `system`。是否公开给前端由 `/api/v1/config/public` 的响应决定。
+业务设置和系统设置互斥：一个配置项只能选择 `business` 或 `system`。是否公开给前端由 `visibility` 决定：`0` 表示隐藏，`1` 表示 `/api/v1/config/public` 可见。
 
 特殊设置组件不一定需要新增 `SystemConfig` 参数项。例如认证源设置、模板管理这类有独立模型和 API 的功能，应沿用对应领域模型，不要为了出现在 `/admin/settings` 强行创建参数配置。
 
@@ -31,7 +31,9 @@ Wavelet 当前有两套设置入口：
 修改前快速查看这些文件，确认当前实现没有漂移：
 
 - `internal/model/system_configs.go`: 配置 key 常量、`SystemConfig` 模型、`GetByKey`、`GetBoolByKey`、`GetIntByKey`、`GetDecimalByKey` 等读取方法。
-- `internal/db/migrator/migrator.go`: `initSystemConfigs` 和 `ensureConfigKeyExists`，负责默认配置和旧库补齐。
+- `internal/db/migrator/goose/postgres/*.sql` 和 `internal/db/migrator/goose/sqlite/*.sql`: `system_configs` 表结构、初始化 seed、后续升级迁移。
+- `internal/db/migrator/migrator.go`: goose 迁移入口和 PostgreSQL/SQLite 方言选择。
+- `internal/testhelper/test_helper.go`: Go 测试用默认系统配置 seed。
 - `internal/apps/admin/system_config/routers.go`: `/api/v1/admin/system-configs` 参数表 API。
 - `internal/apps/config/routers.go`: `/api/v1/config/public` 公共配置响应。
 - `frontend/components/common/admin/system.tsx`: `/admin/system` 参数表管理界面，展示所有参数配置项。
@@ -50,29 +52,32 @@ Wavelet 当前有两套设置入口：
    - 值仍存为字符串；布尔值用 `"true"` / `"false"`，数值用十进制字符串，复杂结构用 JSON 字符串。
 
 2. 初始化默认配置。
-   - 在 `internal/db/migrator/migrator.go` 的 `initSystemConfigs` 中同时处理两条路径：
-     - `count > 0` 时调用 `ensureConfigKeyExists`，保证旧库升级时补齐新 key。
-     - `defaultConfigs` 中加入同一个 key，保证新库初始化时存在。
+   - 如果修改初始 schema，必须同步 `internal/db/migrator/goose/postgres/` 和 `internal/db/migrator/goose/sqlite/` 中的 goose SQL。
+   - 既有库新增配置时，新增一组时间戳递增的双 SQL 迁移文件，分别放在 PostgreSQL 和 SQLite 目录；不要回到 GORM AutoMigrate 或 Go 代码 seed。
+   - 新库初始化也需要包含同一个默认 key：当前初始 seed 在 `202606090001_initial_schema.sql` 的 `INSERT INTO system_configs (...) VALUES ... ON CONFLICT (key) DO NOTHING`。
    - 设置正确的 `Type`：只能是 `"system"` 或 `"business"`。
+   - 设置正确的 `Visibility`：公共可见填 `1`，内部配置填 `0`。
    - 默认值要和 Go 读取侧的零值或兜底值一致，避免首次启动和数据库缺失时行为不同。
+   - 如果相关 Go 包测试依赖默认配置，同步 `internal/testhelper/test_helper.go` 的 `seedDefaultConfigs` 和公共 key 列表。
 
 3. 读取配置。
    - 后端业务代码优先使用 `model.GetBoolByKey`、`model.GetIntByKey`、`model.GetDecimalByKey` 或 `SystemConfig.GetByKey`。
    - 运行时可热更新的规则不要放进 `config.Config`；启动时设置才走 `internal/config/model.go` 和 `config.example.yaml`。
    - 不要在 handler 或业务代码里直接读 `os.Getenv()`。
 
-4. 如果前端需要未登录或全局消费，暴露为公共设置。
-   - 在 `internal/apps/config/routers.go` 的 `PublicConfigResponse` 增加字段。
-   - 在 `GetPublicConfig` 中读取并填充该字段。
-   - 同步 `frontend/lib/services/config/types.ts`。
+4. 如果前端需要未登录或全局消费，暴露为公共可见配置。
+   - 把该配置的 `visibility` 设为 `1`，`GetPublicConfig` 会通过 `model.ListVisibleSystemConfigs` 返回所有可见 key/value。
+   - `/api/v1/config/public` 的 `data` 是动态对象：后端返回 `map[string]string`，前端类型是 `Record<string, string | undefined>`。
+   - 前端读取时按配置 key 访问，必要时在消费侧把字符串转换为 boolean/number/JSON。
    - 检查使用方的 query key，更新后需要 invalidate `["public-config"]`。
-   - 公共配置 API 变更后运行 `make swagger`。
+   - 只有公共配置 API 形状或注释变化时才需要更新 Swagger；单纯新增 `visibility=1` 的 key 通常不需要改 `PublicConfigResponse` 类型。
 
 5. 如果管理员需要图形化配置，更新 `/admin/settings`。
    - 先阅读 shadcn skill。
    - 根据设置语义选择现有 tab：安全类进 `security-tab.tsx`，运营类进 `operation-tab.tsx`，系统基础参数进 `system-tab.tsx`，其它菜单或杂项进 `other-tab.tsx`。
+   - `SystemSettingsMain` 当前通过 `AdminService.listSystemConfigs("system")` 只加载 `type=system` 的配置；`type=business` 的配置若也需要图形化入口，先确认是否要调整查询范围或放到其它 Admin 页面。
    - 新的图形组件优先放在 `frontend/components/common/settings/`，使用现有 `AdminService.updateSystemConfig`。
-   - 更新成功后 invalidate `["admin", "system-configs"]`；公共设置还要 invalidate `["public-config"]`。
+   - 更新成功后 invalidate `["admin", "system-configs"]`；公共可见配置还要 invalidate `["public-config"]`。
    - 使用 Sonner toast 反馈成功或失败。
    - 不使用 `any`，不要硬编码页面级 `max-w-*`，页面根容器保持 `w-full`。
 
@@ -95,15 +100,15 @@ Wavelet 当前有两套设置入口：
 ### 布尔公共设置
 
 - model key：`ConfigKeyFeatureEnabled = "feature_enabled"`
-- migrator 默认值：`"false"`，`Type` 按语义选 `"system"` 或 `"business"`。
+- goose SQL 默认值：`value='false'`，`type` 按语义选 `"system"` 或 `"business"`，`visibility=1`。
 - 后端读取：`model.GetBoolByKey(ctx, model.ConfigKeyFeatureEnabled)`。
-- 公共响应：`FeatureEnabled bool 'json:"feature_enabled"'`。
+- 公共响应：`/api/v1/config/public` 的 `data.feature_enabled` 为字符串 `"true"` 或 `"false"`。
 - 前端图形控件：`Switch`，保存时写 `"true"` / `"false"`。
 
 ### 数值业务设置
 
 - model key：`ConfigKeyMaxSomething = "max_something"`。
-- migrator 默认值：例如 `"5"`，`Type` 通常为 `"business"`。
+- goose SQL 默认值：例如 `"5"`，`type` 通常为 `"business"`，只有前端公共消费时才设 `visibility=1`。
 - 后端读取：`model.GetIntByKey` 或 `model.GetDecimalByKey`。
 - 前端图形控件：`Input type="number"` 或合适的 shadcn 数值控件；保存前做最小必要校验，错误用 toast。
 
@@ -117,13 +122,15 @@ Wavelet 当前有两套设置入口：
 
 根据改动范围运行最小有效验证，最后提交前必须运行项目门禁。
 
-- 新增或修改系统配置默认值：至少运行相关 Go 包测试，例如：
+- 新增或修改系统配置默认值、visibility 或公共配置读取：至少运行相关 Go 包测试，例如：
 
 ```bash
 go test ./internal/model ./internal/apps/config ./internal/apps/admin/system_config
 ```
 
-- 公共配置 API 改动后：
+- 新增 goose 迁移后，至少用当前数据库方言跑一次迁移；如果 SQL 同时改了 PostgreSQL 和 SQLite，尽量覆盖两种方言。涉及 schema/seed 的任务还应遵循 database-migration skill。
+
+- 公共配置 API 注释或 handler 签名改动后：
 
 ```bash
 make swagger
@@ -146,6 +153,7 @@ make code-check
 ## 相关 Skills
 
 - shadcn：新增或调整 `/admin/settings` 图形化设置组件时使用。
+- database-migration：新增或修改 `system_configs` schema、默认 seed 或 goose SQL 迁移时使用。
 - go-error-handling：配置解析、缺失配置、非法值错误需要跨包返回时使用。
 - go-testing：为配置读取、公共配置 API 或 Admin 配置 API 添加测试时使用。
 - go-context：配置读取在请求链路或后台链路中传递取消和超时时使用。
