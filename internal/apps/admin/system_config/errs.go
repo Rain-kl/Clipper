@@ -15,8 +15,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package system_config 提供系统配置管理功能
 package system_config
 
+// 系统配置错误消息常量
 const (
 	SystemConfigNotFound = "系统配置不存在"
 	ConfigKeyRequired    = "配置键不能为空"

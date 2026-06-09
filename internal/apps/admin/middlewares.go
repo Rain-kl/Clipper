@@ -29,6 +29,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// LoginAdminRequired 返回管理员权限校验中间件
 func LoginAdminRequired() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// init trace

@@ -15,6 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package otel_trace 提供 OpenTelemetry 链路追踪封装工具
 package otel_trace
 
 import "go.opentelemetry.io/otel/propagation"

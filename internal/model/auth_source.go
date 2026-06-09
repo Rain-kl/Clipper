@@ -27,12 +27,14 @@ import (
 	"gorm.io/gorm"
 )
 
+// 认证源类型
 const (
 	AuthSourceTypeOIDC = "oidc"
 )
 
 var authSourceNamePattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$`)
 
+// AuthSource 认证源实体
 type AuthSource struct {
 	ID                     uint64    `json:"id" gorm:"primaryKey"`
 	Name                   string    `json:"name" gorm:"uniqueIndex;size:80;not null"`
@@ -49,6 +51,7 @@ type AuthSource struct {
 	ClientSecretConfigured bool      `json:"client_secret_configured" gorm:"-"`
 }
 
+// ExternalAccount 外部账号绑定实体
 type ExternalAccount struct {
 	ID               uint64    `json:"id" gorm:"primaryKey"`
 	AuthSourceID     uint64    `json:"auth_source_id" gorm:"uniqueIndex:idx_external_accounts_source_external,priority:1;index"`
@@ -60,6 +63,7 @@ type ExternalAccount struct {
 	UpdatedAt        time.Time `json:"updated_at"`
 }
 
+// ExternalAccountView 外部帐号绑定视图（脱敏展示用）
 type ExternalAccountView struct {
 	ID               uint64    `json:"id"`
 	AuthSourceID     uint64    `json:"auth_source_id"`
@@ -71,6 +75,7 @@ type ExternalAccountView struct {
 	CreatedAt        time.Time `json:"created_at"`
 }
 
+// Normalize 对认证源字段进行标准化处理
 func (source *AuthSource) Normalize() {
 	source.Type = strings.ToLower(strings.TrimSpace(source.Type))
 	source.Name = strings.TrimSpace(source.Name)
@@ -88,6 +93,7 @@ func (source *AuthSource) Normalize() {
 	}
 }
 
+// Validate 校验认证源字段合法性
 func (source *AuthSource) Validate() error {
 	source.Normalize()
 	if source.Name == "" {
@@ -108,11 +114,13 @@ func (source *AuthSource) Validate() error {
 	return nil
 }
 
+// Sanitize 脱敏处理，将 ClientSecret 清空并设置 ClientSecretConfigured 标志
 func (source *AuthSource) Sanitize() {
 	source.ClientSecretConfigured = source.ClientSecret != ""
 	source.ClientSecret = ""
 }
 
+// GetAuthSources 获取所有认证源（已脱敏）
 func GetAuthSources() ([]AuthSource, error) {
 	var sources []AuthSource
 	if err := db.DB(context.Background()).Order("id asc").Find(&sources).Error; err != nil {
@@ -124,6 +132,7 @@ func GetAuthSources() ([]AuthSource, error) {
 	return sources, nil
 }
 
+// GetActiveAuthSources 获取所有已启用的认证源（已脱敏）
 func GetActiveAuthSources() ([]AuthSource, error) {
 	var sources []AuthSource
 	if err := db.DB(context.Background()).Where("is_active = ?", true).Order("id asc").Find(&sources).Error; err != nil {
@@ -135,6 +144,7 @@ func GetActiveAuthSources() ([]AuthSource, error) {
 	return sources, nil
 }
 
+// GetAuthSourceByID 根据 ID 获取认证源
 func GetAuthSourceByID(id uint64) (*AuthSource, error) {
 	if id == 0 {
 		return nil, errors.New(errAuthSourceIDRequired)
@@ -147,6 +157,7 @@ func GetAuthSourceByID(id uint64) (*AuthSource, error) {
 	return &source, nil
 }
 
+// GetAuthSourceByName 根据名称获取认证源
 func GetAuthSourceByName(name string) (*AuthSource, error) {
 	name = strings.TrimSpace(name)
 	if name == "" {
@@ -160,6 +171,7 @@ func GetAuthSourceByName(name string) (*AuthSource, error) {
 	return &source, nil
 }
 
+// CreateAuthSource 创建认证源
 func CreateAuthSource(source *AuthSource) error {
 	if err := source.Validate(); err != nil {
 		return err
@@ -167,6 +179,7 @@ func CreateAuthSource(source *AuthSource) error {
 	return db.DB(context.Background()).Create(source).Error
 }
 
+// UpdateAuthSource 更新认证源，keepSecret 为 true 时保留原密钥
 func UpdateAuthSource(source *AuthSource, keepSecret bool) error {
 	if source.ID == 0 {
 		return errors.New(errAuthSourceIDRequired)
@@ -194,6 +207,7 @@ func UpdateAuthSource(source *AuthSource, keepSecret bool) error {
 	}).Error
 }
 
+// ToggleAuthSource 切换认证源启用状态
 func ToggleAuthSource(id uint64, isActive bool) error {
 	source, err := GetAuthSourceByID(id)
 	if err != nil {
@@ -206,6 +220,7 @@ func ToggleAuthSource(id uint64, isActive bool) error {
 	return db.DB(context.Background()).Model(&AuthSource{}).Where("id = ?", id).Update("is_active", isActive).Error
 }
 
+// DeleteAuthSource 删除认证源及其关联的外部帐号绑定
 func DeleteAuthSource(id uint64) error {
 	if id == 0 {
 		return errors.New(errAuthSourceIDRequired)
@@ -218,6 +233,7 @@ func DeleteAuthSource(id uint64) error {
 	})
 }
 
+// FindExternalAccount 查找外部帐号绑定记录
 func FindExternalAccount(sourceID uint64, externalID string) (*ExternalAccount, error) {
 	var account ExternalAccount
 	if err := db.DB(context.Background()).Where("auth_source_id = ? AND external_id = ?", sourceID, externalID).First(&account).Error; err != nil {
@@ -226,6 +242,7 @@ func FindExternalAccount(sourceID uint64, externalID string) (*ExternalAccount, 
 	return &account, nil
 }
 
+// BindExternalAccount 绑定外部帐号（已存在时更新用户名和邮箱）
 func BindExternalAccount(account *ExternalAccount) error {
 	if account.UserID == 0 || strings.TrimSpace(account.ExternalID) == "" {
 		return errors.New(errExternalAccountBindingIncomplete)
@@ -253,6 +270,7 @@ func BindExternalAccount(account *ExternalAccount) error {
 	})
 }
 
+// ListExternalAccountsByUserID 获取指定用户的所有外部帐号绑定视图
 func ListExternalAccountsByUserID(userID uint64) ([]ExternalAccountView, error) {
 	if userID == 0 {
 		return nil, errors.New(errUserIDRequired)
@@ -294,6 +312,7 @@ func ListExternalAccountsByUserID(userID uint64) ([]ExternalAccountView, error) 
 	return views, nil
 }
 
+// DeleteExternalAccountForUser 删除指定用户的外部帐号绑定
 func DeleteExternalAccountForUser(id uint64, userID uint64) error {
 	if id == 0 || userID == 0 {
 		return errors.New(errExternalAccountBindingIDRequired)

@@ -63,6 +63,7 @@ const (
 	SystemConfigRedisHashKey = "system:system_configs"
 )
 
+// SystemConfig 系统配置实体
 type SystemConfig struct {
 	Key         string    `json:"key" gorm:"primaryKey;size:64;not null"`
 	Value       string    `json:"value" gorm:"size:255;not null"`

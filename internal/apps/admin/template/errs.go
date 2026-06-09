@@ -14,8 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package template 提供模板管理功能
 package template
 
+// 模板管理相关错误消息
 const (
 	TemplateNotFound              = "模板不存在"
 	TemplateKeyRequired           = "模板标识符不能为空"

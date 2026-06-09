@@ -17,6 +17,7 @@ limitations under the License.
 
 package oauth
 
+// OAuth 认证相关错误消息
 const (
 	InvalidState                    = "非法登录请求"
 	IDTokenVerifyFailed             = "ID Token 验证失败"

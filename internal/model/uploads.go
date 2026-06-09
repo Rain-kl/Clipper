@@ -24,6 +24,7 @@ import (
 // UploadStatus 上传状态
 type UploadStatus string
 
+// 上传状态
 const (
 	UploadStatusPending UploadStatus = "pending" // 待使用
 	UploadStatusUsed    UploadStatus = "used"    // 已使用

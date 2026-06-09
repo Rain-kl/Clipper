@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package mail 提供 SMTP 邮件发送功能。
 package mail
 
 const (

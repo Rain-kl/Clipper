@@ -15,6 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package main 是 Wavelet 平台的程序入口
 package main
 
 import "github.com/Rain-kl/Wavelet/internal/cmd"

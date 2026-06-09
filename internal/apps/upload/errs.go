@@ -15,8 +15,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package upload 提供文件上传与下载功能
 package upload
 
+// 上传模块错误消息常量
 const (
 	ErrNoFileSelected                = "请选择要上传的文件"
 	ErrInvalidUploadType             = "无效的上传类型"

@@ -15,6 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package idgen 提供分布式 ID 生成器
 package idgen
 
 import (
@@ -41,6 +42,7 @@ func init() {
 	log.Printf("[Snowflake] initialized with node ID: %d, epoch: 2025-12-01\n", nodeID)
 }
 
+// NextUint64ID 生成下一个分布式唯一 ID
 func NextUint64ID() uint64 {
 	return uint64(node.Generate().Int64())
 }

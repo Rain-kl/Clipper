@@ -15,8 +15,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package admin 提供管理后台功能
 package admin
 
+// 管理后台错误消息常量
 const (
 	AdminRequired          = "未经授权访问"
 	InvalidAuthSourceID    = "认证源 ID 无效"

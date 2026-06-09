@@ -28,6 +28,7 @@ import (
 	"github.com/Rain-kl/Wavelet/internal/db"
 )
 
+// Template 邮件/消息模板实体
 type Template struct {
 	ID          uint64    `json:"id" gorm:"primaryKey;autoIncrement"`
 	Key         string    `json:"key" gorm:"uniqueIndex;size:80;not null"`
@@ -41,6 +42,7 @@ type Template struct {
 	UpdatedAt   time.Time `json:"updated_at" gorm:"autoUpdateTime;index"`
 }
 
+// Normalize 规范化模板字段
 func (t *Template) Normalize() {
 	t.Key = strings.TrimSpace(t.Key)
 	t.Name = strings.TrimSpace(t.Name)
@@ -53,6 +55,7 @@ func (t *Template) Normalize() {
 	}
 }
 
+// Validate 校验模板必填字段
 func (t *Template) Validate() error {
 	t.Normalize()
 	if t.Key == "" {
@@ -67,6 +70,7 @@ func (t *Template) Validate() error {
 	return nil
 }
 
+// Render 渲染模板的 Subject 和 Content
 func (t *Template) Render(data any) (string, string, error) {
 	// Render Subject
 	var subject string

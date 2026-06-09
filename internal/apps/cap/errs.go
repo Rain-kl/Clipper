@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package cap 提供人机验证中间件
 package cap
 
 const (

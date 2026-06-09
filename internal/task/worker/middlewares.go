@@ -15,6 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package worker 提供 Asynq 任务处理服务器与中间件
 package worker
 
 import (

@@ -32,6 +32,7 @@ import (
 )
 
 var (
+	// Redis 全局 Redis 客户端实例
 	Redis redis.UniversalClient
 )
 

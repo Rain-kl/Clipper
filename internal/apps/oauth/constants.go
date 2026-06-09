@@ -22,6 +22,7 @@ import (
 	"time"
 )
 
+// Session 用户信息字段 Key
 const (
 	UserNameKey                     = "username"
 	UserIDKey                       = "user_id"
@@ -32,11 +33,13 @@ const (
 	PendingOAuthEmailKey            = "pending_oauth_email"
 )
 
+// OAuth State 缓存 Key 格式与过期时间
 const (
 	OAuthStateCacheKeyFormat     = "oauth:state:%s"
 	OAuthStateCacheKeyExpiration = 10 * time.Minute
 )
 
+// OAuth 授权用途常量
 const (
 	OAuthPurposeLogin = "login"
 	OAuthPurposeBind  = "bind"

@@ -15,6 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package util 提供通用工具函数
 package util
 
 import "github.com/gin-gonic/gin"

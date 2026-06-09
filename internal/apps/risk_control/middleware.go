@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package risk_control 提供风险控制中间件
 package risk_control
 
 import (

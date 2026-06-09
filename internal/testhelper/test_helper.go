@@ -15,6 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package testhelper 提供测试辅助工具
 package testhelper
 
 import (

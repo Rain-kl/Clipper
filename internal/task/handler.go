@@ -20,6 +20,7 @@ package task
 import "context"
 
 // TaskResult 任务执行结果
+//nolint:revive // TaskResult 保留完整名称以避免与通用 Result 混淆
 type TaskResult struct {
 	Message string // 结果摘要，如 "共清理 120 个文件，耗时 3.2s"
 	Detail  string // 可选的详细结果 JSON
@@ -37,6 +38,8 @@ type PayloadValidator interface {
 //
 // 开发者只需实现 Execute 方法编写业务逻辑，在方法内通过 task.AppendLog(ctx, ...) 追加执行日志。
 // 任务的创建、状态更新、错误记录、重试计数全部由框架透明处理。
+//
+//nolint:revive // TaskHandler 保留完整名称以避免与通用 Handler 混淆
 type TaskHandler interface {
 	// Execute 执行任务业务逻辑
 	//   - ctx: 已注入 Trace Span 和 taskID 的上下文

@@ -15,6 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package oauth 提供 OAuth/OIDC 认证与会话管理
 package oauth
 
 import (
@@ -26,6 +27,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// LogForAudit 将登录鉴权审计日志写入 Logger
 func LogForAudit(ctx context.Context, user *model.User, c *gin.Context) {
 	auditLog := loginRequiredAuditLog{
 		UserID:     user.ID,

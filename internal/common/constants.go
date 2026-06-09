@@ -15,4 +15,5 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package common 提供跨模块共享的常量、错误定义和通用工具函数。
 package common

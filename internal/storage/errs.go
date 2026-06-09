@@ -14,14 +14,17 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package storage 提供文件存储抽象层，包括 S3 兼容存储和本地缓存。
 package storage
 
+// ErrS3InitializationFailed S3 存储初始化失败错误
 type ErrS3InitializationFailed struct{}
 
 func (e ErrS3InitializationFailed) Error() string {
 	return errS3InitializationFailed
 }
 
+// LocalCacheError 本地缓存错误
 type LocalCacheError struct{}
 
 func (e LocalCacheError) Error() string {

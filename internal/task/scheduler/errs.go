@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package scheduler 提供定时任务调度功能
 package scheduler
 
 const (

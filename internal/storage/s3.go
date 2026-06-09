@@ -75,10 +75,12 @@ func init() {
 	log.Printf("[Storage] S3 storage initialized (bucket: %s, prefix: %s, cdn: %s)\n", bucket, keyPrefix, cdnURL)
 }
 
+// IsEnabledFunc 检查 S3 存储是否已初始化（可替换用于测试）
 var IsEnabledFunc = func() bool {
 	return client != nil
 }
 
+// IsEnabled 检查 S3 存储是否可用
 func IsEnabled() bool {
 	return IsEnabledFunc()
 }

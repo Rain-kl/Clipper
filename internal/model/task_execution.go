@@ -30,6 +30,7 @@ import (
 // TaskExecutionStatus 任务执行状态
 type TaskExecutionStatus string
 
+// 任务执行状态
 const (
 	TaskExecutionStatusPending   TaskExecutionStatus = "pending"
 	TaskExecutionStatusRunning   TaskExecutionStatus = "running"

@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package logger 提供结构化日志封装
 package logger
 
 const (

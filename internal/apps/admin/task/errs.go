@@ -15,8 +15,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package task 提供任务管理接口
 package task
 
+// 任务管理相关错误消息
 const (
 	InvalidTaskType      = "无效的任务类型"
 	InvalidTimeRange     = "无效的时间范围"

@@ -203,6 +203,7 @@ func buildDSN(host string, port int, username, password string) string {
 	return pqURL.String()
 }
 
+// DB 返回带上下文追踪的 GORM 数据库实例
 func DB(ctx context.Context) *gorm.DB {
 	if db == nil {
 		return nil

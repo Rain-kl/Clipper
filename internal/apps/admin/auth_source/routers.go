@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package auth_source 提供认证源管理功能
 package auth_source
 
 import (
@@ -27,6 +28,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// AuthSourceRequest 创建或更新认证源的请求参数
 type AuthSourceRequest struct {
 	Name               string `json:"name"`
 	Type               string `json:"type"`
@@ -39,6 +41,7 @@ type AuthSourceRequest struct {
 	IconURL            string `json:"icon_url"`
 }
 
+// ToggleAuthSourceRequest 切换认证源启用状态的请求参数
 type ToggleAuthSourceRequest struct {
 	IsActive bool `json:"is_active"`
 }

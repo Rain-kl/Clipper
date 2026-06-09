@@ -17,6 +17,7 @@ limitations under the License.
 
 package common
 
+// 通用业务错误消息常量
 const (
 	BannedAccount               = "账号已被封禁"
 	AmountMustBeGreaterThanZero = "金额必须大于0"
@@ -32,6 +33,7 @@ const (
 	UnAuthorized                = "未登录"
 )
 
+// 保护期相关错误消息
 const (
 	GetProtectionDaysFailed = "获取新用户保护期配置失败"
 )
