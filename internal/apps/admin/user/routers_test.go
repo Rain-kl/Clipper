@@ -422,6 +422,10 @@ func TestDeleteUser(t *testing.T) {
 	dbConn, _, cleanup := testhelper.SetupTestEnvironment(t)
 	defer cleanup()
 
+	if err := dbConn.AutoMigrate(&model.AccessToken{}, &model.ExternalAccount{}); err != nil {
+		t.Fatalf("failed to migrate delete-related tables: %v", err)
+	}
+
 	regularUser := model.User{
 		ID:       1001,
 		Username: "alice",

@@ -8,6 +8,9 @@ specialized workflows still live in `.agent/skills/`.
 - `new-async-task`: use when adding or changing Asynq tasks, scheduled jobs,
   task metadata, task payload validation, task logs, task retry behavior, or
   Admin task APIs.
+- `new-setting`: use when adding or changing startup config, database-backed
+  system/business/public settings, `/admin/system` parameters, or
+  `/admin/settings` graphical settings.
 - Go skills: use the focused `go-*` skills for Go implementation details such
   as testing, error handling, packages, context, concurrency, logging,
   documentation, and review.
@@ -242,4 +245,3 @@ frontend/lib/services/<service-name>/
 - `make license-check`: validate Go license headers.
 
 Never delete `frontend/node_modules`; refresh dependencies with `pnpm install`.
-
