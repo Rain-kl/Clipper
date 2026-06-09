@@ -45,11 +45,11 @@ export function SystemLogs() {
           </TabsTrigger>
           <TabsTrigger value="access" className="flex items-center gap-1.5 px-4">
             <Activity className="size-3.5" />
-            用户访问日志 (ClickHouse)
+            用户访问日志
           </TabsTrigger>
           <TabsTrigger value="app" className="flex items-center gap-1.5 px-4">
             <Terminal className="size-3.5" />
-            应用运行日志 (Console)
+            应用运行日志
           </TabsTrigger>
         </TabsList>
 
