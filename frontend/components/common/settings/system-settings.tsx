@@ -8,7 +8,7 @@ import {motion} from "motion/react"
 
 import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs"
 import {useAuth} from "@/components/providers/auth-provider"
-import {TemplatesManager} from "@/components/common/settings/templates"
+import {OperationTab} from "./operation-tab"
 import {AdminService} from "@/lib/services"
 import type {SystemConfig} from "@/lib/services/admin"
 import {SystemStatusManager} from "@/components/common/admin/status"
@@ -93,7 +93,7 @@ export function SystemSettingsMain() {
           <SecurityTab configs={configs} systemConfigsQuery={systemConfigsQuery} />
         </TabsContent>
         <TabsContent value="operation" className="pt-4">
-          <TemplatesManager />
+          <OperationTab configs={configs} systemConfigsQuery={systemConfigsQuery} />
         </TabsContent>
         <TabsContent value="system" className="pt-4">
           <SystemTab configs={configs} systemConfigsQuery={systemConfigsQuery} />

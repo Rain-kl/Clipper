@@ -6,6 +6,7 @@ import {BellRingProvider} from "@/contexts/bell-ring-context";
 import {NotificationSettingsProvider} from "@/contexts/notification-settings-context";
 import {UserProvider} from "@/contexts/user-context";
 import {AppQueryProvider} from "@/components/providers/query-provider";
+import {RobotsMeta} from "@/components/layout/robots-meta";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -35,6 +36,7 @@ export default function RootLayout({
         >
           <CustomThemeProvider>
             <AppQueryProvider>
+              <RobotsMeta />
               <UserProvider>
                 <NotificationSettingsProvider>
                   <BellRingProvider>

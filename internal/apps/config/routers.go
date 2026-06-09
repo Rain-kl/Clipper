@@ -39,6 +39,7 @@ type PublicConfigResponse struct {
 	EmailLoginVerificationEnabled    bool            `json:"email_login_verification_enabled"`    // 是否启用邮箱登录验证
 	EmailRegisterVerificationEnabled bool            `json:"email_register_verification_enabled"` // 是否启用邮箱注册验证
 	MenuDisplayConfig                map[string]bool `json:"menu_display_config"`                 // 目录显示配置
+	SearchEngineIndexingEnabled      bool            `json:"search_engine_indexing_enabled"`      // 是否允许搜索引擎检索
 }
 
 // GetPublicConfig 获取公共配置
@@ -117,6 +118,11 @@ func GetPublicConfig(c *gin.Context) {
 		emailRegisterVerificationEnabled = val
 	}
 
+	var searchEngineIndexingEnabled bool
+	if val, err := model.GetBoolByKey(ctx, model.ConfigKeySearchEngineIndexingEnabled); err == nil {
+		searchEngineIndexingEnabled = val
+	}
+
 	menuDisplayConfig, err := model.GetMenuDisplayConfig(ctx)
 	if err != nil {
 		menuDisplayConfig = make(map[string]bool)
@@ -135,7 +141,25 @@ func GetPublicConfig(c *gin.Context) {
 		EmailLoginVerificationEnabled:    emailLoginVerificationEnabled,
 		EmailRegisterVerificationEnabled: emailRegisterVerificationEnabled,
 		MenuDisplayConfig:                menuDisplayConfig,
+		SearchEngineIndexingEnabled:      searchEngineIndexingEnabled,
 	}
 
 	c.JSON(http.StatusOK, util.OK(response))
+}
+
+// GetRobotsTXT 动态生成 robots.txt
+// @Summary 获取 robots.txt
+// @Description 根据系统配置决定是否允许搜索引擎检索，并返回相应的 robots.txt 文件内容
+// @Tags config
+// @Produce text/plain
+// @Success 200 {string} string "robots.txt 内容"
+// @Router /robots.txt [get]
+func GetRobotsTXT(c *gin.Context) {
+	ctx := c.Request.Context()
+	enabled, err := model.GetBoolByKey(ctx, model.ConfigKeySearchEngineIndexingEnabled)
+	content := "User-Agent: *\nDisallow: /\n"
+	if err == nil && enabled {
+		content = "User-Agent: *\nAllow: /\n"
+	}
+	c.Data(http.StatusOK, "text/plain; charset=utf-8", []byte(content))
 }

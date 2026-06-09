@@ -30,6 +30,11 @@ const nextConfig: NextConfig = {
           source: '/f/:id',
           destination: `${ backendUrl }/f/:id`,
         },
+        // robots.txt 路由代理到后端动态接口
+        {
+          source: '/robots.txt',
+          destination: `${ backendUrl }/robots.txt`,
+        },
         // 标准 RESTful API 接口
         {
           source: '/api/:path*',

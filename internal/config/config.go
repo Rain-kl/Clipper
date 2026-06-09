@@ -100,6 +100,7 @@ func init() {
 	// Disable standard DB/Redis initializations during tests to prevent connection attempts.
 	if isTest() {
 		c.Database.Enabled = false
+		c.Database.SQLitePath = ":memory:"
 		c.Redis.Enabled = false
 		c.ClickHouse.Enabled = false
 	}

@@ -105,6 +105,7 @@ func initSystemConfigs() {
 		ensureConfigKeyExists(model.ConfigKeyEmailLoginVerificationEnabled, "false", "system", "是否开启邮箱登录验证（true/false）")
 		ensureConfigKeyExists(model.ConfigKeyEmailRegisterVerificationEnabled, "false", "system", "是否开启邮箱注册验证（true/false）")
 		ensureConfigKeyExists(model.ConfigKeyMenuDisplayConfig, "{}", "system", "目录显示配置（JSON 字符串，格式为 {url: enabled}）")
+		ensureConfigKeyExists(model.ConfigKeySearchEngineIndexingEnabled, "false", "system", "是否允许搜索引擎爬取/检索该站点（true/false）")
 		return
 	}
 
@@ -240,6 +241,12 @@ func initSystemConfigs() {
 			Value:       "{}",
 			Type:        "system",
 			Description: "目录显示配置（JSON 字符串，格式为 {url: enabled}）",
+		},
+		{
+			Key:         model.ConfigKeySearchEngineIndexingEnabled,
+			Value:       "false",
+			Type:        "system",
+			Description: "是否允许搜索引擎爬取/检索该站点（true/false）",
 		},
 	}
 

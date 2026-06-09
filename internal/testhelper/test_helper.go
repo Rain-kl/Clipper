@@ -218,6 +218,12 @@ func seedDefaultConfigs(t *testing.T, tx *gorm.DB) {
 			Type:        "system",
 			Description: "目录显示配置（JSON 字符串，格式为 {url: enabled}）",
 		},
+		{
+			Key:         model.ConfigKeySearchEngineIndexingEnabled,
+			Value:       "false",
+			Type:        "system",
+			Description: "是否允许搜索引擎检索",
+		},
 	}
 
 	if err := tx.Create(&defaultConfigs).Error; err != nil {

@@ -26,4 +26,6 @@ export interface PublicConfigResponse {
   email_register_verification_enabled: boolean;
   /** 目录显示配置 */
   menu_display_config?: Record<string, boolean>;
+  /** 是否允许搜索引擎检索 */
+  search_engine_indexing_enabled?: boolean;
 }

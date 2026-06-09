@@ -105,6 +105,9 @@ func Serve() {
 	// Serve files by ID
 	r.GET("/f/:id", upload.ServeFileByID)
 
+	// Dynamic robots.txt serving
+	r.GET("/robots.txt", publicconfig.GetRobotsTXT)
+
 	apiGroup := r.Group(config.Config.App.APIPrefix)
 	{
 		if !config.Config.App.IsProduction() {

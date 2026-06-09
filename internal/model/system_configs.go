@@ -55,6 +55,7 @@ const (
 	ConfigKeyEmailLoginVerificationEnabled    = "email_login_verification_enabled"    // 是否启用邮箱登录验证
 	ConfigKeyEmailRegisterVerificationEnabled = "email_register_verification_enabled" // 是否启用邮箱注册验证
 	ConfigKeyMenuDisplayConfig                = "menu_display_config"                 // 目录显示配置 (JSON 字符串)
+	ConfigKeySearchEngineIndexingEnabled      = "search_engine_indexing_enabled"      // 是否允许搜索引擎检索
 )
 
 const (
