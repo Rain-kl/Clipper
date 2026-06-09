@@ -43,9 +43,9 @@ const (
 	minutesInHour   = 60
 	secondsInMinute = 60
 	nanosPerSecond  = 1e9
-	binaryKB        = 2
-	binaryMB        = 3
-	binaryGB        = 4
+	binaryKB        = 0
+	binaryMB        = 1
+	binaryGB        = 2
 	valueThreshold  = 10 // 格式化时区分整数显示的阈值
 )
 
