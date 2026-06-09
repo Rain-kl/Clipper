@@ -58,16 +58,12 @@ func Request(ctx context.Context, method, url string, body io.Reader, headers, c
 		return nil, fmt.Errorf(errCreateHTTPRequestFailed, err)
 	}
 
-	if cookies != nil {
-		for key, value := range cookies {
-			req.AddCookie(&http.Cookie{Name: key, Value: value})
-		}
+	for key, value := range cookies {
+		req.AddCookie(&http.Cookie{Name: key, Value: value})
 	}
 
-	if headers != nil {
-		for key, value := range headers {
-			req.Header.Set(key, value)
-		}
+	for key, value := range headers {
+		req.Header.Set(key, value)
 	}
 
 	resp, err := httpClient.Do(req)

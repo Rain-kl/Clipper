@@ -71,14 +71,14 @@ func SendMailHTML(cfg Config, to string, subject, body string) error {
 		if err != nil {
 			return fmt.Errorf(errDialTLSFailed, err)
 		}
-		defer conn.Close()
+		defer func() { _ = conn.Close() }()
 		_ = conn.SetDeadline(time.Now().Add(10 * time.Second))
 
 		client, err := smtp.NewClient(conn, cfg.Host)
 		if err != nil {
 			return fmt.Errorf(errSMTPClientCreationFailed, err)
 		}
-		defer client.Close()
+		defer func() { _ = client.Close() }()
 
 		if err = client.Auth(auth); err != nil {
 			return fmt.Errorf(errSMTPAuthFailed, err)
@@ -96,7 +96,7 @@ func SendMailHTML(cfg Config, to string, subject, body string) error {
 		if err != nil {
 			return fmt.Errorf(errSMTPDataCommandFailed, err)
 		}
-		defer w.Close()
+		defer func() { _ = w.Close() }()
 
 		_, err = w.Write([]byte(message))
 		if err != nil {
@@ -119,7 +119,7 @@ func SendMailHTML(cfg Config, to string, subject, body string) error {
 func SendMailWithLog(cfg Config, to string, subject, body string) (string, error) {
 	var logBuf bytes.Buffer
 	logLine := func(dir string, format string, args ...interface{}) {
-		logBuf.WriteString(fmt.Sprintf("[%s] %s\n", dir, fmt.Sprintf(format, args...)))
+		fmt.Fprintf(&logBuf, "[%s] %s\n", dir, fmt.Sprintf(format, args...))
 	}
 
 	addr := net.JoinHostPort(cfg.Host, strconv.Itoa(cfg.Port))
@@ -141,7 +141,7 @@ func SendMailWithLog(cfg Config, to string, subject, body string) (string, error
 		logLine("Error", "Connection failed: %v", err)
 		return logBuf.String(), err
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 	logLine("System", "Connected successfully.")
 
 	// Set a 10-second session deadline for read/write operations
@@ -152,7 +152,7 @@ func SendMailWithLog(cfg Config, to string, subject, body string) (string, error
 		logLine("Error", "SMTP client handshake failed: %v", err)
 		return logBuf.String(), err
 	}
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	// If not 465, support STARTTLS if available
 	if cfg.Port != 465 {
@@ -222,11 +222,11 @@ func SendMailWithLog(cfg Config, to string, subject, body string) (string, error
 
 	logLine("System", "Sending message body...")
 	if _, err = w.Write([]byte(message)); err != nil {
-		w.Close()
+		_ = w.Close()
 		logLine("Error", "Writing message body failed: %v", err)
 		return logBuf.String(), err
 	}
-	w.Close()
+	_ = w.Close()
 	logLine("S", "250 OK")
 
 	logLine("C", "QUIT")

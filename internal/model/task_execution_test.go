@@ -277,7 +277,7 @@ func TestListTaskExecutions(t *testing.T) {
 	assert.Equal(t, "list_002", items[0].TaskID)
 
 	// 按类型筛选
-	items, total, err = ListTaskExecutions(ctx, ListTaskExecutionsRequest{TaskType: "other:task", Page: 1, PageSize: 10})
+	_, total, err = ListTaskExecutions(ctx, ListTaskExecutionsRequest{TaskType: "other:task", Page: 1, PageSize: 10})
 	require.NoError(t, err)
 	assert.Equal(t, int64(2), total)
 

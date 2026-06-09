@@ -45,7 +45,7 @@ import {
 } from "@/components/ui/dialog"
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from "@/components/ui/select"
 import {Label} from "@/components/ui/label"
-import {AuthService} from "@/lib/services"
+import {AuthService, ChangePasswordRequest, UpdateProfileRequest} from "@/lib/services"
 import {UploadService} from "@/lib/services/upload/upload.service"
 import {ImageCrop, ImageCropApply, ImageCropContent, ImageCropReset} from "@/components/ui/image-crop"
 import {toast} from "sonner"
@@ -92,7 +92,7 @@ export function ProfileMain() {
   }, [user, isEditDialogOpen])
 
   const changePasswordMutation = useMutation({
-    mutationFn: AuthService.changePassword,
+    mutationFn: (req: ChangePasswordRequest) => AuthService.changePassword(req),
     onSuccess: () => {
       toast.success("密码修改成功")
       setOldPassword("")
@@ -122,7 +122,7 @@ export function ProfileMain() {
   }
 
   const updateProfileMutation = useMutation({
-    mutationFn: AuthService.updateProfile,
+    mutationFn: (req: UpdateProfileRequest) => AuthService.updateProfile(req),
     onSuccess: () => {
       toast.success("个人信息修改成功")
       setIsEditDialogOpen(false)

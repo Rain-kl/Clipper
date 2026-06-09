@@ -88,7 +88,7 @@ func UploadFile(c *gin.Context) {
 		c.JSON(http.StatusOK, util.Err(ErrOpenFileFailed))
 		return
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	// 校验大小
 	if header.Size > maxUploadSize {
@@ -318,7 +318,7 @@ func DownloadFile(c *gin.Context) {
 		return
 	}
 
-	defer obj.Body.Close()
+	defer func() { _ = obj.Body.Close() }()
 	_, _ = io.Copy(c.Writer, obj.Body)
 }
 
@@ -372,7 +372,7 @@ func BatchDownloadFiles(c *gin.Context) {
 
 	// 开启实时 ZIP 压缩器并直接输出给 Response Writer
 	zipWriter := zip.NewWriter(c.Writer)
-	defer zipWriter.Close()
+	defer func() { _ = zipWriter.Close() }()
 
 	// 用于解决 ZIP 内部文件名称发生碰撞冲突的问题
 	usedNames := make(map[string]int)

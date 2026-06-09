@@ -473,20 +473,23 @@ export function FeatureMain() {
 
 ## 五、代码质量与审查规范
 
-### 5.1 统一代码检查与提交
+### 5.1 Make 指令
+
+| 指令 | 触发时机 | 说明 |
+|------|----------|------|
+| `make code-check` | **提交前必须执行** | 前端 TypeScript 类型检查 + ESLint 静态分析；后端 `golangci-lint` 代码规范扫描 |
+| `make build-test` | 功能完成后验证 | 前后端**并行**完整编译测试（`pnpm build` + `go build`），快速发现编译错误 |
+| `make swagger` | 新增/修改 API 后 | 自动生成/更新 Swagger 文档（`docs/swagger.json`） |
+| `make build-embedded` | 发布前 | 前端静态导出嵌入后端，生成单二进制产物 `bin/wavelet` |
+| `make license` | 新增 Go 文件后 | 自动为所有 Go 源文件添加/更新 License Header |
+| `make license-check` | CI 流水线 | 校验所有 Go 文件的 License Header 是否合规 |
 
 > [!IMPORTANT]
-> **代码开发完成后，提交前必须在项目根目录运行 `make code-check` 进行本地代码质量与风格检查，确保前端 ESLint 没有报错和警告（`--max-warnings 0`）。**
+> **代码开发完成后，提交前必须运行 `make code-check`，所有检查全部通过后方可提交。**
 
-```bash
-# 执行根目录的检查指令
-make code-check
-```
+---
 
 ### 5.2 后端规范检查
-
-**基础检查**：
-- 后端 Go 代码需要通过 CodeQL 扫描。较复杂的逻辑建议结合 Copilot 检查。
 
 **API 文档**：
 - 所有 HTTP 接口都必须编写完整的 Swagger 注释。提交前需运行 `make swagger` 自动生成与更新接口文档。

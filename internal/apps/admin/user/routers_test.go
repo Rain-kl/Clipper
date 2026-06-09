@@ -131,11 +131,11 @@ func TestListUsers(t *testing.T) {
 		router.ServeHTTP(w, req)
 
 		var resp util.ResponseAny
-		json.Unmarshal(w.Body.Bytes(), &resp)
+		_ = json.Unmarshal(w.Body.Bytes(), &resp)
 
 		dataBytes, _ := json.Marshal(resp.Data)
 		var listResp listUsersResponse
-		json.Unmarshal(dataBytes, &listResp)
+		_ = json.Unmarshal(dataBytes, &listResp)
 
 		if len(listResp.Users) != 1 || listResp.Users[0].ID != 1001 {
 			t.Errorf("expected 1 user with ID 1001, got total %d", len(listResp.Users))
@@ -148,11 +148,11 @@ func TestListUsers(t *testing.T) {
 		router.ServeHTTP(w, req)
 
 		var resp util.ResponseAny
-		json.Unmarshal(w.Body.Bytes(), &resp)
+		_ = json.Unmarshal(w.Body.Bytes(), &resp)
 
 		dataBytes, _ := json.Marshal(resp.Data)
 		var listResp listUsersResponse
-		json.Unmarshal(dataBytes, &listResp)
+		_ = json.Unmarshal(dataBytes, &listResp)
 
 		if len(listResp.Users) != 1 || listResp.Users[0].Username != "bob" {
 			t.Errorf("expected bob, got %v", listResp.Users)
@@ -226,7 +226,7 @@ func TestUpdateUserStatus(t *testing.T) {
 		}
 
 		var resp util.ResponseAny
-		json.Unmarshal(w.Body.Bytes(), &resp)
+		_ = json.Unmarshal(w.Body.Bytes(), &resp)
 		if resp.ErrorMsg != cannotDisable {
 			t.Errorf("expected error message '%s', got '%s'", cannotDisable, resp.ErrorMsg)
 		}
@@ -326,7 +326,7 @@ func TestCreateUser(t *testing.T) {
 		}
 
 		var resp util.ResponseAny
-		json.Unmarshal(w.Body.Bytes(), &resp)
+		_ = json.Unmarshal(w.Body.Bytes(), &resp)
 		if resp.ErrorMsg != usernameExists {
 			t.Errorf("expected error '%s', got '%s'", usernameExists, resp.ErrorMsg)
 		}

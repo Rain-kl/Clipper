@@ -30,7 +30,7 @@ func TestSendMailMock(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to start mock smtp server: %v", err)
 	}
-	defer l.Close()
+	defer func() { _ = l.Close() }()
 
 	port := l.Addr().(*net.TCPAddr).Port
 
@@ -39,7 +39,7 @@ func TestSendMailMock(t *testing.T) {
 		if err != nil {
 			return
 		}
-		defer conn.Close()
+		defer func() { _ = conn.Close() }()
 
 		writer := bufio.NewWriter(conn)
 		reader := bufio.NewReader(conn)

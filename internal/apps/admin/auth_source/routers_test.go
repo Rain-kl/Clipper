@@ -81,11 +81,11 @@ func TestListAuthSources(t *testing.T) {
 	}
 
 	var resp util.ResponseAny
-	json.Unmarshal(w.Body.Bytes(), &resp)
+	_ = json.Unmarshal(w.Body.Bytes(), &resp)
 
 	dataBytes, _ := json.Marshal(resp.Data)
 	var sources []model.AuthSource
-	json.Unmarshal(dataBytes, &sources)
+	_ = json.Unmarshal(dataBytes, &sources)
 
 	if len(sources) != 1 {
 		t.Errorf("expected 1 auth source, got %d", len(sources))

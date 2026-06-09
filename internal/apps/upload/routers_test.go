@@ -95,7 +95,7 @@ func createMultipartRequest(t *testing.T, fieldName, fileName string, fileConten
 func TestUploadFile(t *testing.T) {
 	dbConn, _, cleanup := testhelper.SetupTestEnvironment(t)
 	defer cleanup()
-	defer os.RemoveAll("uploads") // Clean up local files created during tests
+	defer func() { _ = os.RemoveAll("uploads") }() // Clean up local files created during tests
 
 	authUser := &model.User{ID: 1001, Username: "test_user"}
 	router := setupTestRouter(authUser)
@@ -211,7 +211,7 @@ func TestUploadFile(t *testing.T) {
 		}
 
 		var resp testResponse
-		json.Unmarshal(w.Body.Bytes(), &resp)
+		_ = json.Unmarshal(w.Body.Bytes(), &resp)
 		if resp.ErrorMsg == "" || !strings.Contains(resp.ErrorMsg, ErrUnsupportedFormat) {
 			t.Errorf("expected unsupported format error, got: %v", resp)
 		}
@@ -247,7 +247,7 @@ func TestUploadFile(t *testing.T) {
 		}
 
 		var resp2 testResponse
-		json.Unmarshal(w2.Body.Bytes(), &resp2)
+		_ = json.Unmarshal(w2.Body.Bytes(), &resp2)
 
 		if resp2.ErrorMsg != "" {
 			t.Fatalf("second upload was unsuccessful: %s", resp2.ErrorMsg)
@@ -304,7 +304,7 @@ func TestUploadFile(t *testing.T) {
 		}
 
 		var resp testResponse
-		json.Unmarshal(w.Body.Bytes(), &resp)
+		_ = json.Unmarshal(w.Body.Bytes(), &resp)
 
 		if resp.ErrorMsg != "" {
 			t.Fatalf("local upload failed: %s", resp.ErrorMsg)
@@ -334,7 +334,7 @@ func TestUploadFile(t *testing.T) {
 func TestDownloadFile(t *testing.T) {
 	dbConn, _, cleanup := testhelper.SetupTestEnvironment(t)
 	defer cleanup()
-	defer os.RemoveAll("uploads")
+	defer func() { _ = os.RemoveAll("uploads") }()
 
 	authUser := &model.User{ID: 1001, Username: "test_user"}
 	router := setupTestRouter(authUser)
@@ -403,7 +403,7 @@ func TestDownloadFile(t *testing.T) {
 func TestBatchDownloadFiles(t *testing.T) {
 	dbConn, _, cleanup := testhelper.SetupTestEnvironment(t)
 	defer cleanup()
-	defer os.RemoveAll("uploads")
+	defer func() { _ = os.RemoveAll("uploads") }()
 
 	authUser := &model.User{ID: 1001, Username: "test_user"}
 	router := setupTestRouter(authUser)
@@ -495,7 +495,7 @@ func TestBatchDownloadFiles(t *testing.T) {
 				t.Fatalf("failed to open zip file entry %s: %v", f.Name, err)
 			}
 			content, _ := io.ReadAll(rc)
-			rc.Close()
+			_ = rc.Close()
 			extracted[f.Name] = string(content)
 		}
 

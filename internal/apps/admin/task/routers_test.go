@@ -45,7 +45,7 @@ func setupTaskTestEnvironment(t *testing.T) func() {
 	})
 	return func() {
 		if task.AsynqClient != nil {
-			task.AsynqClient.Close()
+			_ = task.AsynqClient.Close()
 			task.AsynqClient = nil
 		}
 		cleanup()
@@ -89,11 +89,11 @@ func TestListTaskTypes(t *testing.T) {
 	}
 
 	var resp util.ResponseAny
-	json.Unmarshal(w.Body.Bytes(), &resp)
+	_ = json.Unmarshal(w.Body.Bytes(), &resp)
 
 	dataBytes, _ := json.Marshal(resp.Data)
 	var taskMetas []task.TaskMeta
-	json.Unmarshal(dataBytes, &taskMetas)
+	_ = json.Unmarshal(dataBytes, &taskMetas)
 
 	if len(taskMetas) == 0 {
 		t.Error("expected at least one dispatchable task type")
@@ -131,7 +131,7 @@ func TestDispatchTask(t *testing.T) {
 		assert.Equal(t, http.StatusOK, w.Code, "Body: %s", w.Body.String())
 
 		var resp util.ResponseAny
-		json.Unmarshal(w.Body.Bytes(), &resp)
+		_ = json.Unmarshal(w.Body.Bytes(), &resp)
 		assert.Empty(t, resp.ErrorMsg)
 		assert.NotNil(t, resp.Data)
 

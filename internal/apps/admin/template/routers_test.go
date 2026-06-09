@@ -136,11 +136,11 @@ func TestListTemplates(t *testing.T) {
 		}
 
 		var resp util.ResponseAny
-		json.Unmarshal(w.Body.Bytes(), &resp)
+		_ = json.Unmarshal(w.Body.Bytes(), &resp)
 
 		dataBytes, _ := json.Marshal(resp.Data)
 		var templates []model.Template
-		json.Unmarshal(dataBytes, &templates)
+		_ = json.Unmarshal(dataBytes, &templates)
 
 		if len(templates) != 2 {
 			t.Errorf("expected 2 templates, got %d", len(templates))

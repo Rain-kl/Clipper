@@ -82,7 +82,7 @@ func ServeFileByID(c *gin.Context) {
 	}
 
 	// Stream from CDN/S3
-	defer obj.Body.Close()
+	defer func() { _ = obj.Body.Close() }()
 
 	// Respond with the file content
 	c.DataFromReader(http.StatusOK, obj.ContentLength, obj.ContentType, obj.Body, nil)

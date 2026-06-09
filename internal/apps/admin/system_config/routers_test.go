@@ -140,11 +140,11 @@ func TestListSystemConfigs(t *testing.T) {
 		}
 
 		var resp util.ResponseAny
-		json.Unmarshal(w.Body.Bytes(), &resp)
+		_ = json.Unmarshal(w.Body.Bytes(), &resp)
 
 		dataBytes, _ := json.Marshal(resp.Data)
 		var configs []model.SystemConfig
-		json.Unmarshal(dataBytes, &configs)
+		_ = json.Unmarshal(dataBytes, &configs)
 
 		// Defaults seed 23 configurations
 		if len(configs) != 23 {
@@ -158,11 +158,11 @@ func TestListSystemConfigs(t *testing.T) {
 		router.ServeHTTP(w, req)
 
 		var resp util.ResponseAny
-		json.Unmarshal(w.Body.Bytes(), &resp)
+		_ = json.Unmarshal(w.Body.Bytes(), &resp)
 
 		dataBytes, _ := json.Marshal(resp.Data)
 		var configs []model.SystemConfig
-		json.Unmarshal(dataBytes, &configs)
+		_ = json.Unmarshal(dataBytes, &configs)
 
 		if len(configs) != 1 || configs[0].Key != model.ConfigKeyMaxAPIKeysPerUser {
 			t.Errorf("expected 1 business config (max_api_keys_per_user), got %d: %v", len(configs), configs)
@@ -187,11 +187,11 @@ func TestGetSystemConfig(t *testing.T) {
 		}
 
 		var resp util.ResponseAny
-		json.Unmarshal(w.Body.Bytes(), &resp)
+		_ = json.Unmarshal(w.Body.Bytes(), &resp)
 
 		dataBytes, _ := json.Marshal(resp.Data)
 		var cfg model.SystemConfig
-		json.Unmarshal(dataBytes, &cfg)
+		_ = json.Unmarshal(dataBytes, &cfg)
 
 		if cfg.Value != "Wavelet" {
 			t.Errorf("expected 'Wavelet', got '%s'", cfg.Value)
@@ -240,7 +240,7 @@ func TestUpdateSystemConfig(t *testing.T) {
 
 		// Verify Redis
 		var redisConfig model.SystemConfig
-		db.HGetJSON(context.Background(), model.SystemConfigRedisHashKey, model.ConfigKeySiteName, &redisConfig)
+		_ = db.HGetJSON(context.Background(), model.SystemConfigRedisHashKey, model.ConfigKeySiteName, &redisConfig)
 		if redisConfig.Value != "Super Site Name" {
 			t.Errorf("redis cache value not updated, got '%s'", redisConfig.Value)
 		}
@@ -275,7 +275,7 @@ func TestTestSMTP(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to start mock smtp server: %v", err)
 	}
-	defer l.Close()
+	defer func() { _ = l.Close() }()
 
 	port := l.Addr().(*net.TCPAddr).Port
 
@@ -284,40 +284,40 @@ func TestTestSMTP(t *testing.T) {
 		if err != nil {
 			return
 		}
-		defer conn.Close()
+		defer func() { _ = conn.Close() }()
 
 		writer := bufio.NewWriter(conn)
 		reader := bufio.NewReader(conn)
 		tp := textproto.NewReader(reader)
 
 		// 220 Ready
-		writer.WriteString("220 mock.smtp.com SMTP Ready\r\n")
-		writer.Flush()
+		_, _ = writer.WriteString("220 mock.smtp.com SMTP Ready\r\n")
+		_ = writer.Flush()
 
 		// Read HELO/EHLO
-		tp.ReadLine()
-		writer.WriteString("250-mock.smtp.com\r\n250 AUTH PLAIN\r\n")
-		writer.Flush()
+		_, _ = tp.ReadLine()
+		_, _ = writer.WriteString("250-mock.smtp.com\r\n250 AUTH PLAIN\r\n")
+		_ = writer.Flush()
 
 		// Read AUTH PLAIN
-		tp.ReadLine()
-		writer.WriteString("235 Authentication successful\r\n")
-		writer.Flush()
+		_, _ = tp.ReadLine()
+		_, _ = writer.WriteString("235 Authentication successful\r\n")
+		_ = writer.Flush()
 
 		// Read MAIL FROM
-		tp.ReadLine()
-		writer.WriteString("250 OK\r\n")
-		writer.Flush()
+		_, _ = tp.ReadLine()
+		_, _ = writer.WriteString("250 OK\r\n")
+		_ = writer.Flush()
 
 		// Read RCPT TO
-		tp.ReadLine()
-		writer.WriteString("250 OK\r\n")
-		writer.Flush()
+		_, _ = tp.ReadLine()
+		_, _ = writer.WriteString("250 OK\r\n")
+		_ = writer.Flush()
 
 		// Read DATA
-		tp.ReadLine()
-		writer.WriteString("354 Start mail input\r\n")
-		writer.Flush()
+		_, _ = tp.ReadLine()
+		_, _ = writer.WriteString("354 Start mail input\r\n")
+		_ = writer.Flush()
 
 		// Read body lines until dot
 		for {
@@ -326,13 +326,13 @@ func TestTestSMTP(t *testing.T) {
 				break
 			}
 		}
-		writer.WriteString("250 OK\r\n")
-		writer.Flush()
+		_, _ = writer.WriteString("250 OK\r\n")
+		_ = writer.Flush()
 
 		// Read QUIT
-		tp.ReadLine()
-		writer.WriteString("221 Bye\r\n")
-		writer.Flush()
+		_, _ = tp.ReadLine()
+		_, _ = writer.WriteString("221 Bye\r\n")
+		_ = writer.Flush()
 	}()
 
 	payload := TestSMTPRequest{

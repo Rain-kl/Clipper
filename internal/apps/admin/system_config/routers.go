@@ -206,7 +206,7 @@ func UpdateSystemConfig(c *gin.Context) {
 		updates := map[string]interface{}{
 			"description": req.Description,
 		}
-		if !(key == model.ConfigKeySMTPPassword && req.Value == "******") {
+		if key != model.ConfigKeySMTPPassword || req.Value != "******" {
 			updates["value"] = req.Value
 			config.Value = req.Value
 		}

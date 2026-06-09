@@ -19,6 +19,7 @@ package task
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -155,7 +156,7 @@ func RetryTask(ctx context.Context, id uint64) (string, error) {
 	}
 
 	if !execution.Retryable {
-		return "", fmt.Errorf(errTaskNotRetryable)
+		return "", errors.New(errTaskNotRetryable)
 	}
 
 	if execution.RetryCount >= execution.MaxRetry {

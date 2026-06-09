@@ -27,7 +27,7 @@ func TestLogRingBuffer_WriteAndQuery(t *testing.T) {
 	rb := NewLogRingBuffer(5)
 
 	// Write some logs
-	rb.Write([]byte("line1\nline2\nline3\n"))
+	_, _ = rb.Write([]byte("line1\nline2\nline3\n"))
 
 	entries, hasMore := rb.Query(0, 10)
 	assert.False(t, hasMore)
@@ -43,7 +43,7 @@ func TestLogRingBuffer_WriteAndQuery(t *testing.T) {
 func TestLogRingBuffer_CapacityOverflow(t *testing.T) {
 	rb := NewLogRingBuffer(3)
 
-	rb.Write([]byte("a\nb\nc\nd\ne\n"))
+	_, _ = rb.Write([]byte("a\nb\nc\nd\ne\n"))
 
 	entries, hasMore := rb.Query(0, 10)
 	assert.False(t, hasMore)
@@ -56,7 +56,7 @@ func TestLogRingBuffer_CapacityOverflow(t *testing.T) {
 func TestLogRingBuffer_QueryLatest(t *testing.T) {
 	rb := NewLogRingBuffer(10)
 
-	rb.Write([]byte("a\nb\nc\nd\ne\n"))
+	_, _ = rb.Write([]byte("a\nb\nc\nd\ne\n"))
 
 	// Query latest 2
 	entries, hasMore := rb.Query(0, 2)
@@ -69,7 +69,7 @@ func TestLogRingBuffer_QueryLatest(t *testing.T) {
 func TestLogRingBuffer_QueryByCursor(t *testing.T) {
 	rb := NewLogRingBuffer(10)
 
-	rb.Write([]byte("a\nb\nc\nd\ne\n"))
+	_, _ = rb.Write([]byte("a\nb\nc\nd\ne\n"))
 
 	// First get all to find indices
 	all, _ := rb.Query(0, 10)
@@ -87,7 +87,7 @@ func TestLogRingBuffer_QueryByCursor(t *testing.T) {
 func TestLogRingBuffer_QueryByCursorWithLimit(t *testing.T) {
 	rb := NewLogRingBuffer(10)
 
-	rb.Write([]byte("a\nb\nc\nd\ne\n"))
+	_, _ = rb.Write([]byte("a\nb\nc\nd\ne\n"))
 
 	// Query 2 entries before index 4
 	entries, hasMore := rb.Query(4, 2)
@@ -107,7 +107,7 @@ func TestLogRingBuffer_QueryEmpty(t *testing.T) {
 
 func TestLogRingBuffer_QueryNonExistentCursor(t *testing.T) {
 	rb := NewLogRingBuffer(5)
-	rb.Write([]byte("a\nb\n"))
+	_, _ = rb.Write([]byte("a\nb\n"))
 
 	entries, hasMore := rb.Query(999, 10)
 	assert.False(t, hasMore)
@@ -122,7 +122,7 @@ func TestLogRingBuffer_Subscribe(t *testing.T) {
 	ch := rb.Subscribe()
 	defer rb.Unsubscribe(ch)
 
-	rb.Write([]byte("hello\n"))
+	_, _ = rb.Write([]byte("hello\n"))
 
 	entry := <-ch
 	assert.Equal(t, "hello", entry.Data)
@@ -137,7 +137,7 @@ func TestLogRingBuffer_SubscribeMultiple(t *testing.T) {
 	ch2 := rb.Subscribe()
 	defer rb.Unsubscribe(ch2)
 
-	rb.Write([]byte("msg\n"))
+	_, _ = rb.Write([]byte("msg\n"))
 
 	e1 := <-ch1
 	e2 := <-ch2
@@ -148,7 +148,7 @@ func TestLogRingBuffer_SubscribeMultiple(t *testing.T) {
 func TestLogRingBuffer_WriteNoNewline(t *testing.T) {
 	rb := NewLogRingBuffer(5)
 
-	rb.Write([]byte("partial"))
+	_, _ = rb.Write([]byte("partial"))
 
 	entries, _ := rb.Query(0, 10)
 	assert.Equal(t, 1, len(entries))
@@ -169,7 +169,7 @@ func TestLogRingBuffer_WriteEmpty(t *testing.T) {
 func TestLogRingBuffer_QueryAfterOverflow(t *testing.T) {
 	rb := NewLogRingBuffer(3)
 
-	rb.Write([]byte("1\n2\n3\n4\n5\n6\n7\n"))
+	_, _ = rb.Write([]byte("1\n2\n3\n4\n5\n6\n7\n"))
 
 	entries, hasMore := rb.Query(0, 10)
 	assert.False(t, hasMore)
@@ -187,7 +187,7 @@ func TestLogRingBuffer_QueryAfterOverflow(t *testing.T) {
 func TestLogRingBuffer_NextCursor(t *testing.T) {
 	rb := NewLogRingBuffer(10)
 
-	rb.Write([]byte("a\nb\nc\nd\ne\n"))
+	_, _ = rb.Write([]byte("a\nb\nc\nd\ne\n"))
 
 	// Query latest 2, should return next_cursor pointing to first returned entry
 	entries, _ := rb.Query(0, 2)

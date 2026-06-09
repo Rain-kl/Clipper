@@ -125,7 +125,7 @@ func sendEmailVerificationCode(ctx context.Context, email, scene, templateName s
 
 	// 存验证码，5分钟有效
 	if err := db.SetJSON(ctx, codeKey, code, 5*time.Minute); err != nil {
-		return fmt.Errorf(errGenerateEmailCodeFailed)
+		return errors.New(errGenerateEmailCodeFailed)
 	}
 	// 存冷却，60秒有效
 	_ = db.SetJSON(ctx, cooldownKey, "1", 60*time.Second)
@@ -139,7 +139,7 @@ func sendEmailVerificationCode(ctx context.Context, email, scene, templateName s
 	payloadBytes, _ := json.Marshal(payload)
 	_, err = task.DispatchTask(ctx, task.TaskTypeSendEmail, payloadBytes, "system")
 	if err != nil {
-		return fmt.Errorf(errDispatchEmailTaskFailed)
+		return errors.New(errDispatchEmailTaskFailed)
 	}
 	return nil
 }

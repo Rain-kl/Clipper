@@ -18,6 +18,7 @@ limitations under the License.
 package upload
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 )
@@ -27,7 +28,7 @@ const maxS3KeyLength = 1024
 // ValidateS3Key validates an S3 object key for safety.
 func ValidateS3Key(key string) error {
 	if key == "" {
-		return fmt.Errorf(ErrS3KeyRequired)
+		return errors.New(ErrS3KeyRequired)
 	}
 
 	if len(key) > maxS3KeyLength {
@@ -35,11 +36,11 @@ func ValidateS3Key(key string) error {
 	}
 
 	if strings.HasPrefix(key, "/") {
-		return fmt.Errorf(ErrS3KeyStartsWithSlash)
+		return errors.New(ErrS3KeyStartsWithSlash)
 	}
 
 	if strings.Contains(key, "\x00") {
-		return fmt.Errorf(ErrS3KeyContainsNullBytes)
+		return errors.New(ErrS3KeyContainsNullBytes)
 	}
 
 	return nil

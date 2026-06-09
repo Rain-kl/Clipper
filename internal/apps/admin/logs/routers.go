@@ -103,7 +103,7 @@ func HandleLogWebSocket(c *gin.Context) {
 	if err != nil {
 		return
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	// 订阅 ring buffer
 	ch := logger.GlobalRingBuffer.Subscribe()
@@ -296,7 +296,7 @@ func GetAccessLogs(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, util.Err("查询 ClickHouse 日志明细失败: "+err.Error()))
 		return
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var list []accessLogItem
 	var fetchUserIDs []uint64
@@ -424,7 +424,7 @@ func GetLogsAnalytics(c *gin.Context) {
 	}
 
 	if err == nil {
-		defer trendRows.Close()
+		defer func() { _ = trendRows.Close() }()
 		for trendRows.Next() {
 			var dt time.Time
 			var cnt uint64
@@ -454,7 +454,7 @@ func GetLogsAnalytics(c *gin.Context) {
 
 	browserCounts := make(map[string]uint64)
 	if err == nil {
-		defer uaRows.Close()
+		defer func() { _ = uaRows.Close() }()
 		for uaRows.Next() {
 			var ua string
 			var cnt uint64
@@ -493,7 +493,7 @@ func GetLogsAnalytics(c *gin.Context) {
 	userCountMap := make(map[uint64]uint64)
 
 	if err == nil {
-		defer userRows.Close()
+		defer func() { _ = userRows.Close() }()
 		for userRows.Next() {
 			var uid uint64
 			var cnt uint64

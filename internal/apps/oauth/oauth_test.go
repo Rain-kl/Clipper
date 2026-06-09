@@ -214,15 +214,6 @@ func oidcDiscoveryResponse() *http.Response {
 	}
 }
 
-func jwksResponse() *http.Response {
-	jwksJSON, _ := json.Marshal(testJWKS)
-	return &http.Response{
-		StatusCode: http.StatusOK,
-		Body:       io.NopCloser(bytes.NewReader(jwksJSON)),
-		Header:     make(http.Header),
-	}
-}
-
 type mockClaims struct {
 	ID       uint64 `json:"id"`
 	Issuer   string `json:"iss"`
@@ -822,7 +813,7 @@ func TestCallbackBind(t *testing.T) {
 	router.GET("/test-helper/login-777", func(c *gin.Context) {
 		session := sessions.Default(c)
 		session.Set(UserIDKey, uint64(777))
-		session.Save()
+		_ = session.Save()
 		c.String(200, "ok")
 	})
 
@@ -874,7 +865,7 @@ func TestCallbackBind(t *testing.T) {
 	router.GET("/test-helper/login-888", func(c *gin.Context) {
 		session := sessions.Default(c)
 		session.Set(UserIDKey, uint64(888))
-		session.Save()
+		_ = session.Save()
 		c.String(200, "ok")
 	})
 
@@ -937,7 +928,7 @@ func TestExternalAccountsListAndDelete(t *testing.T) {
 	router.GET("/test-helper/login-555", func(c *gin.Context) {
 		session := sessions.Default(c)
 		session.Set(UserIDKey, uint64(555))
-		session.Save()
+		_ = session.Save()
 		c.String(200, "ok")
 	})
 

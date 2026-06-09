@@ -36,7 +36,7 @@ type ChallengeConfig struct {
 	Count      int           // Number of puzzles (c)
 	Size       int           // Salt length (s)
 	Difficulty int           // Difficulty prefix length (d)
-	ExpiresMs  time.Duration // Challenge TTL
+	Expires    time.Duration // Challenge TTL
 }
 
 // ChallengeResponse is returned to the client
@@ -156,12 +156,12 @@ func GenerateChallenge(secret []byte, conf ChallengeConfig, scope string) (*Chal
 	if conf.Difficulty <= 0 {
 		conf.Difficulty = 4
 	}
-	if conf.ExpiresMs <= 0 {
-		conf.ExpiresMs = 10 * time.Minute
+	if conf.Expires <= 0 {
+		conf.Expires = 10 * time.Minute
 	}
 
 	now := time.Now().UnixNano() / int64(time.Millisecond)
-	expires := now + int64(conf.ExpiresMs/time.Millisecond)
+	expires := now + int64(conf.Expires/time.Millisecond)
 
 	payload := ChallengePayload{
 		Nonce:      randomHex(25),

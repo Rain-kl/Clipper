@@ -75,7 +75,7 @@ func (m *Manager) Generate(ctx context.Context, scope string) (*ChallengeRespons
 		Count:      m.getChallengeCount(ctx),
 		Size:       m.getChallengeSize(ctx),
 		Difficulty: m.getChallengeDifficulty(ctx),
-		ExpiresMs:  m.getChallengeTTL(ctx),
+		Expires:    m.getChallengeTTL(ctx),
 	}
 	return GenerateChallenge(m.conf.Secret, c, scope)
 }
@@ -188,14 +188,6 @@ func (m *Manager) VerifyToken(ctx context.Context, token string, expectedScope s
 	}
 
 	return true, nil
-}
-
-// sGet safely calls store.Get, treating a nil store as a miss.
-func sGet(ctx context.Context, store Store, key string) (string, bool, error) {
-	if store == nil {
-		return "", false, nil
-	}
-	return store.Get(ctx, key)
 }
 
 // sGetAndDelete safely calls store.GetAndDelete, treating a nil store as a miss.

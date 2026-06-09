@@ -227,7 +227,7 @@ func GetObjectViaProxy(ctx context.Context, key string) (*ObjectInfo, error) {
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		span.SetStatus(codes.Error, fmt.Sprintf("cdn returned status %d", resp.StatusCode))
 		return nil, fmt.Errorf(errCDNStatusFailed, resp.StatusCode)
 	}

@@ -106,12 +106,14 @@ func GetObjectViaCache(ctx context.Context, key string) (*ObjectInfo, error) {
 }
 
 func getLocalCacheFile(ctx context.Context, localPath, metaPath string) (*ObjectInfo, error) {
-	ctx, span := otel_trace.Start(ctx, "S3.GetLocalCacheFile", trace.WithSpanKind(trace.SpanKindClient))
+	_, span := otel_trace.Start(ctx, "S3.GetLocalCacheFile", trace.WithSpanKind(trace.SpanKindClient))
 	defer span.End()
 
 	// 尝试打开本地缓存文件
 	file, err := os.Open(localPath)
-	defer file.Close()
+	if err == nil {
+		defer func() { _ = file.Close() }()
+	}
 
 	// 文件不存在
 	if err != nil && os.IsNotExist(err) {
@@ -149,7 +151,7 @@ func getLocalCacheFile(ctx context.Context, localPath, metaPath string) (*Object
 }
 
 func saveToLocalCache(ctx context.Context, localPath, metaPath string, objInfo *ObjectInfo) error {
-	ctx, span := otel_trace.Start(ctx, "S3.SaveToLocalCache", trace.WithSpanKind(trace.SpanKindClient))
+	_, span := otel_trace.Start(ctx, "S3.SaveToLocalCache", trace.WithSpanKind(trace.SpanKindClient))
 	defer span.End()
 
 	// 创建目录
@@ -186,7 +188,7 @@ func saveFile(localPath string, data io.Reader) error {
 	if err != nil {
 		return err
 	}
-	defer os.Remove(tempFile.Name())
+	defer func() { _ = os.Remove(tempFile.Name()) }()
 
 	// 将内容写入临时文件
 	if _, err := tempFile.ReadFrom(data); err != nil {

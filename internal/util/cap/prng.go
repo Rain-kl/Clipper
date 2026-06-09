@@ -41,11 +41,6 @@ func fnv1aResume(state uint32, str string) uint32 {
 	return h
 }
 
-// prng generates a hex string of specified length using a seed
-func prng(seed string, length int) string {
-	return prngFromHash(fnv1a(seed), length)
-}
-
 // prngFromHash generates a hex string of specified length using an initial hash state
 func prngFromHash(initialHash uint32, length int) string {
 	state := initialHash

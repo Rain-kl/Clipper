@@ -73,7 +73,7 @@ func setupTest(t *testing.T) func() {
 	RegisterHandler(testTaskType, successHandler())
 	return func() {
 		if AsynqClient != nil {
-			AsynqClient.Close()
+			_ = AsynqClient.Close()
 			AsynqClient = nil
 		}
 		cleanup()
