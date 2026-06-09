@@ -30,6 +30,7 @@ import (
 	"github.com/Rain-kl/Wavelet/internal/apps/oauth"
 	"github.com/Rain-kl/Wavelet/internal/common"
 	"github.com/Rain-kl/Wavelet/internal/db"
+	"github.com/Rain-kl/Wavelet/internal/db/idgen"
 	"github.com/Rain-kl/Wavelet/internal/model"
 	"github.com/Rain-kl/Wavelet/internal/task"
 	"github.com/Rain-kl/Wavelet/internal/util"
@@ -279,19 +280,12 @@ func Login(c *gin.Context) {
 	}
 
 	session := sessions.Default(c)
-	needChangePassword := false
+	needChangePassword := isPlaintext
 
-	// 如果是以明文密码登录，在数据库中置换为加密密码
 	if isPlaintext {
-		if err := user.SetEncryptedPassword(req.Password); err == nil {
-			if err := db.DB(ctx).Model(&user).Update("password", user.Password).Error; err != nil {
-				c.JSON(http.StatusOK, util.Err(errPasswordUpgradeFailed))
-				return
-			}
-			needChangePassword = true
-			session.Set("need_change_password", true)
-			_ = session.Save()
-		}
+		session.Set("need_change_password", true)
+	} else {
+		session.Delete("need_change_password")
 	}
 
 	user.LastLoginAt = time.Now()
@@ -358,6 +352,7 @@ func Register(c *gin.Context) {
 	}
 
 	user := model.User{
+		ID:          idgen.NextUint64ID(),
 		Username:    req.Username,
 		Nickname:    req.Nickname,
 		Email:       req.Email,
@@ -372,7 +367,7 @@ func Register(c *gin.Context) {
 	if user.Nickname == "" {
 		user.Nickname = req.Username
 	}
-	if err := user.SetPassword(req.Password); err != nil {
+	if err := user.SetEncryptedPassword(req.Password); err != nil {
 		c.JSON(http.StatusOK, util.Err(err.Error()))
 		return
 	}
