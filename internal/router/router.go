@@ -197,6 +197,10 @@ func Serve() {
 				// System status
 				adminRouter.GET("/status", admin_status.GetSystemStatus)
 
+				// Database info & export
+				adminRouter.GET("/db-info", admin_status.GetDatabaseInfo)
+				adminRouter.GET("/db-export", admin_status.ExportDatabase)
+
 				// System logs
 				adminRouter.GET("/logs", admin_logs.GetLogs)
 				adminRouter.GET("/logs/access", admin_logs.GetAccessLogs)

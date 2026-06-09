@@ -381,3 +381,15 @@ export interface UpdateTemplateRequest {
   content: string;
   description: string;
 }
+
+/**
+ * 数据库信息
+ */
+export interface DatabaseInfo {
+  /** 数据库类型：'sqlite' | 'postgres' */
+  type: 'sqlite' | 'postgres';
+  /** 数据库名称或文件路径 */
+  name: string;
+  /** 数据库版本字符串 */
+  version: string;
+}

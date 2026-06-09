@@ -6,6 +6,7 @@ import type {
   CreateSystemConfigRequest,
   CreateTemplateRequest,
   CreateUserRequest,
+  DatabaseInfo,
   DispatchTaskRequest,
   ListTaskExecutionsRequest,
   ListTaskExecutionsResponse,
@@ -328,6 +329,40 @@ export class AdminService extends BaseService {
    */
   static async getSystemStatus(): Promise<SystemStatus> {
     return this.get<SystemStatus>('/status');
+  }
+
+  /**
+   * 获取数据库信息
+   * @returns 数据库类型、名称、版本信息
+   * @throws {UnauthorizedError} 当未登录时
+   * @throws {ForbiddenError} 当无管理员权限时
+   */
+  static async getDatabaseInfo(): Promise<DatabaseInfo> {
+    return this.get<DatabaseInfo>('/db-info');
+  }
+
+  /**
+   * 导出数据库
+   * SQLite 返回 .db 二进制，PostgreSQL 返回 pg_dump .sql 文本
+   * @returns 包含文件 Blob 和建议文件名的对象
+   * @throws {UnauthorizedError} 当未登录时
+   * @throws {ForbiddenError} 当无管理员权限时
+   */
+  static async exportDatabase(): Promise<{ blob: Blob; filename: string }> {
+    const response = await import('axios').then(({ default: axios }) =>
+      axios.get<Blob>(this.getFullPath('/db-export'), {
+        withCredentials: true,
+        responseType: 'blob',
+      })
+    );
+    // 从 Content-Disposition 提取文件名
+    const disposition = response.headers['content-disposition'] as string | undefined;
+    let filename = 'wavelet_export';
+    if (disposition) {
+      const match = disposition.match(/filename="?([^";]+)"?/);
+      if (match) filename = match[1];
+    }
+    return { blob: response.data, filename };
   }
 
   // ==================== 系统日志 ====================

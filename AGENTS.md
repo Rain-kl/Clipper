@@ -133,6 +133,16 @@ Handlers:
 - Every HTTP API needs complete Swagger comments; run `make swagger` after API
   changes.
 
+错误处理与日志:
+
+- 任何关键错误在被吞掉、转换为通用响应，或由后台 worker 忽略之前，
+  都必须通过 `internal/logger` 打印日志。
+- 禁止用 `_ = ...` 静默丢弃重要错误。如果某个错误因为 best-effort
+  操作或确认无害而需要忽略，必须添加简短注释说明原因。
+- Handler 可以返回对用户安全的错误信息，但如果底层运行错误对生产问题
+  排查有价值，仍然必须记录日志。
+- 避免重复刷日志：在真正处理或抑制错误的边界记录一次，然后返回或响应。
+
 Routes and modules:
 
 - Register routes only in `internal/router/router.go`.

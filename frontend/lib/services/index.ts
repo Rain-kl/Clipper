@@ -106,6 +106,7 @@ export type {
   ListUsersResponse,
   UpdateUserStatusRequest,
   SystemStatus,
+  DatabaseInfo,
 } from './admin';
 
 // 用户服务

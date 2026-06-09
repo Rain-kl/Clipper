@@ -39,4 +39,5 @@ export type {
   ListUsersResponse,
   UpdateUserStatusRequest,
   SystemStatus,
+  DatabaseInfo,
 } from './types';

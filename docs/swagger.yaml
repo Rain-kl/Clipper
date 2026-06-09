@@ -485,6 +485,15 @@ definitions:
       user:
         $ref: '#/definitions/oauth.BasicUserInfo'
     type: object
+  status.DatabaseInfoResponse:
+    properties:
+      name:
+        type: string
+      type:
+        type: string
+      version:
+        type: string
+    type: object
   status.SystemStatusResponse:
     properties:
       alloc:
@@ -1167,6 +1176,61 @@ paths:
       security:
       - SessionCookie: []
       summary: 切换认证源启用状态
+      tags:
+      - admin
+  /api/v1/admin/db-export:
+    get:
+      description: SQLite 时直接下载 .db 文件；PostgreSQL 时执行 pg_dump 并流式下载 .sql 文件，需要管理员权限
+      produces:
+      - application/octet-stream
+      responses:
+        "200":
+          description: 数据库文件
+          schema:
+            type: file
+        "401":
+          description: 未登录
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+        "403":
+          description: 无管理员权限
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+        "500":
+          description: 导出失败
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      security:
+      - SessionCookie: []
+      summary: 导出数据库
+      tags:
+      - admin
+  /api/v1/admin/db-info:
+    get:
+      description: 返回当前使用的数据库类型（sqlite/postgres）、名称/路径及版本字符串，需要管理员权限
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 获取成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/util.ResponseAny'
+            - properties:
+                data:
+                  $ref: '#/definitions/status.DatabaseInfoResponse'
+              type: object
+        "401":
+          description: 未登录
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+        "403":
+          description: 无管理员权限
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      security:
+      - SessionCookie: []
+      summary: 获取数据库信息
       tags:
       - admin
   /api/v1/admin/logs:

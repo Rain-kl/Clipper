@@ -44,7 +44,7 @@ FROM alpine:${ALPINE_VERSION}
 
 ARG TZ=Asia/Shanghai
 
-RUN apk add --no-cache ca-certificates tzdata && \
+RUN apk add --no-cache ca-certificates tzdata postgresql-client && \
     cp /usr/share/zoneinfo/${TZ} /etc/localtime && \
     echo "${TZ}" > /etc/timezone
 
