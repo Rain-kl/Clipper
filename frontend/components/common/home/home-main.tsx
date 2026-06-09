@@ -5,7 +5,7 @@ import {motion} from "motion/react"
 import {useUser} from "@/contexts/user-context"
 import {Card, CardHeader, CardTitle} from "@/components/ui/card"
 import {Button} from "@/components/ui/button"
-import {ArrowRight, ExternalLink, FileText, HelpCircle, Layers, Shield, ShieldCheck, User} from "lucide-react"
+import {ArrowRight, ExternalLink, FileText, HelpCircle, Layers, Shield, ShieldCheck, Terminal, User} from "lucide-react"
 import Link from "next/link"
 
 export function HomeMain() {
@@ -79,6 +79,15 @@ export function HomeMain() {
       color: "text-teal-500",
       bgColor: "bg-teal-500/10",
       borderColor: "hover:border-teal-500/30",
+    },
+    {
+      title: "系统日志",
+      description: "查看异步任务执行日志与系统运行状态详情",
+      icon: Terminal,
+      url: "/admin/logs",
+      color: "text-cyan-500",
+      bgColor: "bg-cyan-500/10",
+      borderColor: "hover:border-cyan-500/30",
     },
   ]
 
@@ -163,7 +172,7 @@ export function HomeMain() {
                   <div className="px-5 pb-5">
                     <Button variant="link" className="p-0 h-auto text-xs text-indigo-500 font-medium" asChild>
                       <Link href={link.url}>
-                        管理配置 <ArrowRight className="size-3 ml-1" />
+                        立即进入 <ArrowRight className="size-3 ml-1" />
                       </Link>
                     </Button>
                   </div>

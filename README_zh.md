@@ -212,7 +212,7 @@ pnpm format
 wavelet/
 ├── main.go                  # 程序入口（委托给 internal/cmd）
 ├── config.example.yaml      # 配置模板
-├── Makefile                 # 常用命令（swagger、tidy、license）
+├── Makefile                 # 常用命令（swagger、tidy、license、cross-build）
 ├── docker/                  # Docker 镜像构建文件（集成/前端/后端）
 ├── docs/                    # Swagger 自动生成文档
 ├── frontend/                # Next.js 前端应用
@@ -256,6 +256,47 @@ cd frontend && pnpm lint
 ```
 
 ## 🚀 部署
+
+### 跨平台二进制编译
+
+一条命令构建全部 6 个平台的静态二进制文件（Linux / macOS / Windows × amd64 / arm64）。
+前端已内嵌到每个二进制文件中，无需单独部署。
+
+**前提条件：** 已安装 Docker 且启用 BuildKit（Docker 23+ 默认开启）。
+
+```bash
+# 构建全部 6 个二进制文件 → ./bin/
+make cross-build
+
+# 指定版本号
+make cross-build VERSION=v1.2.3
+
+# 只构建指定系统（两种架构均会构建）
+make cross-build GOOS=linux
+make cross-build GOOS=darwin
+make cross-build GOOS=windows
+
+# 只构建指定架构（所有系统均会构建）
+make cross-build GOARCH=amd64
+make cross-build GOARCH=arm64
+
+# 同时指定系统和架构 — 只生成单个文件
+make cross-build GOOS=linux GOARCH=arm64
+make cross-build GOOS=darwin GOARCH=amd64 VERSION=v1.2.3
+```
+
+输出到 `./bin/` 目录：
+
+| 文件名 | 平台 |
+|--------|------|
+| `wavelet_linux_amd64` | Linux x86-64 |
+| `wavelet_linux_arm64` | Linux ARM64 |
+| `wavelet_darwin_amd64` | macOS Intel |
+| `wavelet_darwin_arm64` | macOS Apple Silicon |
+| `wavelet_windows_amd64.exe` | Windows x86-64 |
+| `wavelet_windows_arm64.exe` | Windows ARM64 |
+
+> 版本号可通过 `wavelet --version` 在运行时查看。
 
 ### Docker
 

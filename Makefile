@@ -36,11 +36,17 @@ build-test:
 	fi
 
 cross-build:
-	@echo "==> Cross-compiling for linux/darwin/windows × amd64/arm64..."
+	@echo "==> Cross-compiling \
+	$(if $(GOOS),$(GOOS),linux/darwin/windows) × \
+	$(if $(GOARCH),$(GOARCH),amd64/arm64) \
+	(version=$(or $(VERSION),dev))..."
 	@mkdir -p bin
 	docker build \
 		--file docker/Dockerfile.cross \
 		--target export \
+		--build-arg VERSION=$(or $(VERSION),dev) \
+		$(if $(GOOS),--build-arg TARGET_OS=$(GOOS)) \
+		$(if $(GOARCH),--build-arg TARGET_ARCH=$(GOARCH)) \
 		--output type=local,dest=./bin \
 		.
 	@echo "==> Done. Binaries written to ./bin/"

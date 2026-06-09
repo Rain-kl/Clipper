@@ -212,7 +212,7 @@ pnpm format
 wavelet/
 ├── main.go                  # Entry point (delegates to internal/cmd)
 ├── config.example.yaml      # Configuration template
-├── Makefile                 # Common commands (swagger, tidy, license)
+├── Makefile                 # Common commands (swagger, tidy, license, cross-build)
 ├── docker/                  # Docker image build files (integrated/frontend/backend)
 ├── docs/                    # Swagger auto-generated docs
 ├── frontend/                # Next.js frontend application
@@ -256,6 +256,47 @@ cd frontend && pnpm lint
 ```
 
 ## 🚀 Deployment
+
+### Cross-platform Binary
+
+Build static binaries for all 6 targets (Linux / macOS / Windows × amd64 / arm64) with a single command.
+The compiled frontend is embedded in every binary — no separate deployment needed.
+
+**Prerequisites:** Docker with BuildKit enabled (Docker 23+ defaults to on).
+
+```bash
+# Build all 6 binaries → ./bin/
+make cross-build
+
+# Stamp a release version
+make cross-build VERSION=v1.2.3
+
+# Build only a specific OS (both architectures)
+make cross-build GOOS=linux
+make cross-build GOOS=darwin
+make cross-build GOOS=windows
+
+# Build only a specific architecture (all OSes)
+make cross-build GOARCH=amd64
+make cross-build GOARCH=arm64
+
+# Combine filters — single binary
+make cross-build GOOS=linux GOARCH=arm64
+make cross-build GOOS=darwin GOARCH=amd64 VERSION=v1.2.3
+```
+
+Output files in `./bin/`:
+
+| File | Platform |
+|------|----------|
+| `wavelet_linux_amd64` | Linux x86-64 |
+| `wavelet_linux_arm64` | Linux ARM64 |
+| `wavelet_darwin_amd64` | macOS Intel |
+| `wavelet_darwin_arm64` | macOS Apple Silicon |
+| `wavelet_windows_amd64.exe` | Windows x86-64 |
+| `wavelet_windows_arm64.exe` | Windows ARM64 |
+
+> The version string is accessible at runtime via `wavelet --version`.
 
 ### Docker
 
