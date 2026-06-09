@@ -545,6 +545,9 @@ apps/admin/<module>/
 
 ## 代码规范
 
+> [!IMPORTANT]
+> **代码开发完成后，必须在项目根目录运行 `make code-check` 进行本地代码质量与风格检查，确保前端 ESLint 没有报错和警告（`--max-warnings 0`）。**
+
 ### 后端
 
 **基础检查**

@@ -120,12 +120,13 @@ export function AccessLogs() {
 			setLogs(data.list || [])
 			setTotal(data.total || 0)
 			setClickhouseDisabled(false)
-		} catch (err: any) {
-			const errMsg = err?.message || ""
+		} catch (err) {
+			const errorInstance = err instanceof Error ? err : new Error("获取访问日志失败")
+			const errMsg = errorInstance.message || ""
 			if (errMsg.includes("ClickHouse") || errMsg.includes("未启用")) {
 				setClickhouseDisabled(true)
 			} else {
-				setError(err instanceof Error ? err : new Error("获取访问日志失败"))
+				setError(errorInstance)
 			}
 		} finally {
 			setLoading(false)

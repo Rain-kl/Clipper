@@ -89,12 +89,13 @@ export function AccessAnalytics() {
       setBrowsers(data.browsers || [])
       setTopUsers(data.top_users || [])
       setClickhouseDisabled(false)
-    } catch (err: any) {
-      const errMsg = err?.message || ""
+    } catch (err) {
+      const errorInstance = err instanceof Error ? err : new Error("获取数据统计失败")
+      const errMsg = errorInstance.message || ""
       if (errMsg.includes("ClickHouse") || errMsg.includes("未启用")) {
         setClickhouseDisabled(true)
       } else {
-        setError(err instanceof Error ? err : new Error("获取数据统计失败"))
+        setError(errorInstance)
       }
     } finally {
       setLoading(false)
@@ -287,7 +288,7 @@ export function AccessAnalytics() {
               <EmptyStateWithBorder icon={Users} description="暂无活跃用户数据" />
             ) : (
               <div className="divide-y divide-border/40">
-                {topUsers.map((user, index) => (
+                {topUsers.map((user) => (
                   <div key={user.user_id} className="flex items-center justify-between py-2.5 first:pt-0 last:pb-0">
                     <div className="flex items-center gap-3">
                       <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary font-bold text-xs select-none">

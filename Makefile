@@ -15,5 +15,5 @@ build-embedded:
 	cp -R frontend/out internal/router/dist
 	go build -tags embed_frontend -o bin/wavelet main.go
 
-pre-commit:
+code-check:
 	cd frontend && npx eslint . --max-warnings 0
