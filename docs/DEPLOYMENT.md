@@ -306,7 +306,7 @@ s3:
 - **Scheduler 独占**：**【注意】** 为避免重复触发定时 Cron 任务，`wavelet scheduler` 定时调度器进程**同一时间应仅运行单个活跃实例**（主备高可用可以通过容器平台的单实例保障或 K8s Job 机制来限制实例数为 1）。
 
 #### 5. ClickHouse 高并发同步
-在大数据量、高频支付结算场景下，开启 ClickHouse 以接收系统的历史数据同步（如订单流水和任务大宽表），通过定时器把 PostgreSQL 的压力转移到 ClickHouse 列式存储中。
+在大数据量、高频支付结算场景下，开启 ClickHouse 以接收系统的历史数据同步，通过定时器把 PostgreSQL 的压力转移到 ClickHouse 列式存储中。
 ```yaml
 clickhouse:
   enabled: true

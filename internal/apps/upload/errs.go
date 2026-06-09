@@ -44,6 +44,5 @@ const (
 	ErrS3KeyTooLongFormat           = "s3 key exceeds maximum length of %d"
 	ErrS3KeyStartsWithSlash         = "s3 key must not start with /"
 	ErrS3KeyContainsNullBytes       = "s3 key must not contain null bytes"
-	//
-	ErrQueryUnusedUploadsFailed = "查询未使用的上传文件失败: %w"
+	ErrQueryUnusedUploadsFailed     = "查询未使用的上传文件失败: %w"
 )

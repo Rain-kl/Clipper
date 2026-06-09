@@ -27,7 +27,6 @@ export type { AdminUser } from './types';
 
 /**
  * 管理员服务
- * 处理系统配置和用户积分配置管理相关的 API 请求
  *
  * @remarks
  * 所有接口都需要管理员权限
@@ -199,28 +198,6 @@ export class AdminService extends BaseService {
    * @throws {UnauthorizedError} 当未登录时
    * @throws {ForbiddenError} 当无管理员权限时
    * @throws {ValidationError} 当参数验证失败时
-   *
-   * @example
-   * ```typescript
-   * // 下发订单同步任务（带时间范围）
-   * await AdminService.dispatchTask({
-   *   task_type: 'order_sync',
-   *   start_time: '2025-12-01T00:00:00Z',
-   *   end_time: '2025-12-27T23:59:59Z'
-   * });
-   *
-   * // 下发用户积分更新任务
-   * await AdminService.dispatchTask({
-   *   task_type: 'user_gamification',
-   *   user_id: 123
-   * });
-   *
-   * // 下发争议自动退款任务
-   * await AdminService.dispatchTask({
-   *   task_type: 'dispute_auto_refund'
-   * });
-   * ```
-   *
    * @remarks
    * - 不同任务类型需要不同的参数
    * - order_sync 支持 start_time 和 end_time 参数
