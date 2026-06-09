@@ -1,4 +1,4 @@
-.PHONY: swagger license license-check build-embedded build-test
+.PHONY: swagger license license-check build-embedded build-test cross-build
 
 swagger:
 	scripts/swagger.sh
@@ -34,3 +34,14 @@ build-test:
 		echo "==> Build test FAILED." >&2; \
 		exit 1; \
 	fi
+
+cross-build:
+	@echo "==> Cross-compiling for linux/darwin/windows × amd64/arm64..."
+	@mkdir -p bin
+	docker build \
+		--file docker/Dockerfile.cross \
+		--target export \
+		--output type=local,dest=./bin \
+		.
+	@echo "==> Done. Binaries written to ./bin/"
+	@ls -lh bin/

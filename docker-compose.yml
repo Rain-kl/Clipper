@@ -4,7 +4,7 @@ services:
 #    build:
 #      context: .
 #      dockerfile: docker/Dockerfile
-    image: ghcr.io/rain-kl/wavelet:v0.1.0
+    image: ghcr.io/rain-kl/wavelet:latest
     restart: unless-stopped
     env_file: .env
     environment:

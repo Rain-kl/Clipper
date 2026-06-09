@@ -1,0 +1,52 @@
+# syntax=docker/dockerfile:1.7
+# Cross-platform build workflow — produces 6 static binaries under ./bin/
+#
+# Usage:
+#   docker build -f docker/Dockerfile.cross --output ./bin .
+#
+# Or via Makefile:
+#   make cross-build
+
+ARG GO_VERSION=1.25
+ARG ALPINE_VERSION=3.23
+
+FROM golang:${GO_VERSION}-alpine${ALPINE_VERSION} AS builder
+
+# git  — needed by go mod download for VCS-stamped modules
+# ca-certificates — needed for HTTPS during module download
+RUN apk add --no-cache ca-certificates git
+
+WORKDIR /workspace
+
+# Cache dependency downloads separately from source
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+
+# Build matrix: GOOS × GOARCH
+# CGO_ENABLED=0 ensures fully static, portable binaries (no libc dependency).
+# -trimpath removes local path info; -s -w strips debug info for smaller output.
+ARG BUILD_FLAGS="-trimpath -ldflags=-s -w"
+
+RUN set -e; \
+    mkdir -p /out; \
+    for GOOS in linux darwin windows; do \
+      for GOARCH in amd64 arm64; do \
+        EXT=""; \
+        [ "$GOOS" = "windows" ] && EXT=".exe"; \
+        OUTPUT="/out/wavelet_${GOOS}_${GOARCH}${EXT}"; \
+        echo "==> Building ${OUTPUT}..."; \
+        CGO_ENABLED=0 GOOS=${GOOS} GOARCH=${GOARCH} \
+          go build \
+            -trimpath \
+            -ldflags="-s -w" \
+            -o "${OUTPUT}" \
+            ./main.go; \
+      done; \
+    done
+
+# ── Export stage ─────────────────────────────────────────────────────────────
+# `docker build --output ./bin .` will copy everything from /out into the host.
+FROM scratch AS export
+COPY --from=builder /out/ /
