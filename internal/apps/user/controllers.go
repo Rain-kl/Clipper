@@ -20,6 +20,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/big"
 	"net/http"
@@ -72,6 +73,23 @@ func isEmailRegisterVerificationEnabled() bool {
 	return enabled
 }
 
+func isSMTPConfigured(ctx context.Context) bool {
+	var sc model.SystemConfig
+	var host, port, username string
+
+	if err := sc.GetByKey(ctx, model.ConfigKeySMTPHost); err == nil {
+		host = sc.Value
+	}
+	if err := sc.GetByKey(ctx, model.ConfigKeySMTPPort); err == nil {
+		port = sc.Value
+	}
+	if err := sc.GetByKey(ctx, model.ConfigKeySMTPUsername); err == nil {
+		username = sc.Value
+	}
+
+	return host != "" && port != "" && username != ""
+}
+
 func generateVerificationCode() string {
 	n, _ := rand.Int(rand.Reader, big.NewInt(900000))
 	return fmt.Sprintf("%06d", n.Int64()+100000)
@@ -86,6 +104,11 @@ func getEmailCooldownKey(email string) string {
 }
 
 func sendEmailVerificationCode(ctx context.Context, email, scene, templateName string) error {
+	// 校验 SMTP 配置是否完整
+	if !isSMTPConfigured(ctx) {
+		return errors.New(errSMTPConfigIncomplete)
+	}
+
 	code := generateVerificationCode()
 	codeKey := getEmailCodeKey(scene, email)
 	cooldownKey := getEmailCooldownKey(email)
