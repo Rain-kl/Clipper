@@ -400,11 +400,6 @@ export function LegalPageLayout({
                       联系支持
                     </Button>
                   </Link>
-                  <Link href="https://linux.do" target="_blank">
-                    <Button variant="outline" className="h-9 text-xs">
-                      访问社区
-                    </Button>
-                  </Link>
                 </div>
               </div>
             </div>
