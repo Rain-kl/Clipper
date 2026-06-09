@@ -10,6 +10,8 @@ export interface SystemConfig {
   value: string;
   /** 配置类型：'system' | 'business' */
   type: 'system' | 'business';
+  /** 是否对公共配置接口可见：0 不可见，1 可见 */
+  visibility: 0 | 1;
   /** 配置描述 */
   description: string;
   /** 创建时间 */
@@ -28,6 +30,8 @@ export interface CreateSystemConfigRequest {
   value: string;
   /** 配置类型：'system' | 'business' */
   type: 'system' | 'business';
+  /** 是否对公共配置接口可见：0 不可见，1 可见 */
+  visibility?: 0 | 1;
   /** 配置描述（最大255字符，可选） */
   description?: string;
 }
@@ -38,6 +42,8 @@ export interface CreateSystemConfigRequest {
 export interface UpdateSystemConfigRequest {
   /** 配置值（最大255字符） */
   value: string;
+  /** 是否对公共配置接口可见：0 不可见，1 可见 */
+  visibility?: 0 | 1;
   /** 配置描述（最大255字符，可选） */
   description?: string;
 }

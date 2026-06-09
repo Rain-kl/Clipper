@@ -63,7 +63,7 @@ func Migrate() {
 }
 
 // ensureConfigKeyExists ensures a system config key exists in the database
-func ensureConfigKeyExists(key, value, configType, description string) {
+func ensureConfigKeyExists(key, value, configType, description string, visibility int) {
 	tx := db.DB(context.Background())
 	var cfg model.SystemConfig
 	if err := tx.Where("key = ?", key).First(&cfg).Error; err != nil {
@@ -71,6 +71,7 @@ func ensureConfigKeyExists(key, value, configType, description string) {
 			Key:         key,
 			Value:       value,
 			Type:        configType,
+			Visibility:  visibility,
 			Description: description,
 		}
 		if err := tx.Create(&newConfig).Error; err != nil {
@@ -92,164 +93,49 @@ func initSystemConfigs() {
 	}
 
 	if count > 0 {
-		ensureConfigKeyExists(model.ConfigKeyCapLoginEnabled, "false", "system", "是否启用登录人机验证（true/false）")
-		ensureConfigKeyExists(model.ConfigKeyCapAutoSolve, "true", "system", "打开页面后是否自动开始计算，关闭则需用户手动点击触发")
-		ensureConfigKeyExists(model.ConfigKeyCapChallengeCount, "1", "system", "客户端需求解的 PoW 难题总数，默认 1，推荐 1～5")
-		ensureConfigKeyExists(model.ConfigKeyCapChallengeSize, "32", "system", "人机验证盐值长度")
-		ensureConfigKeyExists(model.ConfigKeyCapChallengeDifficulty, "4", "system", "人机验证 PoW 难度（目标前缀长度）")
-		ensureConfigKeyExists(model.ConfigKeyCapChallengeTTL, "600", "system", "人机验证难题有效时间（秒）")
-		ensureConfigKeyExists(model.ConfigKeyCapTokenTTL, "1200", "system", "人机验证兑换凭证有效时间（秒）")
-		ensureConfigKeyExists(model.ConfigKeyServerAddress, "", "system", "服务器地址（用于跨域源控制，不设定则允许任意源）")
-		ensureConfigKeyExists(model.ConfigKeySMTPHost, "", "system", "SMTP 服务器地址（例如 smtp.example.com）")
-		ensureConfigKeyExists(model.ConfigKeySMTPPort, "587", "system", "SMTP 端口（例如 587 或 465）")
-		ensureConfigKeyExists(model.ConfigKeySMTPUsername, "", "system", "SMTP 账户（如 sender@example.com）")
-		ensureConfigKeyExists(model.ConfigKeySMTPPassword, "", "system", "SMTP 访问凭证（授权码/密码）")
-		ensureConfigKeyExists(model.ConfigKeyEmailLoginVerificationEnabled, "false", "system", "是否开启邮箱登录验证（true/false）")
-		ensureConfigKeyExists(model.ConfigKeyEmailRegisterVerificationEnabled, "false", "system", "是否开启邮箱注册验证（true/false）")
-		ensureConfigKeyExists(model.ConfigKeyMenuDisplayConfig, "{}", "system", "目录显示配置（JSON 字符串，格式为 {url: enabled}）")
-		ensureConfigKeyExists(model.ConfigKeySearchEngineIndexingEnabled, "false", "system", "是否允许搜索引擎爬取/检索该站点（true/false）")
+		ensureConfigKeyExists(model.ConfigKeyCapLoginEnabled, "false", "system", "是否启用登录人机验证（true/false）", model.ConfigVisibilityVisible)
+		ensureConfigKeyExists(model.ConfigKeyCapAutoSolve, "true", "system", "打开页面后是否自动开始计算，关闭则需用户手动点击触发", model.ConfigVisibilityVisible)
+		ensureConfigKeyExists(model.ConfigKeyCapChallengeCount, "1", "system", "客户端需求解的 PoW 难题总数，默认 1，推荐 1～5", model.ConfigVisibilityHidden)
+		ensureConfigKeyExists(model.ConfigKeyCapChallengeSize, "32", "system", "人机验证盐值长度", model.ConfigVisibilityHidden)
+		ensureConfigKeyExists(model.ConfigKeyCapChallengeDifficulty, "4", "system", "人机验证 PoW 难度（目标前缀长度）", model.ConfigVisibilityHidden)
+		ensureConfigKeyExists(model.ConfigKeyCapChallengeTTL, "600", "system", "人机验证难题有效时间（秒）", model.ConfigVisibilityHidden)
+		ensureConfigKeyExists(model.ConfigKeyCapTokenTTL, "1200", "system", "人机验证兑换凭证有效时间（秒）", model.ConfigVisibilityHidden)
+		ensureConfigKeyExists(model.ConfigKeyServerAddress, "", "system", "服务器地址（用于跨域源控制，不设定则允许任意源）", model.ConfigVisibilityHidden)
+		ensureConfigKeyExists(model.ConfigKeySMTPHost, "", "system", "SMTP 服务器地址（例如 smtp.example.com）", model.ConfigVisibilityHidden)
+		ensureConfigKeyExists(model.ConfigKeySMTPPort, "587", "system", "SMTP 端口（例如 587 或 465）", model.ConfigVisibilityHidden)
+		ensureConfigKeyExists(model.ConfigKeySMTPUsername, "", "system", "SMTP 账户（如 sender@example.com）", model.ConfigVisibilityHidden)
+		ensureConfigKeyExists(model.ConfigKeySMTPPassword, "", "system", "SMTP 访问凭证（授权码/密码）", model.ConfigVisibilityHidden)
+		ensureConfigKeyExists(model.ConfigKeyEmailLoginVerificationEnabled, "false", "system", "是否开启邮箱登录验证（true/false）", model.ConfigVisibilityVisible)
+		ensureConfigKeyExists(model.ConfigKeyEmailRegisterVerificationEnabled, "false", "system", "是否开启邮箱注册验证（true/false）", model.ConfigVisibilityVisible)
+		ensureConfigKeyExists(model.ConfigKeyMenuDisplayConfig, "{}", "system", "目录显示配置（JSON 字符串，格式为 {url: enabled}）", model.ConfigVisibilityVisible)
+		ensureConfigKeyExists(model.ConfigKeySearchEngineIndexingEnabled, "false", "system", "是否允许搜索引擎爬取/检索该站点（true/false）", model.ConfigVisibilityVisible)
 		return
 	}
 
 	defaultConfigs := []model.SystemConfig{
-		{
-			Key:         model.ConfigKeyCapLoginEnabled,
-			Value:       "false",
-			Type:        "system",
-			Description: "是否启用登录人机验证（true/false）",
-		},
-		{
-			Key:         model.ConfigKeyCapAutoSolve,
-			Value:       "true",
-			Type:        "system",
-			Description: "打开页面后是否自动开始计算，关闭则需用户手动点击触发",
-		},
-		{
-			Key:         model.ConfigKeyCapChallengeCount,
-			Value:       "1",
-			Type:        "system",
-			Description: "客户端需求解的 PoW 难题总数，默认 1，推荐 1～5",
-		},
-		{
-			Key:         model.ConfigKeyCapChallengeSize,
-			Value:       "32",
-			Type:        "system",
-			Description: "人机验证盐值长度",
-		},
-		{
-			Key:         model.ConfigKeyCapChallengeDifficulty,
-			Value:       "4",
-			Type:        "system",
-			Description: "人机验证 PoW 难度（目标前缀长度）",
-		},
-		{
-			Key:         model.ConfigKeyCapChallengeTTL,
-			Value:       "600",
-			Type:        "system",
-			Description: "人机验证难题有效时间（秒）",
-		},
-		{
-			Key:         model.ConfigKeyCapTokenTTL,
-			Value:       "1200",
-			Type:        "system",
-			Description: "人机验证兑换凭证有效时间（秒）",
-		},
-		{
-			Key:         model.ConfigKeyServerAddress,
-			Value:       "",
-			Type:        "system",
-			Description: "服务器地址（用于跨域源控制，不设定则允许任意源）",
-		},
-		{
-			Key:         model.ConfigKeySMTPHost,
-			Value:       "",
-			Type:        "system",
-			Description: "SMTP 服务器地址（例如 smtp.example.com）",
-		},
-		{
-			Key:         model.ConfigKeySMTPPort,
-			Value:       "587",
-			Type:        "system",
-			Description: "SMTP 端口（例如 587 或 465）",
-		},
-		{
-			Key:         model.ConfigKeySMTPUsername,
-			Value:       "",
-			Type:        "system",
-			Description: "SMTP 账户（如 sender@example.com）",
-		},
-		{
-			Key:         model.ConfigKeySMTPPassword,
-			Value:       "",
-			Type:        "system",
-			Description: "SMTP 访问凭证（授权码/密码）",
-		},
-		{
-			Key:         model.ConfigKeyUploadAllowedExtensions,
-			Value:       "jpg,png,webp",
-			Type:        "system",
-			Description: "允许上传的图片扩展名（逗号分隔）",
-		},
-		{
-			Key:         model.ConfigKeySiteName,
-			Value:       "Wavelet",
-			Type:        "system",
-			Description: "系统平台的展示名称",
-		},
-		{
-			Key:         model.ConfigKeyPasswordLoginEnabled,
-			Value:       "true",
-			Type:        "system",
-			Description: "是否允许使用账号密码登录",
-		},
-		{
-			Key:         model.ConfigKeyRegistrationEnabled,
-			Value:       "true",
-			Type:        "system",
-			Description: "控制普通用户是否可以自主注册（true/false）",
-		},
-		{
-			Key:         model.ConfigKeyPasswordRegisterEnabled,
-			Value:       "true",
-			Type:        "system",
-			Description: "是否允许通过密码创建本地账号",
-		},
-		{
-			Key:         model.ConfigKeyOIDCLoginEnabled,
-			Value:       "true",
-			Type:        "system",
-			Description: "是否允许使用第三方 OIDC 认证源登录",
-		},
-		{
-			Key:         model.ConfigKeyMaxAPIKeysPerUser,
-			Value:       "5",
-			Type:        "business",
-			Description: "限制每个普通用户可以创建的 API Key 最大数量",
-		},
-		{
-			Key:         model.ConfigKeyEmailLoginVerificationEnabled,
-			Value:       "false",
-			Type:        "system",
-			Description: "是否开启邮箱登录验证（true/false）",
-		},
-		{
-			Key:         model.ConfigKeyEmailRegisterVerificationEnabled,
-			Value:       "false",
-			Type:        "system",
-			Description: "是否开启邮箱注册验证（true/false）",
-		},
-		{
-			Key:         model.ConfigKeyMenuDisplayConfig,
-			Value:       "{}",
-			Type:        "system",
-			Description: "目录显示配置（JSON 字符串，格式为 {url: enabled}）",
-		},
-		{
-			Key:         model.ConfigKeySearchEngineIndexingEnabled,
-			Value:       "false",
-			Type:        "system",
-			Description: "是否允许搜索引擎爬取/检索该站点（true/false）",
-		},
+		{Key: model.ConfigKeyCapLoginEnabled, Value: "false", Type: "system", Visibility: model.ConfigVisibilityVisible, Description: "是否启用登录人机验证（true/false）"},
+		{Key: model.ConfigKeyCapAutoSolve, Value: "true", Type: "system", Visibility: model.ConfigVisibilityVisible, Description: "打开页面后是否自动开始计算，关闭则需用户手动点击触发"},
+		{Key: model.ConfigKeyCapChallengeCount, Value: "1", Type: "system", Visibility: model.ConfigVisibilityHidden, Description: "客户端需求解的 PoW 难题总数，默认 1，推荐 1～5"},
+		{Key: model.ConfigKeyCapChallengeSize, Value: "32", Type: "system", Visibility: model.ConfigVisibilityHidden, Description: "人机验证盐值长度"},
+		{Key: model.ConfigKeyCapChallengeDifficulty, Value: "4", Type: "system", Visibility: model.ConfigVisibilityHidden, Description: "人机验证 PoW 难度（目标前缀长度）"},
+		{Key: model.ConfigKeyCapChallengeTTL, Value: "600", Type: "system", Visibility: model.ConfigVisibilityHidden, Description: "人机验证难题有效时间（秒）"},
+		{Key: model.ConfigKeyCapTokenTTL, Value: "1200", Type: "system", Visibility: model.ConfigVisibilityHidden, Description: "人机验证兑换凭证有效时间（秒）"},
+		{Key: model.ConfigKeyServerAddress, Value: "", Type: "system", Visibility: model.ConfigVisibilityHidden, Description: "服务器地址（用于跨域源控制，不设定则允许任意源）"},
+		{Key: model.ConfigKeySMTPHost, Value: "", Type: "system", Visibility: model.ConfigVisibilityHidden, Description: "SMTP 服务器地址（例如 smtp.example.com）"},
+		{Key: model.ConfigKeySMTPPort, Value: "587", Type: "system", Visibility: model.ConfigVisibilityHidden, Description: "SMTP 端口（例如 587 或 465）"},
+		{Key: model.ConfigKeySMTPUsername, Value: "", Type: "system", Visibility: model.ConfigVisibilityHidden, Description: "SMTP 账户（如 sender@example.com）"},
+		{Key: model.ConfigKeySMTPPassword, Value: "", Type: "system", Visibility: model.ConfigVisibilityHidden, Description: "SMTP 访问凭证（授权码/密码）"},
+		{Key: model.ConfigKeyUploadAllowedExtensions, Value: "jpg,png,webp", Type: "system", Visibility: model.ConfigVisibilityVisible, Description: "允许上传的图片扩展名（逗号分隔）"},
+		{Key: model.ConfigKeySiteName, Value: "Wavelet", Type: "system", Visibility: model.ConfigVisibilityVisible, Description: "系统平台的展示名称"},
+		{Key: model.ConfigKeyPasswordLoginEnabled, Value: "true", Type: "system", Visibility: model.ConfigVisibilityVisible, Description: "是否允许使用账号密码登录"},
+		{Key: model.ConfigKeyRegistrationEnabled, Value: "true", Type: "system", Visibility: model.ConfigVisibilityVisible, Description: "控制普通用户是否可以自主注册（true/false）"},
+		{Key: model.ConfigKeyPasswordRegisterEnabled, Value: "true", Type: "system", Visibility: model.ConfigVisibilityVisible, Description: "是否允许通过密码创建本地账号"},
+		{Key: model.ConfigKeyOIDCLoginEnabled, Value: "true", Type: "system", Visibility: model.ConfigVisibilityVisible, Description: "是否允许使用第三方 OIDC 认证源登录"},
+		{Key: model.ConfigKeyMaxAPIKeysPerUser, Value: "5", Type: "business", Visibility: model.ConfigVisibilityVisible, Description: "限制每个普通用户可以创建的 API Key 最大数量"},
+		{Key: model.ConfigKeyEmailLoginVerificationEnabled, Value: "false", Type: "system", Visibility: model.ConfigVisibilityVisible, Description: "是否开启邮箱登录验证（true/false）"},
+		{Key: model.ConfigKeyEmailRegisterVerificationEnabled, Value: "false", Type: "system", Visibility: model.ConfigVisibilityVisible, Description: "是否开启邮箱注册验证（true/false）"},
+		{Key: model.ConfigKeyMenuDisplayConfig, Value: "{}", Type: "system", Visibility: model.ConfigVisibilityVisible, Description: "目录显示配置（JSON 字符串，格式为 {url: enabled}）"},
+		{Key: model.ConfigKeySearchEngineIndexingEnabled, Value: "false", Type: "system", Visibility: model.ConfigVisibilityVisible, Description: "是否允许搜索引擎爬取/检索该站点（true/false）"},
 	}
 
 	if err := tx.Create(&defaultConfigs).Error; err != nil {

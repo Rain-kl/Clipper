@@ -63,11 +63,19 @@ const (
 	SystemConfigRedisHashKey = "system:system_configs"
 )
 
+const (
+	// ConfigVisibilityHidden 表示配置不通过公共配置接口暴露
+	ConfigVisibilityHidden = 0
+	// ConfigVisibilityVisible 表示配置通过公共配置接口暴露
+	ConfigVisibilityVisible = 1
+)
+
 // SystemConfig 系统配置实体
 type SystemConfig struct {
 	Key         string    `json:"key" gorm:"primaryKey;size:64;not null"`
 	Value       string    `json:"value" gorm:"size:255;not null"`
 	Type        string    `json:"type" gorm:"size:32;not null;default:'system'"`
+	Visibility  int       `json:"visibility" gorm:"not null;default:0"`
 	Description string    `json:"description" gorm:"size:255"`
 	UpdatedAt   time.Time `json:"updated_at" gorm:"autoUpdateTime"`
 	CreatedAt   time.Time `json:"created_at" gorm:"autoCreateTime"`
@@ -100,6 +108,21 @@ func (sc *SystemConfig) GetByKey(ctx context.Context, key string) error {
 	}
 
 	return nil
+}
+
+// ListVisibleSystemConfigs 查询所有可通过公共配置接口暴露的配置
+func ListVisibleSystemConfigs(ctx context.Context) ([]SystemConfig, error) {
+	database := db.DB(ctx)
+	if database == nil {
+		return nil, errors.New(errDatabaseNotInitialized)
+	}
+
+	var configs []SystemConfig
+	if err := database.Where("visibility = ?", ConfigVisibilityVisible).Find(&configs).Error; err != nil {
+		return nil, err
+	}
+
+	return configs, nil
 }
 
 // GetIntByKey 通过 key 查询配置并转换为 int 类型

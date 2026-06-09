@@ -84,6 +84,23 @@ const data = {
   ],
 }
 
+function parseMenuDisplayConfig(raw: string | undefined): Record<string, boolean> {
+  if (!raw) return {}
+  try {
+    const parsed: unknown = JSON.parse(raw)
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {}
+
+    return Object.entries(parsed).reduce<Record<string, boolean>>((result, [key, value]) => {
+      if (typeof value === "boolean") {
+        result[key] = value
+      }
+      return result
+    }, {})
+  } catch {
+    return {}
+  }
+}
+
 /**
  * 应用侧边栏组件
  * 显示应用侧边栏
@@ -145,17 +162,17 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   }
 
   const navMainFiltered = React.useMemo(() => {
-    const displayConfig = config?.menu_display_config || {}
+    const displayConfig = parseMenuDisplayConfig(config?.menu_display_config)
     return data.navMain.filter((item) => displayConfig[item.url] !== false)
   }, [config])
 
   const adminFiltered = React.useMemo(() => {
-    const displayConfig = config?.menu_display_config || {}
+    const displayConfig = parseMenuDisplayConfig(config?.menu_display_config)
     return data.admin.filter((item) => displayConfig[item.url] !== false)
   }, [config])
 
   const documentFiltered = React.useMemo(() => {
-    const displayConfig = config?.menu_display_config || {}
+    const displayConfig = parseMenuDisplayConfig(config?.menu_display_config)
     return data.document.filter((item) => displayConfig[item.url] !== false)
   }, [config])
 

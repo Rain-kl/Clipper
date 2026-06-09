@@ -231,9 +231,37 @@ func seedDefaultConfigs(t *testing.T, tx *gorm.DB) {
 		t.Fatalf("failed to seed default system configs: %v", err)
 	}
 
+	publicKeys := map[string]struct{}{
+		model.ConfigKeyUploadAllowedExtensions:          {},
+		model.ConfigKeySiteName:                         {},
+		model.ConfigKeyPasswordLoginEnabled:             {},
+		model.ConfigKeyRegistrationEnabled:              {},
+		model.ConfigKeyPasswordRegisterEnabled:          {},
+		model.ConfigKeyOIDCLoginEnabled:                 {},
+		model.ConfigKeyMaxAPIKeysPerUser:                {},
+		model.ConfigKeyCapLoginEnabled:                  {},
+		model.ConfigKeyCapAutoSolve:                     {},
+		model.ConfigKeyEmailLoginVerificationEnabled:    {},
+		model.ConfigKeyEmailRegisterVerificationEnabled: {},
+		model.ConfigKeyMenuDisplayConfig:                {},
+		model.ConfigKeySearchEngineIndexingEnabled:      {},
+	}
+	keys := make([]string, 0, len(publicKeys))
+	for key := range publicKeys {
+		keys = append(keys, key)
+	}
+	if err := tx.Model(&model.SystemConfig{}).
+		Where("key IN ?", keys).
+		Update("visibility", model.ConfigVisibilityVisible).Error; err != nil {
+		t.Fatalf("failed to seed public system config visibility: %v", err)
+	}
+
 	// Also seed these in miniredis context if required, but they are stored in postgres first.
 	// We'll write configs to miniredis in actual handlers.
 	for _, config := range defaultConfigs {
+		if _, ok := publicKeys[config.Key]; ok {
+			config.Visibility = model.ConfigVisibilityVisible
+		}
 		_ = db.HSetJSON(context.Background(), model.SystemConfigRedisHashKey, config.Key, &config)
 	}
 }

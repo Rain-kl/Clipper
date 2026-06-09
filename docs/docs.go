@@ -2191,7 +2191,7 @@ const docTemplate = `{
         },
         "/api/v1/config/public": {
             "get": {
-                "description": "返回对前端公开的系统配置信息，如允许上传的文件类型、站点名称、是否开放注册等",
+                "description": "返回系统配置表中 visibility 为 1 的配置键值集合",
                 "consumes": [
                     "application/json"
                 ],
@@ -4008,6 +4008,9 @@ const docTemplate = `{
                 },
                 "value": {
                     "type": "string"
+                },
+                "visibility": {
+                    "type": "integer"
                 }
             }
         },
@@ -4465,6 +4468,13 @@ const docTemplate = `{
                 "value": {
                     "type": "string",
                     "maxLength": 255
+                },
+                "visibility": {
+                    "type": "integer",
+                    "enum": [
+                        0,
+                        1
+                    ]
                 }
             }
         },
@@ -4525,6 +4535,13 @@ const docTemplate = `{
                 "value": {
                     "type": "string",
                     "maxLength": 255
+                },
+                "visibility": {
+                    "type": "integer",
+                    "enum": [
+                        0,
+                        1
+                    ]
                 }
             }
         },

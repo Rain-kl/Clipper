@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import {createContext, useCallback, useContext, useRef, useState} from "react"
+import {useQueryClient} from "@tanstack/react-query"
 
 import type {SystemConfig, UpdateSystemConfigRequest} from "@/lib/services"
 import services from "@/lib/services"
@@ -32,6 +33,7 @@ const AdminContext = createContext<AdminContextState | null>(null)
  * @param {React.ReactNode} children - Admin Provider 的子元素
  */
 export function AdminProvider({ children }: { children: React.ReactNode }) {
+  const queryClient = useQueryClient()
   const [systemConfigs, setSystemConfigs] = useState<SystemConfig[]>([])
   const [systemConfigsLoading, setSystemConfigsLoading] = useState(false)
   const [systemConfigsError, setSystemConfigsError] = useState<Error | null>(null)
@@ -70,12 +72,13 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
   const updateSystemConfig = useCallback(async (key: string, data: UpdateSystemConfigRequest) => {
     try {
       await services.admin.updateSystemConfig(key, data)
+      await queryClient.invalidateQueries({ queryKey: ['public-config'] })
       await refetchSystemConfigs(lastConfigTypeRef.current)
     } catch (error) {
       handleContextError(error, '更新系统配置失败')
       throw error
     }
-  }, [refetchSystemConfigs])
+  }, [queryClient, refetchSystemConfigs])
 
   const value: AdminContextState = {
     systemConfigs,

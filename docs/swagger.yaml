@@ -250,6 +250,8 @@ definitions:
         type: string
       value:
         type: string
+      visibility:
+        type: integer
     type: object
   model.TaskExecution:
     properties:
@@ -558,6 +560,11 @@ definitions:
       value:
         maxLength: 255
         type: string
+      visibility:
+        enum:
+        - 0
+        - 1
+        type: integer
     required:
     - key
     - type
@@ -602,6 +609,11 @@ definitions:
       value:
         maxLength: 255
         type: string
+      visibility:
+        enum:
+        - 0
+        - 1
+        type: integer
     required:
     - value
     type: object
@@ -2206,7 +2218,7 @@ paths:
     get:
       consumes:
       - application/json
-      description: 返回对前端公开的系统配置信息，如允许上传的文件类型、站点名称、是否开放注册等
+      description: 返回系统配置表中 visibility 为 1 的配置键值集合
       produces:
       - application/json
       responses:

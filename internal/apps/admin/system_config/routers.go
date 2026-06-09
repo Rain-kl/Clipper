@@ -34,12 +34,14 @@ type CreateSystemConfigRequest struct {
 	Key         string `json:"key" binding:"required,max=64"`
 	Value       string `json:"value" binding:"required,max=255"`
 	Type        string `json:"type" binding:"required,oneof=system business"`
+	Visibility  int    `json:"visibility" binding:"oneof=0 1"`
 	Description string `json:"description" binding:"max=255"`
 }
 
 // UpdateSystemConfigRequest 更新系统配置请求
 type UpdateSystemConfigRequest struct {
 	Value       string `json:"value" binding:"required,max=255"`
+	Visibility  *int   `json:"visibility" binding:"omitempty,oneof=0 1"`
 	Description string `json:"description" binding:"max=255"`
 }
 
@@ -78,6 +80,7 @@ func CreateSystemConfig(c *gin.Context) {
 		Key:         req.Key,
 		Value:       req.Value,
 		Type:        req.Type,
+		Visibility:  req.Visibility,
 		Description: req.Description,
 	}
 
@@ -205,6 +208,10 @@ func UpdateSystemConfig(c *gin.Context) {
 		// 更新配置
 		updates := map[string]interface{}{
 			"description": req.Description,
+		}
+		if req.Visibility != nil {
+			updates["visibility"] = *req.Visibility
+			config.Visibility = *req.Visibility
 		}
 		if key != model.ConfigKeySMTPPassword || req.Value != "******" {
 			updates["value"] = req.Value

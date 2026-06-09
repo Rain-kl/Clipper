@@ -234,17 +234,17 @@ export const apiSections: PolicySection[] = [
       <div className="space-y-4 text-sm leading-relaxed">
         <h3 id="4-1-public-config" className="text-base md:text-lg font-semibold text-foreground mt-4 mb-2">4.1 公共系统配置</h3>
         <p><strong>接口：</strong>GET <code className="bg-muted px-1.5 py-0.5 rounded text-xs font-mono">/api/v1/config/public</code></p>
-        <p><strong>说明：</strong>无感获取当前系统的公开业务设置（如注册是否开启、密码登录是否开启）。供前端页面动态渲染使用。</p>
+        <p><strong>说明：</strong>无感获取当前系统配置表中公共可见的键值集合。供前端页面动态渲染使用。</p>
         <p className="mt-2">返回数据结构样例：</p>
         <CodeBlock
           code={`{
   "error_msg": "",
   "data": {
     "site_name": "Wavelet",
-    "registration_enabled": true,
-    "password_login_enabled": true,
-    "password_register_enabled": true,
-    "oidc_login_enabled": true
+    "registration_enabled": "true",
+    "password_login_enabled": "true",
+    "password_register_enabled": "true",
+    "oidc_login_enabled": "true"
   }
 }`}
           language="json"

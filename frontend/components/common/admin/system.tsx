@@ -125,6 +125,16 @@ function SystemConfigDetailPanel({
           </div>
 
           <div className="px-3 py-2 flex items-center justify-between border-b border-dashed last:border-b-0">
+            <label className="text-xs font-medium text-muted-foreground">公共可见</label>
+            <Switch
+              checked={(editData.visibility ?? config?.visibility ?? 0) === 1}
+              onCheckedChange={(checked) => {
+                onEditDataChange('visibility', checked ? 1 : 0)
+              }}
+            />
+          </div>
+
+          <div className="px-3 py-2 flex items-center justify-between border-b border-dashed last:border-b-0">
             <label className="text-xs font-medium text-muted-foreground">配置类型</label>
             <span className={`text-[11px] px-1.5 py-0.5 rounded font-medium ${
               config?.type === 'system'
@@ -173,6 +183,7 @@ export function SystemConfigs() {
 
   const getInitialEditData = (config: SystemConfig) => ({
     value: config.value,
+    visibility: config.visibility,
     description: config.description
   })
 
@@ -181,6 +192,7 @@ export function SystemConfigs() {
 
     await updateSystemConfig(config.key, {
       value: editData.value ?? config.value,
+      visibility: editData.visibility ?? config.visibility,
       description: editData.description ?? config.description
     })
   }
@@ -208,6 +220,7 @@ export function SystemConfigs() {
       columns={[
         { header: "配置键", cell: (item) => <span className="font-mono font-medium">{item.key}</span>, width: "200px" },
         { header: "配置值", cell: (item) => <span className="truncate max-w-[120px] inline-block" title={item.value}>{item.value}</span>, width: "120px" },
+        { header: "公共可见", cell: (item) => <span>{item.visibility === 1 ? "可见" : "不可见"}</span>, width: "80px" },
         { header: "描述", cell: (item) => <span className="truncate max-w-[200px] inline-block text-muted-foreground" title={item.description}>{item.description}</span>, width: "200px" },
       ]}
       renderDetail={({ selected, hovered, editData, onEditDataChange, onSave, saving }) => (

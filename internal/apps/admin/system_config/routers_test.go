@@ -73,6 +73,7 @@ func TestCreateSystemConfig(t *testing.T) {
 			Key:         "custom_key",
 			Value:       "custom_value",
 			Type:        "system",
+			Visibility:  model.ConfigVisibilityVisible,
 			Description: "desc",
 		}
 		body, _ := json.Marshal(payload)
@@ -99,7 +100,10 @@ func TestCreateSystemConfig(t *testing.T) {
 			t.Fatalf("failed to find system config in Redis: %v", err)
 		}
 		if redisConfig.Value != "custom_value" {
-			t.Errorf("expected value 'custom_value', got '%s'", redisConfig.Value)
+			t.Errorf("CreateSystemConfig(custom_key).Value = %q, want %q", redisConfig.Value, "custom_value")
+		}
+		if redisConfig.Visibility != model.ConfigVisibilityVisible {
+			t.Errorf("CreateSystemConfig(custom_key).Visibility = %d, want %d", redisConfig.Visibility, model.ConfigVisibilityVisible)
 		}
 	})
 
@@ -217,8 +221,10 @@ func TestUpdateSystemConfig(t *testing.T) {
 	router := setupTestRouter(adminUser)
 
 	t.Run("update successfully", func(t *testing.T) {
+		hidden := model.ConfigVisibilityHidden
 		payload := UpdateSystemConfigRequest{
 			Value:       "Super Site Name",
+			Visibility:  &hidden,
 			Description: "Updated Description",
 		}
 		body, _ := json.Marshal(payload)
@@ -234,7 +240,7 @@ func TestUpdateSystemConfig(t *testing.T) {
 		// Verify database
 		var cfg model.SystemConfig
 		dbConn.Where("key = ?", model.ConfigKeySiteName).First(&cfg)
-		if cfg.Value != "Super Site Name" || cfg.Description != "Updated Description" {
+		if cfg.Value != "Super Site Name" || cfg.Description != "Updated Description" || cfg.Visibility != model.ConfigVisibilityHidden {
 			t.Errorf("database values not updated: %+v", cfg)
 		}
 
@@ -243,6 +249,9 @@ func TestUpdateSystemConfig(t *testing.T) {
 		_ = db.HGetJSON(context.Background(), model.SystemConfigRedisHashKey, model.ConfigKeySiteName, &redisConfig)
 		if redisConfig.Value != "Super Site Name" {
 			t.Errorf("redis cache value not updated, got '%s'", redisConfig.Value)
+		}
+		if redisConfig.Visibility != model.ConfigVisibilityHidden {
+			t.Errorf("redis cache visibility = %d, want %d", redisConfig.Visibility, model.ConfigVisibilityHidden)
 		}
 	})
 

@@ -36,6 +36,11 @@ function persistRedirectTarget(searchParams: ReturnType<typeof useSearchParams>)
   }
 }
 
+function configBool(value: string | undefined, fallback: boolean) {
+  if (value === undefined) return fallback
+  return value === "true"
+}
+
 export function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -80,7 +85,7 @@ export function LoginForm() {
   const authSourcesQuery = useQuery({
     queryKey: ["auth-sources"],
     queryFn: () => services.auth.getAuthSources(),
-    enabled: publicConfigQuery.data?.oidc_login_enabled ?? true,
+    enabled: configBool(publicConfigQuery.data?.oidc_login_enabled, true),
   })
 
   const redirectTarget = useMemo(
@@ -88,8 +93,8 @@ export function LoginForm() {
     [searchParams],
   )
 
-  const capEnabled = publicConfigQuery.data?.cap_login_enabled ?? false
-  const capAutoSolve = publicConfigQuery.data?.cap_auto_solve ?? true
+  const capEnabled = configBool(publicConfigQuery.data?.cap_login_enabled, false)
+  const capAutoSolve = configBool(publicConfigQuery.data?.cap_auto_solve, true)
 
   const loginMutation = useMutation({
     mutationFn: (req: LoginRequest) => {
@@ -201,7 +206,6 @@ export function LoginForm() {
 
   const handleRegister = () => {
     setErrorMessage("")
-    const emailRegisterEnabled = publicConfigQuery.data?.email_register_verification_enabled ?? false
     if (emailRegisterEnabled) {
       if (!email.trim() || !code.trim()) {
         toast.error("邮箱和验证码不能为空")
@@ -241,10 +245,11 @@ export function LoginForm() {
   }
 
   const registrationEnabled =
-    (publicConfigQuery.data?.registration_enabled ?? true) &&
-    (publicConfigQuery.data?.password_register_enabled ?? true)
+    configBool(publicConfigQuery.data?.registration_enabled, true) &&
+    configBool(publicConfigQuery.data?.password_register_enabled, true)
 
-  const passwordLoginEnabled = publicConfigQuery.data?.password_login_enabled ?? true
+  const passwordLoginEnabled = configBool(publicConfigQuery.data?.password_login_enabled, true)
+  const emailRegisterEnabled = configBool(publicConfigQuery.data?.email_register_verification_enabled, false)
 
   const authSources = authSourcesQuery.data ?? []
 
@@ -379,10 +384,10 @@ export function LoginForm() {
                 <Input
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder={publicConfigQuery.data?.email_register_verification_enabled ? "电子邮箱" : "电子邮箱（可选）"}
+                  placeholder={emailRegisterEnabled ? "电子邮箱" : "电子邮箱（可选）"}
                   autoComplete="email"
                 />
-                {publicConfigQuery.data?.email_register_verification_enabled && (
+                {emailRegisterEnabled && (
                   <div className="flex gap-2">
                     <Input
                       value={code}
