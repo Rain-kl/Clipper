@@ -409,6 +409,10 @@ definitions:
       UploadStatusDeleted: 已删除
       UploadStatusPending: 待使用
       UploadStatusUsed: 已使用
+    x-enum-descriptions:
+    - 待使用
+    - 已使用
+    - 已删除
     x-enum-varnames:
     - UploadStatusPending
     - UploadStatusUsed
@@ -841,7 +845,13 @@ definitions:
     properties:
       avatar_url:
         type: string
+      bio:
+        type: string
       created_at:
+        type: string
+      email:
+        type: string
+      gender:
         type: string
       id:
         type: integer
@@ -851,11 +861,17 @@ definitions:
         type: boolean
       last_login_at:
         type: string
+      location:
+        type: string
       nickname:
+        type: string
+      phone:
         type: string
       updated_at:
         type: string
       username:
+        type: string
+      website:
         type: string
     type: object
   util.ResponseAny:
@@ -1010,6 +1026,7 @@ paths:
       description: 删除指定认证源及其关联的所有外部帐号绑定记录，警告：删除后相关用户将无法通过该源登录，需要管理员权限
       parameters:
       - description: 认证源 ID 或名称
+        format: int64
         in: path
         name: id
         required: true
@@ -1049,6 +1066,7 @@ paths:
       description: 更新指定 ID 的认证源配置。若 client_secret 字段为空，则保留原有密钥不变，需要管理员权限
       parameters:
       - description: 认证源 ID 或名称
+        format: int64
         in: path
         name: id
         required: true
@@ -1099,6 +1117,7 @@ paths:
       description: 启用或禁用指定认证源。尝试启用时将验证 Client ID 和 Client Secret 是否已配置，需要管理员权限
       parameters:
       - description: 认证源 ID 或名称
+        format: int64
         in: path
         name: id
         required: true
@@ -2038,6 +2057,97 @@ paths:
       summary: 创建用户
       tags:
       - admin
+  /api/v1/admin/users/{id}:
+    delete:
+      description: 删除指定非管理员用户，需要管理员权限，不能删除当前登录用户
+      parameters:
+      - description: 用户 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 删除成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/util.ResponseAny'
+            - properties:
+                data:
+                  type: string
+              type: object
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+        "401":
+          description: 未登录
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+        "403":
+          description: 无管理员权限、尝试删除管理员或当前用户
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+        "404":
+          description: 用户不存在
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+        "500":
+          description: 内部错误
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      security:
+      - SessionCookie: []
+      summary: 删除用户
+      tags:
+      - admin
+    get:
+      description: 返回指定用户的完整个人资料和系统状态，需要管理员权限，不返回密码等敏感字段
+      parameters:
+      - description: 用户 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 用户详情
+          schema:
+            allOf:
+            - $ref: '#/definitions/util.ResponseAny'
+            - properties:
+                data:
+                  $ref: '#/definitions/user.user'
+              type: object
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+        "401":
+          description: 未登录
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+        "403":
+          description: 无管理员权限
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+        "404":
+          description: 用户不存在
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+        "500":
+          description: 内部错误
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      security:
+      - SessionCookie: []
+      summary: 获取用户详情
+      tags:
+      - admin
   /api/v1/admin/users/{id}/status:
     put:
       consumes:
@@ -2235,6 +2345,7 @@ paths:
       description: 解除当前登录用户与指定外部帐号的绑定关系，需要登录
       parameters:
       - description: 外部帐号绑定记录 ID
+        format: int64
         in: path
         name: id
         required: true

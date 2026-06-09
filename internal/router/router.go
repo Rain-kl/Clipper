@@ -215,7 +215,9 @@ func Serve() {
 				// Users
 				adminRouter.GET("/users", admin_user.ListUsers)
 				adminRouter.POST("/users", admin_user.CreateUser)
+				adminRouter.GET("/users/:id", admin_user.GetUser)
 				adminRouter.PUT("/users/:id/status", admin_user.UpdateUserStatus)
+				adminRouter.DELETE("/users/:id", admin_user.DeleteUser)
 
 				// System Config
 				adminRouter.POST("/system-configs", system_config.CreateSystemConfig)

@@ -19,9 +19,11 @@ package user
 
 import (
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
+	"github.com/Rain-kl/Wavelet/internal/apps/oauth"
 	"github.com/Rain-kl/Wavelet/internal/db"
 	"github.com/Rain-kl/Wavelet/internal/db/idgen"
 	"github.com/Rain-kl/Wavelet/internal/model"
@@ -45,9 +47,15 @@ type user struct {
 	ID          uint64    `json:"id"`
 	Username    string    `json:"username"`
 	Nickname    string    `json:"nickname"`
+	Email       string    `json:"email"`
 	AvatarURL   string    `json:"avatar_url"`
 	IsActive    bool      `json:"is_active"`
 	IsAdmin     bool      `json:"is_admin"`
+	Bio         string    `json:"bio"`
+	Phone       string    `json:"phone"`
+	Gender      string    `json:"gender"`
+	Website     string    `json:"website"`
+	Location    string    `json:"location"`
 	LastLoginAt time.Time `json:"last_login_at"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
@@ -57,6 +65,35 @@ type user struct {
 type listUsersResponse struct {
 	Users []user `json:"users"`
 	Total int64  `json:"total"`
+}
+
+func parseUserID(c *gin.Context) (uint64, bool) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil || id == 0 {
+		c.JSON(http.StatusBadRequest, util.Err(userNotFound))
+		return 0, false
+	}
+	return id, true
+}
+
+func toUser(u model.User) user {
+	return user{
+		ID:          u.ID,
+		Username:    u.Username,
+		Nickname:    u.Nickname,
+		Email:       u.Email,
+		AvatarURL:   u.AvatarURL,
+		IsActive:    u.IsActive,
+		IsAdmin:     u.IsAdmin,
+		Bio:         u.Bio,
+		Phone:       u.Phone,
+		Gender:      u.Gender,
+		Website:     u.Website,
+		Location:    u.Location,
+		LastLoginAt: u.LastLoginAt,
+		CreatedAt:   u.CreatedAt,
+		UpdatedAt:   u.UpdatedAt,
+	}
 }
 
 // ListUsers 获取用户列表
@@ -118,6 +155,43 @@ func ListUsers(c *gin.Context) {
 	}))
 }
 
+// GetUser 获取用户详情
+// @Summary 获取用户详情
+// @Description 返回指定用户的完整个人资料和系统状态，需要管理员权限，不返回密码等敏感字段
+// @Tags admin
+// @Produce json
+// @Security SessionCookie
+// @Param id path int true "用户 ID"
+// @Success 200 {object} util.ResponseAny{data=user.user} "用户详情"
+// @Failure 400 {object} util.ResponseAny "参数错误"
+// @Failure 401 {object} util.ResponseAny "未登录"
+// @Failure 403 {object} util.ResponseAny "无管理员权限"
+// @Failure 404 {object} util.ResponseAny "用户不存在"
+// @Failure 500 {object} util.ResponseAny "内部错误"
+// @Router /api/v1/admin/users/{id} [get]
+func GetUser(c *gin.Context) {
+	id, ok := parseUserID(c)
+	if !ok {
+		return
+	}
+
+	var targetUser model.User
+	if err := db.DB(c.Request.Context()).
+		Select("id, username, nickname, email, avatar_url, is_active, is_admin, "+
+			"bio, phone, gender, website, location, last_login_at, created_at, updated_at").
+		Where("id = ?", id).
+		First(&targetUser).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			c.JSON(http.StatusNotFound, util.Err(userNotFound))
+			return
+		}
+		c.JSON(http.StatusInternalServerError, util.Err(err.Error()))
+		return
+	}
+
+	c.JSON(http.StatusOK, util.OK(toUser(targetUser)))
+}
+
 // updateUserStatusRequest 更新用户状态请求
 type updateUserStatusRequest struct {
 	IsActive bool `json:"is_active"`
@@ -146,7 +220,10 @@ func UpdateUserStatus(c *gin.Context) {
 		return
 	}
 
-	id := c.Param("id")
+	id, ok := parseUserID(c)
+	if !ok {
+		return
+	}
 
 	var targetUser struct {
 		ID      uint64 `gorm:"column:id"`
@@ -175,6 +252,70 @@ func UpdateUserStatus(c *gin.Context) {
 		Where("id = ?", id).
 		Update("is_active", req.IsActive).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, util.Err(updateUserFailed))
+		return
+	}
+
+	c.JSON(http.StatusOK, util.OKNil())
+}
+
+// DeleteUser 删除用户
+// @Summary 删除用户
+// @Description 删除指定非管理员用户，需要管理员权限，不能删除当前登录用户
+// @Tags admin
+// @Produce json
+// @Security SessionCookie
+// @Param id path int true "用户 ID"
+// @Success 200 {object} util.ResponseAny{data=string} "删除成功"
+// @Failure 400 {object} util.ResponseAny "参数错误"
+// @Failure 401 {object} util.ResponseAny "未登录"
+// @Failure 403 {object} util.ResponseAny "无管理员权限、尝试删除管理员或当前用户"
+// @Failure 404 {object} util.ResponseAny "用户不存在"
+// @Failure 500 {object} util.ResponseAny "内部错误"
+// @Router /api/v1/admin/users/{id} [delete]
+func DeleteUser(c *gin.Context) {
+	id, ok := parseUserID(c)
+	if !ok {
+		return
+	}
+
+	currUser, _ := util.GetFromContext[*model.User](c, oauth.UserObjKey)
+	if currUser != nil && currUser.ID == id {
+		c.JSON(http.StatusForbidden, util.Err(cannotDeleteSelf))
+		return
+	}
+
+	var targetUser struct {
+		ID      uint64 `gorm:"column:id"`
+		IsAdmin bool   `gorm:"column:is_admin"`
+	}
+	if err := db.DB(c.Request.Context()).
+		Table("users").
+		Select("id, is_admin").
+		Where("id = ?", id).
+		First(&targetUser).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			c.JSON(http.StatusNotFound, util.Err(userNotFound))
+			return
+		}
+		c.JSON(http.StatusInternalServerError, util.Err(err.Error()))
+		return
+	}
+
+	if targetUser.IsAdmin {
+		c.JSON(http.StatusForbidden, util.Err(cannotDelete))
+		return
+	}
+
+	if err := db.DB(c.Request.Context()).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("user_id = ?", id).Delete(&model.AccessToken{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("user_id = ?", id).Delete(&model.ExternalAccount{}).Error; err != nil {
+			return err
+		}
+		return tx.Where("id = ?", id).Delete(&model.User{}).Error
+	}); err != nil {
+		c.JSON(http.StatusInternalServerError, util.Err(deleteUserFailed))
 		return
 	}
 
@@ -257,17 +398,5 @@ func CreateUser(c *gin.Context) {
 		return
 	}
 
-	res := user{
-		ID:          newUser.ID,
-		Username:    newUser.Username,
-		Nickname:    newUser.Nickname,
-		AvatarURL:   newUser.AvatarURL,
-		IsActive:    newUser.IsActive,
-		IsAdmin:     newUser.IsAdmin,
-		LastLoginAt: newUser.LastLoginAt,
-		CreatedAt:   newUser.CreatedAt,
-		UpdatedAt:   newUser.UpdatedAt,
-	}
-
-	c.JSON(http.StatusOK, util.OK(res))
+	c.JSON(http.StatusOK, util.OK(toUser(newUser)))
 }

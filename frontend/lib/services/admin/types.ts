@@ -194,12 +194,24 @@ export interface AdminUser {
   username: string;
   /** 昵称 */
   nickname: string;
+  /** 邮箱 */
+  email?: string;
   /** 头像 URL */
   avatar_url: string;
   /** 是否激活 */
   is_active: boolean;
   /** 是否管理员 */
   is_admin: boolean;
+  /** 个人简介 */
+  bio?: string;
+  /** 手机号 */
+  phone?: string;
+  /** 性别 */
+  gender?: string;
+  /** 个人网站 */
+  website?: string;
+  /** 所在地 */
+  location?: string;
   /** 最后登录时间 */
   last_login_at: string;
   /** 创建时间 */
@@ -363,4 +375,3 @@ export interface UpdateTemplateRequest {
   content: string;
   description: string;
 }
-

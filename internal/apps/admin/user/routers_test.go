@@ -47,7 +47,9 @@ func setupTestRouter(authUser *model.User) *gin.Engine {
 
 	adminGroup.GET("/users", ListUsers)
 	adminGroup.POST("/users", CreateUser)
+	adminGroup.GET("/users/:id", GetUser)
 	adminGroup.PUT("/users/:id/status", UpdateUserStatus)
+	adminGroup.DELETE("/users/:id", DeleteUser)
 	return r
 }
 
@@ -166,6 +168,72 @@ func TestListUsers(t *testing.T) {
 
 		if w.Code != http.StatusBadRequest {
 			t.Errorf("expected 400 Bad Request, got %d", w.Code)
+		}
+	})
+}
+
+func TestGetUser(t *testing.T) {
+	dbConn, _, cleanup := testhelper.SetupTestEnvironment(t)
+	defer cleanup()
+
+	targetUser := model.User{
+		ID:        1001,
+		Username:  "alice",
+		Password:  "secret-hash",
+		Nickname:  "Alice Nickname",
+		Email:     "alice@example.com",
+		AvatarURL: "https://example.com/avatar.png",
+		IsActive:  true,
+		IsAdmin:   false,
+		Bio:       "hello",
+		Phone:     "123456",
+		Gender:    "female",
+		Website:   "https://example.com",
+		Location:  "Shanghai",
+	}
+	if err := dbConn.Create(&targetUser).Error; err != nil {
+		t.Fatalf("failed to seed user: %v", err)
+	}
+
+	adminUser := &model.User{ID: 1003, Username: "charlie", IsAdmin: true}
+	router := setupTestRouter(adminUser)
+
+	t.Run("get full user profile", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/api/v1/admin/users/1001", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("expected 200 OK, got %d. Body: %s", w.Code, w.Body.String())
+		}
+
+		var resp util.ResponseAny
+		if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+			t.Fatalf("failed to parse response: %v", err)
+		}
+
+		dataBytes, _ := json.Marshal(resp.Data)
+		var resUser user
+		if err := json.Unmarshal(dataBytes, &resUser); err != nil {
+			t.Fatalf("failed to parse response data: %v", err)
+		}
+
+		if resUser.Email != targetUser.Email || resUser.Bio != targetUser.Bio || resUser.Phone != targetUser.Phone ||
+			resUser.Gender != targetUser.Gender || resUser.Website != targetUser.Website || resUser.Location != targetUser.Location {
+			t.Errorf("profile fields were not returned correctly: %+v", resUser)
+		}
+		if bytes.Contains(dataBytes, []byte("secret-hash")) {
+			t.Error("response should not include password")
+		}
+	})
+
+	t.Run("get non-existent user", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/api/v1/admin/users/9999", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusNotFound {
+			t.Errorf("expected 404 Not Found, got %d. Body: %s", w.Code, w.Body.String())
 		}
 	})
 }
@@ -346,6 +414,120 @@ func TestCreateUser(t *testing.T) {
 
 		if w.Code != http.StatusBadRequest {
 			t.Errorf("expected 400 Bad Request, got %d. Body: %s", w.Code, w.Body.String())
+		}
+	})
+}
+
+func TestDeleteUser(t *testing.T) {
+	dbConn, _, cleanup := testhelper.SetupTestEnvironment(t)
+	defer cleanup()
+
+	regularUser := model.User{
+		ID:       1001,
+		Username: "alice",
+		IsActive: true,
+		IsAdmin:  false,
+	}
+	adminUser := model.User{
+		ID:       1002,
+		Username: "bob",
+		IsActive: true,
+		IsAdmin:  true,
+	}
+	selfUser := model.User{
+		ID:       1003,
+		Username: "charlie",
+		IsActive: true,
+		IsAdmin:  false,
+	}
+
+	if err := dbConn.Create(&regularUser).Error; err != nil {
+		t.Fatalf("failed to seed regular user: %v", err)
+	}
+	if err := dbConn.Create(&adminUser).Error; err != nil {
+		t.Fatalf("failed to seed admin user: %v", err)
+	}
+	if err := dbConn.Create(&selfUser).Error; err != nil {
+		t.Fatalf("failed to seed self user: %v", err)
+	}
+	if err := dbConn.Create(&model.AccessToken{
+		UserID:      regularUser.ID,
+		Name:        "api",
+		TokenHash:   "hash-for-delete-user-test",
+		MaskedToken: "at_****test",
+	}).Error; err != nil {
+		t.Fatalf("failed to seed access token: %v", err)
+	}
+	if err := dbConn.Create(&model.ExternalAccount{
+		ID:           5001,
+		AuthSourceID: 1,
+		UserID:       regularUser.ID,
+		ExternalID:   "external-alice",
+	}).Error; err != nil {
+		t.Fatalf("failed to seed external account: %v", err)
+	}
+
+	router := setupTestRouter(&selfUser)
+
+	t.Run("delete regular user successfully", func(t *testing.T) {
+		req, _ := http.NewRequest("DELETE", "/api/v1/admin/users/1001", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("expected 200 OK, got %d. Body: %s", w.Code, w.Body.String())
+		}
+
+		var count int64
+		if err := dbConn.Model(&model.User{}).Where("id = ?", 1001).Count(&count).Error; err != nil {
+			t.Fatalf("failed to count deleted user: %v", err)
+		}
+		if count != 0 {
+			t.Errorf("expected deleted user count 0, got %d", count)
+		}
+
+		if err := dbConn.Model(&model.AccessToken{}).Where("user_id = ?", 1001).Count(&count).Error; err != nil {
+			t.Fatalf("failed to count deleted access tokens: %v", err)
+		}
+		if count != 0 {
+			t.Errorf("expected deleted access token count 0, got %d", count)
+		}
+
+		if err := dbConn.Model(&model.ExternalAccount{}).Where("user_id = ?", 1001).Count(&count).Error; err != nil {
+			t.Fatalf("failed to count deleted external accounts: %v", err)
+		}
+		if count != 0 {
+			t.Errorf("expected deleted external account count 0, got %d", count)
+		}
+	})
+
+	t.Run("cannot delete admin user", func(t *testing.T) {
+		req, _ := http.NewRequest("DELETE", "/api/v1/admin/users/1002", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusForbidden {
+			t.Fatalf("expected 403 Forbidden, got %d. Body: %s", w.Code, w.Body.String())
+		}
+	})
+
+	t.Run("cannot delete current user", func(t *testing.T) {
+		req, _ := http.NewRequest("DELETE", "/api/v1/admin/users/1003", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusForbidden {
+			t.Fatalf("expected 403 Forbidden, got %d. Body: %s", w.Code, w.Body.String())
+		}
+	})
+
+	t.Run("delete non-existent user", func(t *testing.T) {
+		req, _ := http.NewRequest("DELETE", "/api/v1/admin/users/9999", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusNotFound {
+			t.Errorf("expected 404 Not Found, got %d. Body: %s", w.Code, w.Body.String())
 		}
 	})
 }

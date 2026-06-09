@@ -290,6 +290,15 @@ export class AdminService extends BaseService {
   }
 
   /**
+   * 获取用户详情
+   * @param id - 用户 ID
+   * @returns 用户完整资料
+   */
+  static async getUser(id: string): Promise<AdminUser> {
+    return this.get<AdminUser>(`/users/${ id }`);
+  }
+
+  /**
    * 更新用户状态
    * @param id - 用户 ID
    * @param request - 更新状态请求参数
@@ -324,6 +333,14 @@ export class AdminService extends BaseService {
    */
   static async createUser(request: CreateUserRequest): Promise<AdminUser> {
     return this.post<AdminUser>('/users', request);
+  }
+
+  /**
+   * 删除用户
+   * @param id - 用户 ID
+   */
+  static async deleteUser(id: string): Promise<void> {
+    return this.delete<void>(`/users/${ id }`);
   }
 
   /**

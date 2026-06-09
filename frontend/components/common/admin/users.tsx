@@ -14,16 +14,32 @@ import {
   ChevronRight,
   Eye,
   Filter,
+  Globe,
   Layers,
   Loader2,
+  Mail,
+  MapPin,
   Plus,
   Search,
   ShieldCheck,
+  Smartphone,
+  Trash2,
   UserCheck,
   UserX,
+  VenusAndMars,
   X
 } from "lucide-react"
 import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from "@/components/ui/tooltip"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from "@/components/ui/alert-dialog"
 
 import {AdminUser} from "@/lib/services"
 import {cn, formatDateTime} from "@/lib/utils"
@@ -51,11 +67,16 @@ export function UsersManager() {
     setSearchUsername,
     setStatusFilter,
     fetchUsers,
-    updateUserStatus
+    getUserDetail,
+    updateUserStatus,
+    deleteUser
   } = useAdminUsers()
 
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null)
   const [detailOpen, setDetailOpen] = useState(false)
+  const [detailLoading, setDetailLoading] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<AdminUser | null>(null)
+  const [deleteLoading, setDeleteLoading] = useState(false)
   const [createModalOpen, setCreateModalOpen] = useState(false)
 
   useEffect(() => {
@@ -70,12 +91,38 @@ export function UsersManager() {
     }
   }
 
-  const handleShowDetail = (user: AdminUser) => {
+  const handleShowDetail = async (user: AdminUser) => {
     setSelectedUser(user)
     setDetailOpen(true)
+    setDetailLoading(true)
+
+    try {
+      const detail = await getUserDetail(user.id)
+      setSelectedUser(detail)
+    } catch {
+      setSelectedUser(user)
+    } finally {
+      setDetailLoading(false)
+    }
   }
 
+  const handleDeleteUser = async () => {
+    if (!deleteTarget) return
 
+    setDeleteLoading(true)
+    try {
+      await deleteUser(deleteTarget)
+      if (selectedUser?.id === deleteTarget.id) {
+        setDetailOpen(false)
+        setSelectedUser(null)
+      }
+      setDeleteTarget(null)
+    } finally {
+      setDeleteLoading(false)
+    }
+  }
+
+  const displayValue = (value?: string) => value && value.trim() ? value : "-"
 
   const totalPages = Math.ceil(total / pageSize)
   const hasSearchFilter = Boolean(searchUserId || searchUsername)
@@ -318,7 +365,7 @@ export function UsersManager() {
                 <TableHead className="whitespace-nowrap min-w-[140px] py-2 h-8 pl-4">上次登陆</TableHead>
                 <TableHead className="whitespace-nowrap min-w-[140px] py-2 h-8">注册时间</TableHead>
                 <TableHead className="whitespace-nowrap min-w-[140px] py-2 h-8">上次更新</TableHead>
-                <TableHead className="sticky right-0 text-center bg-background z-10 w-[80px] py-2 h-8">操作</TableHead>
+                <TableHead className="sticky right-0 text-center bg-background z-10 w-[110px] py-2 h-8">操作</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -394,6 +441,26 @@ export function UsersManager() {
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
+
+                      {!user.is_admin && (
+                        <TooltipProvider delayDuration={0}>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                                onClick={() => setDeleteTarget(user)}
+                              >
+                                <Trash2 className="size-3" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="text-xs">
+                              删除用户
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>
@@ -435,6 +502,13 @@ export function UsersManager() {
                         </div>
                       </div>
 
+                      {detailLoading && (
+                        <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                          <Loader2 className="size-3 animate-spin" />
+                          正在刷新详情
+                        </div>
+                      )}
+
                       <div className="gap-4 w-full max-w-[240px] mt-1 pt-4 border-t border-border/50">
                         <div className="flex flex-col gap-0.5">
                           <span className="text-[9px] uppercase tracking-widest text-muted-foreground font-medium">注册时间</span>
@@ -446,8 +520,63 @@ export function UsersManager() {
 
                   <div className="p-6 space-y-6">
                     <div className="space-y-4">
+                      <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-1">个人资料</h4>
+                      <div className="rounded-lg border divide-y bg-background/50">
+                        <div className="flex items-center justify-between gap-4 p-3.5 text-sm">
+                          <span className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                            <Mail className="size-3" />
+                            邮箱
+                          </span>
+                          <span className="min-w-0 truncate text-right text-[10px]">{displayValue(selectedUser.email)}</span>
+                        </div>
+                        <div className="flex items-center justify-between gap-4 p-3.5 text-sm">
+                          <span className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                            <Smartphone className="size-3" />
+                            手机
+                          </span>
+                          <span className="min-w-0 truncate text-right text-[10px]">{displayValue(selectedUser.phone)}</span>
+                        </div>
+                        <div className="flex items-center justify-between gap-4 p-3.5 text-sm">
+                          <span className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                            <VenusAndMars className="size-3" />
+                            性别
+                          </span>
+                          <span className="min-w-0 truncate text-right text-[10px]">{displayValue(selectedUser.gender)}</span>
+                        </div>
+                        <div className="flex items-center justify-between gap-4 p-3.5 text-sm">
+                          <span className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                            <MapPin className="size-3" />
+                            所在地
+                          </span>
+                          <span className="min-w-0 truncate text-right text-[10px]">{displayValue(selectedUser.location)}</span>
+                        </div>
+                        <div className="flex items-center justify-between gap-4 p-3.5 text-sm">
+                          <span className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                            <Globe className="size-3" />
+                            网站
+                          </span>
+                          <span className="min-w-0 truncate text-right text-[10px]">{displayValue(selectedUser.website)}</span>
+                        </div>
+                        <div className="flex flex-col gap-2 p-3.5 text-sm">
+                          <span className="text-[10px] text-muted-foreground">简介</span>
+                          <span className="break-words text-[10px] leading-5">{displayValue(selectedUser.bio)}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
                       <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-1">系统记录</h4>
                       <div className="rounded-lg border divide-y bg-background/50">
+                        <div className="flex items-center justify-between p-3.5 text-sm">
+                          <span className="text-[10px]">账户状态</span>
+                          <Badge variant={selectedUser.is_active ? "secondary" : "outline"} className="text-[10px]">
+                            {selectedUser.is_active ? "正常" : "禁用"}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center justify-between p-3.5 text-sm">
+                          <span className="text-[10px]">管理员</span>
+                          <span className="font-mono text-[10px]">{selectedUser.is_admin ? "是" : "否"}</span>
+                        </div>
                         <div className="flex items-center justify-between p-3.5 text-sm">
                           <span className="text-[10px]">最后登录</span>
                           <span className="font-mono text-[10px]">{formatDateTime(selectedUser.last_login_at)}</span>
@@ -468,7 +597,7 @@ export function UsersManager() {
               </div>
 
               {!selectedUser.is_admin && (
-                <div className="p-4 border-t bg-background/80 backdrop-blur-md shrink-0">
+                <div className="p-4 border-t bg-background/80 backdrop-blur-md shrink-0 flex flex-col gap-2">
                   <Button
                     variant={selectedUser.is_active ? "destructive" : "default"}
                     className={cn(
@@ -491,12 +620,38 @@ export function UsersManager() {
                       </>
                     )}
                   </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full h-9 text-xs font-medium"
+                    onClick={() => setDeleteTarget(selectedUser)}
+                  >
+                    <Trash2 className="size-3 mr-1" />
+                    删除用户
+                  </Button>
                 </div>
               )}
             </>
           )}
         </SheetContent>
       </Sheet>
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && !deleteLoading && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>确认删除用户</AlertDialogTitle>
+            <AlertDialogDescription>
+              确定要删除用户 {deleteTarget?.nickname || deleteTarget?.username} 吗？该操作会移除用户账号，删除后无法撤销。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteLoading}>取消</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteUser} disabled={deleteLoading}>
+              {deleteLoading && <Loader2 className="size-3 animate-spin" />}
+              确认删除
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <CreateUserModal isOpen={createModalOpen} onClose={() => setCreateModalOpen(false)} />
     </div>

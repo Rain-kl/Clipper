@@ -37,8 +37,10 @@ interface AdminUsersContextState {
 
   fetchUsers: (force?: boolean) => Promise<void>
   refresh: () => Promise<void>
+  getUserDetail: (id: string) => Promise<AdminUser>
   updateUserStatus: (user: AdminUser) => Promise<void>
   createUser: (req: CreateUserRequest) => Promise<AdminUser>
+  deleteUser: (user: AdminUser) => Promise<void>
 }
 
 const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes cache
@@ -189,6 +191,10 @@ export function AdminUsersProvider({ children }: { children: React.ReactNode }) 
     }
   }
 
+  const getUserDetail = async (id: string) => {
+    return AdminService.getUser(id)
+  }
+
   const createUser = async (req: CreateUserRequest) => {
     try {
       const newUser = await AdminService.createUser(req)
@@ -200,6 +206,19 @@ export function AdminUsersProvider({ children }: { children: React.ReactNode }) 
       return newUser
     } catch (err) {
       toast.error(err instanceof Error ? err.message : '创建用户失败')
+      throw err
+    }
+  }
+
+  const deleteUser = async (user: AdminUser) => {
+    try {
+      await AdminService.deleteUser(user.id)
+      setUsers(prev => prev.filter(u => u.id !== user.id))
+      setTotal(prev => Math.max(0, prev - 1))
+      cacheRef.current = {}
+      toast.success(`已删除用户 ${ user.username }`)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : '删除用户失败')
       throw err
     }
   }
@@ -221,8 +240,10 @@ export function AdminUsersProvider({ children }: { children: React.ReactNode }) 
     setStatusFilter,
     fetchUsers,
     refresh,
+    getUserDetail,
     updateUserStatus,
-    createUser
+    createUser,
+    deleteUser
   }
 
   return (
