@@ -67,6 +67,8 @@ func BuildBasicUserInfo(user *model.User, needChange bool) BasicUserInfo {
 // @Success 200 {object} util.ResponseAny{data=oauth.BasicUserInfo} "用户信息"
 // @Failure 401 {object} util.ResponseAny "未登录"
 // @Router /api/v1/oauth/user-info [get]
+// @Router /api/v1/user-info [get]
+// @Router /api/v1/user/self [get]
 func UserInfo(c *gin.Context) {
 	user, _ := util.GetFromContext[*model.User](c, UserObjKey)
 	session := sessions.Default(c)

@@ -1,6 +1,6 @@
 # 项目开发规范
 
-> 本文档面向 AI 代理（Agent）和开发者，描述项目的目录结构、模块职责与开发规范。
+> 本文档面向 AI 代理（Agent）与开发者，描述项目的目录结构、模块职责、代码规范与开发流程。
 
 ---
 
@@ -34,9 +34,11 @@
 
 ---
 
-## 二、顶层目录结构
+## 二、项目目录结构
 
-以下是项目的顶层目录结构及其职责, 如果有新增目录或文件，请务必在此处同步更新：
+### 2.1 顶层目录结构
+
+以下是项目的顶层目录结构及其职责：
 
 ```
 wavelet/                           # 项目根目录（模块名: github.com/Rain-kl/Wavelet）
@@ -45,7 +47,7 @@ wavelet/                           # 项目根目录（模块名: github.com/Rai
 ├── config.yaml                    # 运行时配置（不提交到 Git）
 ├── config.example.yaml            # 配置模板（需提交）
 ├── DEPLOYMENT_zh.md               # 部署说明文档（中文版）
-├── Makefile                       # 常用命令（swagger/tidy/license）
+├── Makefile                       # 常用命令（swagger/tidy/license/code-check）
 ├── docker/                        # Docker 镜像构建文件（集成/前端/后端）
 │   ├── Dockerfile                 # 标准集成镜像（前端静态导出嵌入后端）
 │   ├── Dockerfile.frontend        # 仅前端镜像（Next.js）
@@ -60,11 +62,9 @@ wavelet/                           # 项目根目录（模块名: github.com/Rai
 └── support-files/                 # 辅助文件（如 nginx 配置等）
 ```
 
----
+### 2.2 后端 `internal/` 目录结构
 
-## 三、后端 `internal/` 目录结构
-
-以下是 `internal/` 目录的结构及其职责, 如果有新增目录或文件，请务必在此处同步更新：
+以下是 `internal/` 目录的结构及其职责：
 
 ```
 internal/
@@ -156,9 +156,7 @@ internal/
     └── ...                        # Span 创建、Exporter 配置
 ```
 
----
-
-## 四、`apps/` 模块内部文件规范
+### 2.3 `apps/` 业务模块文件规范
 
 每个业务模块（`apps/<module>/`）内部按照以下约定组织文件：
 
@@ -170,11 +168,11 @@ internal/
 | `errs.go` | 本模块专属错误消息字符串常量（`const`）|
 | `constants.go` | 本模块专属业务常量（非错误）|
 
-> **规则**：  
-> - 路由 **不在** 模块内部注册，统一在 `internal/router/router.go` 中注册。  
+> **规则**：
+> - 路由 **不在** 模块内部注册，统一在 `internal/router/router.go` 中注册。
 > - `errs.go` 只定义字符串常量，不定义 `error` 类型值，错误通过 `response.RespondFailure(c, errMsg)` 输出。
 
-### `admin/` 子模块结构示例
+#### `admin/` 子模块结构示例：
 
 ```
 apps/admin/
@@ -193,11 +191,9 @@ apps/admin/
     └── routers.go
 ```
 
----
+### 2.4 前端 `frontend/` 目录结构
 
-## 五、前端 `frontend/` 目录结构
-
-以下是前端 `frontend/` 目录的结构, 如果需要调整请在此处同步更改：
+以下是前端 `frontend/` 目录的结构：
 
 ```
 frontend/
@@ -231,11 +227,9 @@ frontend/
 └── .env.example                   # 环境变量模板（需提交）
 ```
 
----
+### 2.5 前端 `components/common/` 通用业务组件详解
 
-## 5.1 前端 `components/common/` 通用业务组件详解
-
-`common/` 目录存放跨页面复用的业务组件，按功能域分为五个子目录。以下是每个文件的职责说明：
+`common/` 目录存放跨页面复用的业务组件，按功能域分为五个子目录：
 
 ```
 components/common/
@@ -249,7 +243,7 @@ components/common/
 │   └── users.tsx                   # UsersManager — 用户管理页面，提供分页、搜索、筛选的用户列表表格，
 │                                   #   支持在侧边抽屉查看用户详情，以及启用/禁用（封禁/解封）切换
 │
-├── docs/                           # 文档页面组件,包括法律文档（隐私政策/服务条款）和接口文档
+├── docs/                           # 文档页面组件，包括法律文档（隐私政策/服务条款）和接口文档
 │
 ├── general/                        # 通用框架组件
 │   ├── manage-pannel.tsx           # ManagePage（泛型）— 通用管理页面框架，封装"列表 + 详情面板"布局，
@@ -280,9 +274,9 @@ components/common/
 
 ---
 
-## 六、开发规范
+## 三、后端开发规范
 
-### 6.1 命名规范
+### 3.1 命名规范
 
 | 对象 | 规范 | 示例 |
 |------|------|------|
@@ -295,7 +289,7 @@ components/common/
 | 任务类型常量 | 全大写蛇形 | `CleanupUnusedUploadsTask` |
 | 配置 Key | 全小写蛇形（YAML） | `session_cookie_name`、`max_idle_conn` |
 
-### 6.2 HTTP Handler 规范
+### 3.2 HTTP Handler 规范
 
 ```go
 // Handler 函数命名：动词 + 名词（PascalCase）
@@ -315,18 +309,11 @@ func ListUsers(c *gin.Context) {
 ```
 
 **响应格式约定**：
-- 成功：`util.OK(data)` 或 `util.OKNil()`  
-- 失败：`util.Err(msg)` + 对应 HTTP 状态码  
-- 通过 `response.RespondSuccess / RespondFailure` 也可（两套工具共存）
+- 成功：`util.OK(data)` 或 `util.OKNil()`
+- 失败：`util.Err(msg)` + 对应 HTTP 状态码
+- 通过 `response.RespondSuccess / RespondFailure` 均可（两套工具共存）
 
-### 6.4 错误处理规范
-
-- **模块内错误消息**：定义在本模块 `errs.go` 中，使用 `const` 字符串。
-- **跨模块错误消息**：定义在 `internal/common/errs.go` 或 `common/constants.go`。
-- **数据库错误**：直接 `err.Error()` 返回给响应（开发阶段），生产环境应屏蔽详情。
-- **gorm.ErrRecordNotFound**：显式判断，返回 404。
-
-### 6.5 中间件使用规范
+### 3.3 中间件使用规范
 
 | 中间件 | 位置 | 作用 |
 |--------|------|------|
@@ -337,20 +324,20 @@ func ListUsers(c *gin.Context) {
 | `oauth.LoginRequired()` | 路由组 | 登录校验 |
 | `admin.LoginAdminRequired()` | Admin 路由组 | 管理员校验 |
 
-### 6.6 配置访问规范
+### 3.4 配置访问规范
 
 - 所有配置通过 `config.Config.<Section>.<Field>` 访问（全局单例）。
 - 不允许在业务代码中使用 `os.Getenv()` 读取配置，统一通过 Viper 加载。
 - 新增配置项：先在 `config.example.yaml` 添加注释模板，再在 `internal/config/model.go` 添加结构体字段。
 
-### 6.7 数据库访问规范
+### 3.5 数据库访问规范
 
 - 直接使用 GORM：`model.DB.Where(...).Find(&result)`（适合简单查询）。
 - 通过 `db.DB(ctx)` 获取带链路追踪的 DB 实例（Admin 模块推荐）。
 - 禁止在 Handler 层直接写复杂 SQL，应封装到 `model/` 层方法或 `service/` 层。
 - 数据库迁移使用 `db/migrator/` 中的 AutoMigrate，不允许手动执行 DDL。
 
-### 6.8 异步任务规范
+### 3.6 异步任务规范
 
 **定义任务**：
 1. 在 `internal/task/constants.go` 中定义任务类型常量。
@@ -360,12 +347,15 @@ func ListUsers(c *gin.Context) {
 
 **队列优先级**（从高到低）：`webhook` > `whitelist_only` > `default`
 
-### 6.9 前端组件样式规范
+---
 
-**基础组件必须遵循系统的色彩主题系统。** 所有基于 shadcn/ui 的基础组件（Button、Dialog、Input 等）应使用组件内置的 `variant` 属性来控制样式，禁止通过 `className` 手写颜色或背景等样式。
+## 四、前端开发规范
+
+### 4.1 组件样式规范
+
+**基础组件必须遵循系统的色彩主题系统。** 所有基于 shadcn/ui 的基础组件（Button、Dialog、Input 等）应使用组件内置 of `variant` 属性来控制样式，禁止通过 `className` 手写颜色或背景等样式。
 
 **错误示例（禁止）**：
-
 ```tsx
 // ❌ 禁止通过 className 手写颜色、背景、阴影等样式
 <Button
@@ -379,7 +369,6 @@ func ListUsers(c *gin.Context) {
 ```
 
 **正确示例**：
-
 ```tsx
 // ✅ 使用 variant 属性，让组件遵循系统主题
 <Button
@@ -394,26 +383,173 @@ func ListUsers(c *gin.Context) {
 
 > **原则**：组件的视觉表现由 shadcn/ui 的 variant 系统和全局 CSS 变量统一控制，保持应用内所有页面风格一致。如现有 variant 无法满足需求，应扩展 shadcn/ui 组件的 variant 定义，而非在业务代码中硬编码颜色值。
 
-### 6.10 严格禁止事项
+### 4.2 页面宽度自适应规范
+
+**开发或更新前端页面时，页面主容器必须支持全宽（Full Width）自适应。** 页面组件的根容器禁止硬编码固定最大宽度（如 `max-w-6xl`、`max-w-4xl` 等），而应统一使用 `w-full`。
+
+由于系统主布局（`MainLayout`）已包含全局 "切换全宽" 状态与按钮，页面主容器不设最大宽度即可让页面宽度完美跟随全局状态。默认情况下由主布局约束在正常宽度限制内，开启全宽后能自动拉伸至 `100%`。
+
+**错误示例（禁止限制宽度）**：
+```tsx
+// ❌ 禁止在页面外层组件硬编码 max-w 限制
+export function FeatureMain() {
+  return (
+    <div className="py-6 space-y-6 max-w-6xl mx-auto">
+      {/* 页面内容 */}
+    </div>
+  )
+}
+```
+
+**正确示例（推荐自适应全宽）**：
+```tsx
+// ✅ 容器使用 w-full，使其自适应外层 layout 的宽度调整
+export function FeatureMain() {
+  return (
+    <div className="py-6 space-y-6 w-full">
+      {/* 页面内容 */}
+    </div>
+  )
+}
+```
+
+### 4.3 组件规范
+
+- 组件应按功能分类。
+- 公共业务组件放在 `components/common` 目录。
+- ShadcnUI 基础组件放在 `components/ui` 目录。
+- 自定义图标应放置在 `/components/icons/` 目录下以命名导出形式管理。常规图标统一使用 Lucide 库。
+
+### 4.4 服务层架构与接口服务新建
+
+服务层架构是前端与 API 交互的统一入口，基于以下原则：
+1. **关注点分离** - 每个服务类只负责一个业务领域。
+2. **统一入口** - 统一通过 `services` 对象对外导出所有服务。
+3. **类型安全** - 所有请求参数和返回响应均有明确的 TypeScript 类型定义。
+
+#### 如何新建接口服务：
+
+1. **创建目录结构**:
+   ```
+   /services/新服务名/
+     - types.ts       // 类型定义
+     - 服务名.service.ts  // 服务实现
+     - index.ts       // 导出服务
+   ```
+
+2. **实现服务类**:
+   ```typescript
+   // 新服务名/服务名.service.ts
+   import {BaseService} from '../core/base.service';
+
+   export class 新服务类 extends BaseService {
+     protected static readonly basePath = '/api/v1/路径';
+
+     static async 方法名(参数): Promise<返回类型> {
+       return this.get<返回类型>('/endpoint');
+     }
+   }
+   ```
+
+3. **在 `services/index.ts` 注册**:
+   ```typescript
+   import {新服务类} from './新服务名';
+
+   const services = {
+     auth: AuthService,
+     新服务名: 新服务类
+   };
+   ```
+
+4. **使用方法**:
+   ```typescript
+   import services from '@/lib/services';
+
+   // 调用服务方法
+   const 结果 = await services.新服务名.方法名(参数);
+   ```
+
+---
+
+## 五、代码质量与审查规范
+
+### 5.1 统一代码检查与提交
+
+> [!IMPORTANT]
+> **代码开发完成后，提交前必须在项目根目录运行 `make code-check` 进行本地代码质量与风格检查，确保前端 ESLint 没有报错和警告（`--max-warnings 0`）。**
+
+```bash
+# 执行根目录的检查指令
+make code-check
+```
+
+### 5.2 后端规范检查
+
+**基础检查**：
+- 后端 Go 代码需要通过 CodeQL 扫描。较复杂的逻辑建议结合 Copilot 检查。
+
+**API 文档**：
+- 所有 HTTP 接口都必须编写完整的 Swagger 注释。提交前需运行 `make swagger` 自动生成与更新接口文档。
+
+**统一响应格式**：
+```json
+// 响应数据最外层固定包含 error_msg 与 data
+{
+    "error_msg": "",
+    "data": null
+}
+
+// 示例：单条实体数据
+{
+    "error_msg": "",
+    "data": {}
+}
+
+// 示例：分页数据格式
+{
+    "error_msg": "",
+    "data": {
+        "total": 0,
+        "results": []
+    }
+}
+```
+
+### 5.3 数据库设计规范
+
+- **外键约束**：禁止在数据库物理层面使用外键（FK），但需要在对应关联字段上显式建立索引。
+- **默认值一致性**：数据库表字段的默认值必须与 Go model struct 的默认零值一致（如 `nil`, `0`, `false`, `""`），防止由于插入时漏填导致字段产生数据库异常默认值。
+
+### 5.4 前端类型安全规范
+
+- **禁止使用 `any`**：`any` 类型会绕过 TypeScript 编译期的类型检查系统，掩盖潜在的运行时错误，因此全面禁止使用。
+- **合理使用 `unknown`**：`unknown` 是类型安全的 `any`，接收到此类值后必须先进行类型断言（Type Assertion）或类型收窄（Type Narrowing）后方可使用。
+- **合理使用 `never`**：`never` 类型表示永远不会发生的值类型，必须谨慎使用，并在其使用处编写清晰的注释。
+- **静态分析检查**：前端代码必须通过 ESLint 检查和 CodeQL 静态漏洞扫描。
+
+---
+
+## 六、包依赖与安全禁止项
+
+### 6.1 严格禁止事项
 
 | 禁止行为 | 说明 |
 |----------|------|
 | **禁止删除 `node_modules` 目录** | `node_modules` 为前端依赖安装目录，删除会导致项目无法运行。如需重新安装依赖，使用 `pnpm install` 覆盖更新即可，严禁执行 `rm -rf node_modules`。 |
-| **`internal/util/` 下禁止引用框架包** | `util/` 及其子包（如 `util/cap`）定位为**纯工具层**，不得 `import` 任何 HTTP / ORM / 框架包，包括但不限于 `github.com/gin-gonic/gin`、`gorm.io/gorm`、`github.com/gin-contrib/sessions`。违反此约束会导致工具层与框架产生耦合，无法独立测试。详见 **6.11** 的建议方案。 |
+| **`internal/util/` 下禁止引用框架包** | `util/` 及其子包（如 `util/cap`）定位为**纯工具层**，不得 `import` 任何 HTTP / ORM / 框架包，包括但不限于 `github.com/gin-gonic/gin`、`gorm.io/gorm`、`github.com/gin-contrib/sessions`。违反此约束会导致工具层与框架产生耦合，无法独立测试。详见下文的建议方案。 |
 
-### 6.11 `util/` 包依赖约束与建议方案
+### 6.2 `util/` 包依赖约束与建议方案
 
-#### 约束范围
+#### 约束范围：
 
 `internal/util/` 及其全部子包（如 `util/cap`、`util/crypto` 等）只允许引用：
-
 - Go 标准库（`context`、`crypto`、`encoding`、`net/http` 原生包等）
 - 项目内同级别的纯工具包（`internal/config`、`internal/db`、`internal/model` 等无框架依赖的包）
 - 与框架无关的第三方库（如 `github.com/redis/go-redis`、`github.com/shopspring/decimal` 等）
 
 **严禁引用**：`github.com/gin-gonic/gin`、`gorm.io/gorm`、`github.com/gin-contrib/sessions` 及任何 HTTP 框架 / Web 中间件相关包。
 
-#### 常见误区与建议方案
+#### 常见误区与建议方案：
 
 | 误区 | 建议方案 |
 |------|----------|
@@ -421,7 +557,7 @@ func ListUsers(c *gin.Context) {
 | 在 `util/` 中通过 `*gin.Context` 写响应 | 只在 `util/` 中计算/校验逻辑并返回 `(result, error)`，由 `apps/` 层的 Handler 负责调用 `c.AbortWithStatusJSON` 写响应 |
 | 在 `util/` 中使用 `gorm.DB` 直接查询 | 将数据库查询封装在 `internal/model/` 层方法中，`util/` 只接收已查出的数据结构 |
 
-#### 正确示例
+#### 正确示例：
 
 ```go
 // ✅ internal/util/cap/manager.go — 纯逻辑，无框架依赖
@@ -443,7 +579,7 @@ func VerifyMiddleware(mgr *caputil.Manager, scope string, enabledFunc func() boo
 }
 ```
 
-#### 错误示例（禁止）
+#### 错误示例（禁止）：
 
 ```go
 // ❌ internal/util/cap/middleware.go — util/ 层不应出现 gin
@@ -456,10 +592,11 @@ func (m *Manager) VerifyMiddleware(...) gin.HandlerFunc { ... }
 
 ## 七、新增功能开发流程
 
-新增 **异步任务** ：使用项目专属 SKILL: new-async-task 进行开发
+### 7.1 新增模块开发流程
+
+新增 **异步任务**：使用项目专属 SKILL: `new-async-task` 进行开发。
 
 以新增 **管理员功能模块** 为例：
-
 ```
 1. 在 internal/model/ 中定义/扩展数据模型
 2. 在 db/migrator/ 中注册 AutoMigrate
@@ -470,17 +607,17 @@ func (m *Manager) VerifyMiddleware(...) gin.HandlerFunc { ... }
 5. 执行 make swagger 更新文档
 ```
 
-**Handler 文件拆分规则**：
+### 7.2 Handler 文件拆分规则
 
 逻辑简单的 CRUD 可以全部放在 `routers.go` 中。但当文件代码行数增长时，必须按以下规则拆分：
 
-| 条件                        | 拆分方式 |
-|---------------------------|----------|
-| 文件超过 **600 行**            | 必须拆分 |
+| 条件 | 拆分方式 |
+|------|----------|
+| 文件超过 **600 行** | 必须拆分 |
 | 包含复杂业务逻辑（如外部调用、多步校验、事务处理） | 将业务逻辑拆到 `logic.go` 或 `logics.go` |
-| 同一模块有多个独立功能域              | 按功能域拆分多个文件，如 `user_routers.go`、`role_routers.go` |
+| 同一模块有多个独立功能域 | 按功能域拆分多个文件，如 `user_routers.go`、`role_routers.go` |
 
-拆分后的模块文件结构示例：
+#### 拆分后的模块文件结构示例：
 
 ```
 apps/admin/<module>/
@@ -490,15 +627,13 @@ apps/admin/<module>/
 └── constants.go        # 业务常量（按需）
 ```
 
-**职责边界**：
-
+#### 职责边界：
 - `routers.go` 只做三件事：参数绑定、调用 logic 函数、返回响应。不包含任何业务判断逻辑。
 - `logics.go` 负责所有业务逻辑，接收已校验的参数，返回处理结果和错误。函数以 `PascalCase` 导出，供 `routers.go` 调用。
 
-
 ---
 
-## 八、前端任务管理页面
+## 八、后端任务管理 API 接口
 
 任务管理 API 路由（Admin）：
 
@@ -509,5 +644,3 @@ apps/admin/<module>/
 | GET | `/api/v1/admin/tasks/executions` | 分页查询任务执行记录（支持 status / task_type 筛选） |
 | GET | `/api/v1/admin/tasks/executions/:id` | 查询单条任务执行详情（含完整 Log） |
 | POST | `/api/v1/admin/tasks/executions/:id/retry` | 重试失败任务（校验 Retryable && RetryCount < MaxRetry） |
-
----

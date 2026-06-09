@@ -82,6 +82,66 @@ definitions:
         description: 全局递增序号
         type: integer
     type: object
+  logs.accessLogItem:
+    properties:
+      created_at:
+        type: string
+      headers:
+        type: string
+      id:
+        example: "0"
+        type: string
+      ip:
+        type: string
+      latency:
+        type: integer
+      method:
+        type: string
+      nickname:
+        type: string
+      path:
+        type: string
+      status:
+        type: integer
+      user_agent:
+        type: string
+      user_id:
+        example: "0"
+        type: string
+      username:
+        type: string
+    type: object
+  logs.accessLogsResponse:
+    properties:
+      list:
+        items:
+          $ref: '#/definitions/logs.accessLogItem'
+        type: array
+      total:
+        type: integer
+    type: object
+  logs.browserItem:
+    properties:
+      browser:
+        type: string
+      count:
+        type: integer
+    type: object
+  logs.logsAnalyticsResponse:
+    properties:
+      browsers:
+        items:
+          $ref: '#/definitions/logs.browserItem'
+        type: array
+      top_users:
+        items:
+          $ref: '#/definitions/logs.topUserItem'
+        type: array
+      trend:
+        items:
+          $ref: '#/definitions/logs.trendItem'
+        type: array
+    type: object
   logs.logsResponse:
     properties:
       has_more:
@@ -93,6 +153,25 @@ definitions:
       next_cursor:
         description: 用于加载更早日志的 cursor
         type: integer
+    type: object
+  logs.topUserItem:
+    properties:
+      count:
+        type: integer
+      nickname:
+        type: string
+      user_id:
+        example: "0"
+        type: string
+      username:
+        type: string
+    type: object
+  logs.trendItem:
+    properties:
+      count:
+        type: integer
+      date:
+        type: string
     type: object
   model.AccessToken:
     properties:
@@ -1096,6 +1175,97 @@ paths:
       security:
       - SessionCookie: []
       summary: 获取系统日志
+      tags:
+      - admin
+  /api/v1/admin/logs/access:
+    get:
+      description: 分页并按照用户、接口路径、时间范围等维度检索 ClickHouse 用户访问日志列表（需要管理员权限，ClickHouse 未启用时报错）
+      parameters:
+      - default: 1
+        description: 页码
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: 每页条数
+        in: query
+        name: page_size
+        type: integer
+      - description: 用户名模糊搜索
+        in: query
+        name: username
+        type: string
+      - description: 接口路径模糊搜索
+        in: query
+        name: path
+        type: string
+      - description: 起始时间（RFC3339 或 YYYY-MM-DD HH:MM:SS）
+        in: query
+        name: start_time
+        type: string
+      - description: 结束时间（RFC3339 或 YYYY-MM-DD HH:MM:SS）
+        in: query
+        name: end_time
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 访问日志列表
+          schema:
+            allOf:
+            - $ref: '#/definitions/util.ResponseAny'
+            - properties:
+                data:
+                  $ref: '#/definitions/logs.accessLogsResponse'
+              type: object
+        "400":
+          description: ClickHouse 未启用或参数错误
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+        "401":
+          description: 未登录
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+        "403":
+          description: 无管理员权限
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      security:
+      - SessionCookie: []
+      summary: 获取用户访问日志
+      tags:
+      - admin
+  /api/v1/admin/logs/analytics:
+    get:
+      description: 聚合统计最近 7 天的每日访问趋势、浏览器分布以及前 10 名最活跃用户排行（需要管理员权限，ClickHouse 未启用时报错）
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 分析统计数据
+          schema:
+            allOf:
+            - $ref: '#/definitions/util.ResponseAny'
+            - properties:
+                data:
+                  $ref: '#/definitions/logs.logsAnalyticsResponse'
+              type: object
+        "400":
+          description: ClickHouse 未启用
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+        "401":
+          description: 未登录
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+        "403":
+          description: 无管理员权限
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      security:
+      - SessionCookie: []
+      summary: 获取访问日志分析数据
       tags:
       - admin
   /api/v1/admin/logs/ws:
@@ -2380,6 +2550,30 @@ paths:
       summary: 获取我的文件列表
       tags:
       - upload
+  /api/v1/user-info:
+    get:
+      description: 返回当前登录用户的基本信息及余额数据，需要登录。包括用户 ID、用户名、信任等级、各类余额信息等。
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 用户信息
+          schema:
+            allOf:
+            - $ref: '#/definitions/util.ResponseAny'
+            - properties:
+                data:
+                  $ref: '#/definitions/oauth.BasicUserInfo'
+              type: object
+        "401":
+          description: 未登录
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      security:
+      - SessionCookie: []
+      summary: 获取当前登录用户信息
+      tags:
+      - oauth
   /api/v1/user/access-tokens:
     get:
       description: 返回当前登录用户的所有 active access tokens（脱敏后）
@@ -2662,6 +2856,30 @@ paths:
       summary: 用户注册
       tags:
       - user
+  /api/v1/user/self:
+    get:
+      description: 返回当前登录用户的基本信息及余额数据，需要登录。包括用户 ID、用户名、信任等级、各类余额信息等。
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 用户信息
+          schema:
+            allOf:
+            - $ref: '#/definitions/util.ResponseAny'
+            - properties:
+                data:
+                  $ref: '#/definitions/oauth.BasicUserInfo'
+              type: object
+        "401":
+          description: 未登录
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      security:
+      - SessionCookie: []
+      summary: 获取当前登录用户信息
+      tags:
+      - oauth
   /api/v1/user/send-email-code:
     post:
       consumes:
@@ -2719,6 +2937,19 @@ paths:
       summary: 获取已上传文件
       tags:
       - upload
+  /robots.txt:
+    get:
+      description: 根据系统配置决定是否允许搜索引擎检索，并返回相应的 robots.txt 文件内容
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: robots.txt 内容
+          schema:
+            type: string
+      summary: 获取 robots.txt
+      tags:
+      - config
 securityDefinitions:
   SessionCookie:
     in: cookie
