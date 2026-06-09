@@ -27,7 +27,7 @@ import (
 // getUpgrader 返回 WebSocket 升级器
 func getUpgrader() *websocket.Upgrader {
 	return &websocket.Upgrader{
-		CheckOrigin: func(r *http.Request) bool {
+		CheckOrigin: func(_ *http.Request) bool {
 			return true // CORS 由 Gin 中间件处理
 		},
 	}

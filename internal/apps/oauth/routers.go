@@ -26,12 +26,13 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// BasicUserInfo 用户基本信息结构体
 type BasicUserInfo struct {
 	ID                 uint64 `json:"id"`
 	Username           string `json:"username"`
 	Nickname           string `json:"nickname"`
 	Email              string `json:"email"`
-	AvatarUrl          string `json:"avatar_url"`
+	AvatarURL          string `json:"avatar_url"`
 	IsAdmin            bool   `json:"is_admin"`
 	NeedChangePassword bool   `json:"need_change_password"`
 	Bio                string `json:"bio"`
@@ -41,13 +42,14 @@ type BasicUserInfo struct {
 	Location           string `json:"location"`
 }
 
+// BuildBasicUserInfo 将 User 模型转换为 BasicUserInfo
 func BuildBasicUserInfo(user *model.User, needChange bool) BasicUserInfo {
 	return BasicUserInfo{
 		ID:                 user.ID,
 		Username:           user.Username,
 		Nickname:           user.Nickname,
 		Email:              user.Email,
-		AvatarUrl:          user.AvatarUrl,
+		AvatarURL:          user.AvatarURL,
 		IsAdmin:            user.IsAdmin,
 		NeedChangePassword: needChange,
 		Bio:                user.Bio,

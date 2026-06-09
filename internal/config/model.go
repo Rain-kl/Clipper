@@ -43,7 +43,7 @@ type appConfig struct {
 	SessionSecret           string `mapstructure:"session_secret"`
 	SessionDomain           string `mapstructure:"session_domain"`
 	SessionAge              int    `mapstructure:"session_age"`
-	SessionHttpOnly         bool   `mapstructure:"session_http_only"`
+	SessionHTTPOnly         bool   `mapstructure:"session_http_only"`
 	SessionSecure           bool   `mapstructure:"session_secure"`
 }
 

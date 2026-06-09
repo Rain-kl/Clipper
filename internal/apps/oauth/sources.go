@@ -49,12 +49,14 @@ type AuthSourceView struct {
 	ClientSecretConfigured bool   `json:"client_secret_configured"`
 }
 
-// OAuthAuthorizeResponse 授权 URL 响应
+// AuthorizeResponse 授权 URL 响应
+//nolint:revive // OAuth 前缀保持包内语义清晰
 type OAuthAuthorizeResponse struct {
 	AuthorizeURL string `json:"authorize_url"`
 }
 
-// OAuthCallbackResult 回调处理结果
+// CallbackResult 回调处理结果
+//nolint:revive // OAuth 前缀保持包内语义清晰
 type OAuthCallbackResult struct {
 	Status string         `json:"status"`
 	User   *BasicUserInfo `json:"user,omitempty"`
@@ -66,6 +68,7 @@ type CallbackRequest struct {
 	Code  string `json:"code" binding:"required"`
 }
 
+// GetUserIDFromSession 从 Session 中提取用户 ID
 func GetUserIDFromSession(s sessions.Session) uint64 {
 	userID, ok := s.Get(UserIDKey).(uint64)
 	if !ok {
@@ -74,6 +77,7 @@ func GetUserIDFromSession(s sessions.Session) uint64 {
 	return userID
 }
 
+// GetUserIDFromContext 从 Gin Context 的 Session 中提取用户 ID
 func GetUserIDFromContext(c *gin.Context) uint64 {
 	session := sessions.Default(c)
 	return GetUserIDFromSession(session)
@@ -210,17 +214,8 @@ func buildOAuthUserInfo(ctx context.Context, source *model.AuthSource, code stri
 
 	userInfo := &model.OAuthUserInfo{Active: true}
 	if verifier != nil {
-		if rawIDToken, ok := token.Extra("id_token").(string); ok {
-			idToken, verifyErr := verifier.Verify(ctx, rawIDToken)
-			if verifyErr != nil {
-				return nil, fmt.Errorf(IDTokenVerifyFailedFormat, IDTokenVerifyFailed, verifyErr)
-			}
-			if nonce != "" && idToken.Nonce != nonce {
-				return nil, errors.New(NonceMismatch)
-			}
-			if claimsErr := idToken.Claims(userInfo); claimsErr != nil {
-				return nil, claimsErr
-			}
+		if verifyErr := verifyIDToken(ctx, verifier, token, nonce, userInfo); verifyErr != nil {
+			return nil, verifyErr
 		}
 	}
 
@@ -240,12 +235,31 @@ func buildOAuthUserInfo(ctx context.Context, source *model.AuthSource, code stri
 	return userInfo, nil
 }
 
+// verifyIDToken 验证 OIDC ID Token 并将 Claims 解析到 userInfo
+func verifyIDToken(ctx context.Context, verifier *oidc.IDTokenVerifier, token *oauth2.Token, nonce string, userInfo *model.OAuthUserInfo) error {
+	rawIDToken, ok := token.Extra("id_token").(string)
+	if !ok {
+		return nil
+	}
+	idToken, verifyErr := verifier.Verify(ctx, rawIDToken)
+	if verifyErr != nil {
+		return fmt.Errorf(IDTokenVerifyFailedFormat, IDTokenVerifyFailed, verifyErr)
+	}
+	if nonce != "" && idToken.Nonce != nonce {
+		return errors.New(NonceMismatch)
+	}
+	if claimsErr := idToken.Claims(userInfo); claimsErr != nil {
+		return claimsErr
+	}
+	return nil
+}
+
 func normalizeOAuthUserInfo(userInfo *model.OAuthUserInfo) error {
 	userInfo.Username = strings.TrimSpace(userInfo.Username)
 	userInfo.PreferredUsername = strings.TrimSpace(userInfo.PreferredUsername)
 	userInfo.Email = strings.TrimSpace(userInfo.Email)
 	userInfo.Name = strings.TrimSpace(userInfo.Name)
-	userInfo.AvatarUrl = strings.TrimSpace(userInfo.AvatarUrl)
+	userInfo.AvatarURL = strings.TrimSpace(userInfo.AvatarURL)
 
 	if userInfo.Username == "" && userInfo.PreferredUsername != "" {
 		userInfo.Username = userInfo.PreferredUsername
@@ -446,32 +460,44 @@ func Callback(c *gin.Context) {
 		userInfo.Sub = userInfo.Username
 	}
 
-	var user model.User
 	if payload.Purpose == OAuthPurposeBind {
-		userID := GetUserIDFromContext(c)
-		if userID == 0 {
-			c.JSON(http.StatusUnauthorized, util.Err(common.UnAuthorized))
-			return
-		}
-		if err := db.DB(ctx).First(&user, "id = ?", userID).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, util.Err(err.Error()))
-			return
-		}
-		if err := model.BindExternalAccount(&model.ExternalAccount{
-			AuthSourceID:     source.ID,
-			UserID:           user.ID,
-			ExternalID:       userInfo.Sub,
-			ExternalUsername: userInfo.Username,
-			Email:            userInfo.Email,
-		}); err != nil {
-			c.JSON(http.StatusBadRequest, util.Err(err.Error()))
-			return
-		}
-		user.LastLoginAt = time.Now()
-		_ = db.DB(ctx).Model(&user).Update("last_login_at", user.LastLoginAt).Error
-		c.JSON(http.StatusOK, util.OK(buildCallbackResult(&user, "bound")))
+		handleCallbackBind(ctx, c, source, userInfo)
 		return
 	}
+
+	handleCallbackLogin(ctx, c, source, userInfo)
+}
+
+// handleCallbackBind 处理 OAuth 回调中的帐号绑定流程
+func handleCallbackBind(ctx context.Context, c *gin.Context, source *model.AuthSource, userInfo *model.OAuthUserInfo) {
+	userID := GetUserIDFromContext(c)
+	if userID == 0 {
+		c.JSON(http.StatusUnauthorized, util.Err(common.UnAuthorized))
+		return
+	}
+	var user model.User
+	if err := db.DB(ctx).First(&user, "id = ?", userID).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, util.Err(err.Error()))
+		return
+	}
+	if err := model.BindExternalAccount(&model.ExternalAccount{
+		AuthSourceID:     source.ID,
+		UserID:           user.ID,
+		ExternalID:       userInfo.Sub,
+		ExternalUsername: userInfo.Username,
+		Email:            userInfo.Email,
+	}); err != nil {
+		c.JSON(http.StatusBadRequest, util.Err(err.Error()))
+		return
+	}
+	user.LastLoginAt = time.Now()
+	_ = db.DB(ctx).Model(&user).Update("last_login_at", user.LastLoginAt).Error
+	c.JSON(http.StatusOK, util.OK(buildCallbackResult(&user, "bound")))
+}
+
+// handleCallbackLogin 处理 OAuth 回调中的登录流程（查找已有帐号或自动注册）
+func handleCallbackLogin(ctx context.Context, c *gin.Context, source *model.AuthSource, userInfo *model.OAuthUserInfo) {
+	var user model.User
 
 	account, err := model.FindExternalAccount(source.ID, userInfo.Sub)
 	switch {
@@ -481,47 +507,11 @@ func Callback(c *gin.Context) {
 			return
 		}
 	case errors.Is(err, gorm.ErrRecordNotFound):
-		// 检查系统是否允许注册
-		registrationEnabled, regErr := model.GetBoolByKey(ctx, model.ConfigKeyRegistrationEnabled)
-		if regErr != nil {
-			registrationEnabled = true // 默认允许注册
-		}
-
-		if !registrationEnabled {
-			// 如果不允许注册，临时记录到 session 并向前端返回 "need_bind" 状态
-			session := sessions.Default(c)
-			session.Set(PendingOAuthSourceIDKey, source.ID)
-			session.Set(PendingOAuthExternalIDKey, userInfo.Sub)
-			session.Set(PendingOAuthExternalUsernameKey, userInfo.Username)
-			session.Set(PendingOAuthEmailKey, userInfo.Email)
-			if err := session.Save(); err != nil {
-				c.JSON(http.StatusInternalServerError, util.Err(err.Error()))
-				return
-			}
-			c.JSON(http.StatusOK, util.OK(buildCallbackResult(nil, "need_bind")))
+		newUser, ok := handleCallbackRegister(ctx, c, source, userInfo)
+		if !ok {
 			return
 		}
-
-		username, uniqueErr := uniqueUsername(ctx, userInfo.Username)
-		if uniqueErr != nil {
-			c.JSON(http.StatusInternalServerError, util.Err(uniqueErr.Error()))
-			return
-		}
-		userInfo.Username = username
-		if err := user.CreateUser(ctx, db.DB(ctx), userInfo); err != nil {
-			c.JSON(http.StatusInternalServerError, util.Err(err.Error()))
-			return
-		}
-		if err := model.BindExternalAccount(&model.ExternalAccount{
-			AuthSourceID:     source.ID,
-			UserID:           user.ID,
-			ExternalID:       userInfo.Sub,
-			ExternalUsername: userInfo.Username,
-			Email:            userInfo.Email,
-		}); err != nil {
-			c.JSON(http.StatusBadRequest, util.Err(err.Error()))
-			return
-		}
+		user = newUser
 	default:
 		c.JSON(http.StatusInternalServerError, util.Err(err.Error()))
 		return
@@ -533,8 +523,54 @@ func Callback(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, util.Err(err.Error()))
 		return
 	}
-
 	c.JSON(http.StatusOK, util.OK(buildCallbackResult(&user, "logged_in")))
+}
+
+// handleCallbackRegister 处理 OAuth 回调中的自动注册流程
+// 若注册被禁用则保存 pending 信息并返回 false；若注册成功则返回新用户；若出错则返回 false
+func handleCallbackRegister(ctx context.Context, c *gin.Context, source *model.AuthSource, userInfo *model.OAuthUserInfo) (model.User, bool) {
+	registrationEnabled, regErr := model.GetBoolByKey(ctx, model.ConfigKeyRegistrationEnabled)
+	if regErr != nil {
+		registrationEnabled = true
+	}
+
+	if !registrationEnabled {
+		session := sessions.Default(c)
+		session.Set(PendingOAuthSourceIDKey, source.ID)
+		session.Set(PendingOAuthExternalIDKey, userInfo.Sub)
+		session.Set(PendingOAuthExternalUsernameKey, userInfo.Username)
+		session.Set(PendingOAuthEmailKey, userInfo.Email)
+		if err := session.Save(); err != nil {
+			c.JSON(http.StatusInternalServerError, util.Err(err.Error()))
+			return model.User{}, false
+		}
+		c.JSON(http.StatusOK, util.OK(buildCallbackResult(nil, "need_bind")))
+		return model.User{}, false
+	}
+
+	username, uniqueErr := uniqueUsername(ctx, userInfo.Username)
+	if uniqueErr != nil {
+		c.JSON(http.StatusInternalServerError, util.Err(uniqueErr.Error()))
+		return model.User{}, false
+	}
+	userInfo.Username = username
+
+	var user model.User
+	if err := user.CreateUser(ctx, db.DB(ctx), userInfo); err != nil {
+		c.JSON(http.StatusInternalServerError, util.Err(err.Error()))
+		return model.User{}, false
+	}
+	if err := model.BindExternalAccount(&model.ExternalAccount{
+		AuthSourceID:     source.ID,
+		UserID:           user.ID,
+		ExternalID:       userInfo.Sub,
+		ExternalUsername: userInfo.Username,
+		Email:            userInfo.Email,
+	}); err != nil {
+		c.JSON(http.StatusBadRequest, util.Err(err.Error()))
+		return model.User{}, false
+	}
+	return user, true
 }
 
 // ListExternalAccounts 获取当前用户的外部帐号绑定列表

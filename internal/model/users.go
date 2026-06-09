@@ -31,20 +31,20 @@ import (
 
 // OAuthUserInfo 用户信息结构（同时支持 OIDC ID Token claims 和 UserEndpoint 响应）
 type OAuthUserInfo struct {
-	Id                uint64 `json:"id"`
+	ID                uint64 `json:"id"`
 	Sub               string `json:"sub"`
 	Username          string `json:"username"`
 	PreferredUsername string `json:"preferred_username"`
 	Email             string `json:"email"`
 	Name              string `json:"name"`
 	Active            bool   `json:"active"`
-	AvatarUrl         string `json:"avatar_url"`
+	AvatarURL         string `json:"avatar_url"`
 }
 
 // GetID 获取用户 ID
 func (u *OAuthUserInfo) GetID() uint64 {
-	if u.Id != 0 {
-		return u.Id
+	if u.ID != 0 {
+		return u.ID
 	}
 	// 从 sub 解析（OIDC 格式）
 	if u.Sub != "" {
@@ -55,13 +55,14 @@ func (u *OAuthUserInfo) GetID() uint64 {
 	return 0
 }
 
+// User 用户表实体
 type User struct {
 	ID          uint64    `json:"id" gorm:"primaryKey"`
 	Username    string    `json:"username" gorm:"size:64;uniqueIndex"`
 	Password    string    `json:"password,omitempty" gorm:"size:255"`
 	Nickname    string    `json:"nickname" gorm:"size:255"`
 	Email       string    `json:"email" gorm:"size:255;index"`
-	AvatarUrl   string    `json:"avatar_url" gorm:"size:255"`
+	AvatarURL   string    `json:"avatar_url" gorm:"size:255"`
 	IsActive    bool      `json:"is_active" gorm:"default:true;index"`
 	IsAdmin     bool      `json:"is_admin" gorm:"default:false"`
 	Bio         string    `json:"bio" gorm:"size:500"`
@@ -74,11 +75,13 @@ type User struct {
 	UpdatedAt   time.Time `json:"updated_at" gorm:"autoUpdateTime;index"`
 }
 
+// SetPassword 设置明文密码
 func (u *User) SetPassword(password string) error {
 	u.Password = password
 	return nil
 }
 
+// SetEncryptedPassword 设置加密密码
 func (u *User) SetEncryptedPassword(password string) error {
 	if password == "" {
 		u.Password = ""
@@ -92,10 +95,12 @@ func (u *User) SetEncryptedPassword(password string) error {
 	return nil
 }
 
+// IsPasswordEncrypted 检查密码是否已加密
 func (u *User) IsPasswordEncrypted() bool {
 	return strings.HasPrefix(u.Password, "$2a$") || strings.HasPrefix(u.Password, "$2b$") || strings.HasPrefix(u.Password, "$2y$")
 }
 
+// CheckPassword 验证密码是否匹配
 func (u *User) CheckPassword(password string) bool {
 	if u.Password == "" || password == "" {
 		return false
@@ -106,6 +111,7 @@ func (u *User) CheckPassword(password string) bool {
 	return u.Password == password
 }
 
+// GetByID 根据 ID 查询用户
 func (u *User) GetByID(tx *gorm.DB, id uint64) error {
 	if err := tx.Where("id = ?", id).First(u).Error; err != nil {
 		return err
@@ -118,7 +124,7 @@ func (u *User) UpdateFromOAuthInfo(oauthInfo *OAuthUserInfo) {
 	u.Username = oauthInfo.Username
 	u.Nickname = oauthInfo.Name
 	u.Email = oauthInfo.Email
-	u.AvatarUrl = oauthInfo.AvatarUrl
+	u.AvatarURL = oauthInfo.AvatarURL
 	u.IsActive = oauthInfo.Active
 	u.LastLoginAt = time.Now()
 }
@@ -144,7 +150,7 @@ func (u *User) CreateUser(ctx context.Context, tx *gorm.DB, oauthInfo *OAuthUser
 		Username:    oauthInfo.Username,
 		Nickname:    oauthInfo.Name,
 		Email:       oauthInfo.Email,
-		AvatarUrl:   oauthInfo.AvatarUrl,
+		AvatarURL:   oauthInfo.AvatarURL,
 		IsActive:    oauthInfo.Active,
 		LastLoginAt: now,
 		IsAdmin:     false,

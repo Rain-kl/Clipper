@@ -15,6 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package cmd 提供 CLI 命令入口
 package cmd
 
 import (
@@ -30,7 +31,7 @@ import (
 var allCmd = &cobra.Command{
 	Use:   "all",
 	Short: "以融合模式同时启动 API、Worker 和 Scheduler",
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(_ *cobra.Command, _ []string) {
 		log.Println("[All] 融合模式启动")
 
 		var wg sync.WaitGroup

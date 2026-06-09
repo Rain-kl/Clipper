@@ -28,7 +28,7 @@ import (
 var schedulerCmd = &cobra.Command{
 	Use:   "scheduler",
 	Short: "wavelet Scheduler",
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(_ *cobra.Command, _ []string) {
 		log.Println("[Scheduler] 启动定时任务调度服务")
 		if err := scheduler.StartScheduler(); err != nil {
 			log.Fatalf("[调度器] 启动失败: %v", err)

@@ -40,6 +40,7 @@ type loginRequiredAuditLog struct {
 	Referer    string `json:"referer"`
 }
 
+// LoginRequired 返回登录鉴权中间件，校验 Access Token 或 Session
 func LoginRequired() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// init trace
@@ -73,14 +74,14 @@ func LoginRequired() gin.HandlerFunc {
 
 		if !authenticated {
 			// load user from session
-			userId := GetUserIDFromContext(c)
-			if userId <= 0 {
+			userID := GetUserIDFromContext(c)
+			if userID <= 0 {
 				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error_msg": common.UnAuthorized, "data": nil})
 				return
 			}
 
 			// load user from db to make sure is active
-			tx := db.DB(ctx).Where("id = ? AND is_active = ?", userId, true).First(&user)
+			tx := db.DB(ctx).Where("id = ? AND is_active = ?", userID, true).First(&user)
 			if tx.Error != nil {
 				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error_msg": common.UnAuthorized, "data": nil})
 				return

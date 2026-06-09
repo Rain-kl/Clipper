@@ -60,7 +60,8 @@ func NewMemoryStore(cleanupInterval time.Duration) *MemoryStore {
 	return store
 }
 
-func (s *MemoryStore) Get(ctx context.Context, key string) (string, bool, error) {
+// Get 从 MemoryStore 获取指定 key 的值
+func (s *MemoryStore) Get(_ context.Context, key string) (string, bool, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.getLocked(key)
@@ -79,7 +80,8 @@ func (s *MemoryStore) getLocked(key string) (string, bool, error) {
 	return item.value, true, nil
 }
 
-func (s *MemoryStore) Set(ctx context.Context, key string, val string, ttl time.Duration) error {
+// Set 向 MemoryStore 写入指定 key 的值
+func (s *MemoryStore) Set(_ context.Context, key string, val string, ttl time.Duration) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.items[key] = memoryItem{
@@ -89,7 +91,8 @@ func (s *MemoryStore) Set(ctx context.Context, key string, val string, ttl time.
 	return nil
 }
 
-func (s *MemoryStore) Delete(ctx context.Context, key string) error {
+// Delete 从 MemoryStore 删除指定 key
+func (s *MemoryStore) Delete(_ context.Context, key string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	delete(s.items, key)
@@ -98,7 +101,7 @@ func (s *MemoryStore) Delete(ctx context.Context, key string) error {
 
 // SetNX atomically sets key only when it is absent (or expired).
 // Returns true if the key was written by this call.
-func (s *MemoryStore) SetNX(ctx context.Context, key string, val string, ttl time.Duration) (bool, error) {
+func (s *MemoryStore) SetNX(_ context.Context, key string, val string, ttl time.Duration) (bool, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -114,7 +117,7 @@ func (s *MemoryStore) SetNX(ctx context.Context, key string, val string, ttl tim
 }
 
 // GetAndDelete atomically retrieves and removes key in one critical section.
-func (s *MemoryStore) GetAndDelete(ctx context.Context, key string) (string, bool, error) {
+func (s *MemoryStore) GetAndDelete(_ context.Context, key string) (string, bool, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -156,6 +159,7 @@ func NewRedisStore(client redis.UniversalClient) *RedisStore {
 	}
 }
 
+// Get 从 RedisStore 获取指定 key 的值
 func (s *RedisStore) Get(ctx context.Context, key string) (string, bool, error) {
 	val, err := s.client.Get(ctx, key).Result()
 	if err == redis.Nil {
@@ -167,10 +171,12 @@ func (s *RedisStore) Get(ctx context.Context, key string) (string, bool, error) 
 	return val, true, nil
 }
 
+// Set 向 RedisStore 写入指定 key 的值
 func (s *RedisStore) Set(ctx context.Context, key string, val string, ttl time.Duration) error {
 	return s.client.Set(ctx, key, val, ttl).Err()
 }
 
+// Delete 从 RedisStore 删除指定 key
 func (s *RedisStore) Delete(ctx context.Context, key string) error {
 	return s.client.Del(ctx, key).Err()
 }

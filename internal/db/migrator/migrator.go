@@ -15,6 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package migrator 提供数据库自动迁移功能
 package migrator
 
 import (
@@ -37,6 +38,7 @@ func dbType() string {
 	return "PostgreSQL"
 }
 
+// Migrate 执行数据库自动迁移，初始化系统配置、默认管理员和内置模板
 func Migrate() {
 	if err := db.DB(context.Background()).AutoMigrate(
 		&model.User{},
@@ -276,7 +278,7 @@ func initDefaultAdmin() {
 		Username:    "admin",
 		Password:    "12345678", // 密码使用明文存储
 		Nickname:    "Administrator",
-		AvatarUrl:   "",
+		AvatarURL:   "",
 		IsActive:    true,
 		IsAdmin:     true,
 		LastLoginAt: time.Now(),

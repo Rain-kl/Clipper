@@ -17,10 +17,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package router 提供 HTTP 路由注册与服务启动
 package router
 
 import "github.com/gin-gonic/gin"
 
-func registerFrontend(r *gin.Engine) {
+func registerFrontend(_ *gin.Engine) {
 	// No-op when not embedding frontend
 }

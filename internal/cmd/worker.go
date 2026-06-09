@@ -28,7 +28,7 @@ import (
 var workerCmd = &cobra.Command{
 	Use:   "worker",
 	Short: "wavelet Worker",
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(_ *cobra.Command, _ []string) {
 		log.Println("[Worker] 启动任务处理服务")
 		if err := worker.StartWorker(); err != nil {
 			log.Fatalf("[工作器] 启动失败: %v", err)

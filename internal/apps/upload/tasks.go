@@ -33,9 +33,9 @@ import (
 type CleanupUnusedUploadsHandler struct{}
 
 // Execute 执行清理未使用上传文件的业务逻辑
-func (h *CleanupUnusedUploadsHandler) Execute(ctx context.Context, payload []byte) (*task.TaskResult, error) {
+func (h *CleanupUnusedUploadsHandler) Execute(ctx context.Context, _ []byte) (*task.TaskResult, error) {
 	const batchSize = 100 // 每批处理100个文件
-	var lastID uint64 = 0
+	var lastID uint64
 	var totalProcessed int
 	var totalDeleted int
 

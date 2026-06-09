@@ -353,33 +353,7 @@ func ListUsers(c *gin.Context) {
 
 ### 4.1 组件样式规范
 
-**基础组件必须遵循系统的色彩主题系统。** 所有基于 shadcn/ui 的基础组件（Button、Dialog、Input 等）应使用组件内置 of `variant` 属性来控制样式，禁止通过 `className` 手写颜色或背景等样式。
-
-**错误示例（禁止）**：
-```tsx
-// ❌ 禁止通过 className 手写颜色、背景、阴影等样式
-<Button
-  type="button"
-  size="sm"
-  className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-600/10 transition-colors"
->
-  <Plus className="mr-1.5 size-3.5" />
-  新增认证源
-</Button>
-```
-
-**正确示例**：
-```tsx
-// ✅ 使用 variant 属性，让组件遵循系统主题
-<Button
-  type="button"
-  size="sm"
-  variant="secondary"
->
-  <Plus className="mr-1.5 size-3.5" />
-  新增认证源
-</Button>
-```
+**基础组件必须遵循系统的色彩主题系统。** 所有基于 shadcn/ui 的基础组件（Button、Dialog、Input 等）应使用组件内置 of `variant` 属性来控制样式，禁止通过 className 手写颜色、背景、阴影等样式。
 
 > **原则**：组件的视觉表现由 shadcn/ui 的 variant 系统和全局 CSS 变量统一控制，保持应用内所有页面风格一致。如现有 variant 无法满足需求，应扩展 shadcn/ui 组件的 variant 定义，而非在业务代码中硬编码颜色值。
 

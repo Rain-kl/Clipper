@@ -45,6 +45,7 @@ import (
 	"github.com/Rain-kl/Wavelet/internal/util"
 	capUtil "github.com/Rain-kl/Wavelet/internal/util/cap"
 
+	// Swagger 文档生成
 	_ "github.com/Rain-kl/Wavelet/docs"
 	"github.com/Rain-kl/Wavelet/internal/apps/admin/system_config"
 	"github.com/Rain-kl/Wavelet/internal/apps/oauth"
@@ -58,6 +59,7 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 )
 
+// Serve 启动 HTTP API 服务
 func Serve() {
 	// 运行模式
 	if config.Config.App.IsProduction() {
@@ -267,13 +269,15 @@ func Serve() {
 	<-quit
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), time.Duration(config.Config.App.GracefulShutdownTimeout)*time.Second)
-	defer cancel()
 
 	otel_trace.Shutdown(shutdownCtx)
 
 	if err := srv.Shutdown(shutdownCtx); err != nil {
-		log.Fatalf("[API] server forced to shutdown: %v\n", err)
+		log.Printf("[API] server forced to shutdown: %v\n", err)
+		cancel()
+		os.Exit(1)
 	}
+	cancel()
 
 	log.Println("[API] server exited")
 }

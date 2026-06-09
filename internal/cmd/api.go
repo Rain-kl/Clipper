@@ -25,7 +25,7 @@ import (
 var apiCmd = &cobra.Command{
 	Use:   "api",
 	Short: "wavelet API",
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(_ *cobra.Command, _ []string) {
 		router.Serve()
 	},
 }

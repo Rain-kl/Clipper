@@ -26,10 +26,10 @@ import (
 
 var rootCmd = &cobra.Command{
 	Use: "wavelet",
-	PreRun: func(cmd *cobra.Command, args []string) {
+	PreRun: func(_ *cobra.Command, _ []string) {
 		migrator.Migrate()
 	},
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(_ *cobra.Command, args []string) {
 		// 无参数时默认以融合模式启动所有服务
 		if len(args) == 0 {
 			allCmd.Run(allCmd, args)
@@ -55,6 +55,7 @@ func init() {
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
 }
 
+// Execute 执行根命令
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
 		log.Fatalf("[CMD] execute failed; %s\n", err)

@@ -22,12 +22,13 @@ import (
 	"github.com/gin-contrib/sessions"
 )
 
+// GetSessionOptions 根据配置构建 Session 选项
 func GetSessionOptions(maxAge int) sessions.Options {
 	return sessions.Options{
 		Path:     "/",
 		Domain:   config.Config.App.SessionDomain,
 		MaxAge:   maxAge,
-		HttpOnly: config.Config.App.SessionHttpOnly,
+		HttpOnly: config.Config.App.SessionHTTPOnly,
 		Secure:   config.Config.App.SessionSecure,
 	}
 }

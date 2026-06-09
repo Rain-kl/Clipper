@@ -24,7 +24,7 @@ build-test:
 	@PIDS=""; \
 	STATUS=0; \
 	( cd frontend && pnpm build 2>&1 | sed 's/^/[frontend] /' ) & PIDS="$$PIDS $$!"; \
-	( go build -o /dev/null ./... 2>&1 | sed 's/^/[backend]  /' ) & PIDS="$$PIDS $$!"; \
+	( go test ./... && go build -o /dev/null ./... 2>&1 | sed 's/^/[backend]  /' ) & PIDS="$$PIDS $$!"; \
 	for PID in $$PIDS; do \
 		wait $$PID || STATUS=1; \
 	done; \
