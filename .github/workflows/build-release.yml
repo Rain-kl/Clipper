@@ -21,6 +21,12 @@ env:
   FRONTEND_BUILD_COMMAND: pnpm build:embed
   FRONTEND_OUT_DIR: frontend/out
   EMBED_DIST_DIR: internal/router/dist
+  EXTRA_FILES: |
+    LICENSE
+    README.md
+    README_zh.md
+    config.example.yaml
+    DEPLOYMENT_zh.md
 
 permissions:
   contents: write
@@ -152,16 +158,19 @@ jobs:
         include:
           - goos: linux
             goarch: amd64
+            archive: tar.gz
           - goos: linux
             goarch: arm64
+            archive: tar.gz
           - goos: darwin
             goarch: amd64
+            archive: tar.gz
           - goos: darwin
             goarch: arm64
+            archive: tar.gz
           - goos: windows
             goarch: amd64
-          - goos: windows
-            goarch: arm64
+            archive: zip
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -181,7 +190,6 @@ jobs:
       - name: Build binary
         shell: bash
         env:
-          VERSION: ${{ needs.create-release.outputs.version }}
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
           CGO_ENABLED: "0"
@@ -196,7 +204,7 @@ jobs:
 
           build_args=(
             -trimpath
-            -ldflags "$GO_LDFLAGS -X github.com/Rain-kl/Wavelet/internal/cmd.Version=$VERSION"
+            -ldflags "$GO_LDFLAGS"
             -o "dist/$binary_name"
           )
 
@@ -206,25 +214,42 @@ jobs:
 
           go build "${build_args[@]}" "$GO_MAIN"
 
-      - name: Rename binary for release
+      - name: Package artifact
         id: package
         shell: bash
         env:
           VERSION: ${{ needs.create-release.outputs.version }}
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
+          ARCHIVE_FORMAT: ${{ matrix.archive }}
         run: |
           set -euo pipefail
 
+          package_name="${APP_NAME}_${VERSION}_${GOOS}_${GOARCH}"
+          staging_dir="dist/$package_name"
+          mkdir -p "$staging_dir"
+
           if [[ "$GOOS" == "windows" ]]; then
-            src="dist/${APP_NAME}.exe"
-            artifact="dist/${APP_NAME}_${VERSION}_${GOOS}_${GOARCH}.exe"
+            cp "dist/${APP_NAME}.exe" "$staging_dir/"
           else
-            src="dist/${APP_NAME}"
-            artifact="dist/${APP_NAME}_${VERSION}_${GOOS}_${GOARCH}"
+            cp "dist/${APP_NAME}" "$staging_dir/"
           fi
 
-          mv "$src" "$artifact"
+          while IFS= read -r extra_file; do
+            [[ -z "$extra_file" ]] && continue
+            if [[ -e "$extra_file" ]]; then
+              cp -R "$extra_file" "$staging_dir/"
+            fi
+          done <<< "$EXTRA_FILES"
+
+          if [[ "$ARCHIVE_FORMAT" == "zip" ]]; then
+            (cd dist && zip -r "${package_name}.zip" "$package_name")
+            artifact="dist/${package_name}.zip"
+          else
+            tar -C dist -czf "dist/${package_name}.tar.gz" "$package_name"
+            artifact="dist/${package_name}.tar.gz"
+          fi
+
           echo "artifact=$artifact" >> "$GITHUB_OUTPUT"
 
       - name: Upload release artifact
