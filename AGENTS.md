@@ -11,6 +11,9 @@ specialized workflows still live in `.agent/skills/`.
 - `new-setting`: use when adding or changing startup config, database-backed
   system/business/public settings, `/admin/system` parameters, or
   `/admin/settings` graphical settings.
+- `database-migration`: use when adding or changing database schema, indexes,
+  seed data, system config defaults, template defaults, default admin data,
+  goose SQL migrations, or the database upgrade flow.
 - Go skills: use the focused `go-*` skills for Go implementation details such
   as testing, error handling, packages, context, concurrency, logging,
   documentation, and review.
@@ -73,7 +76,7 @@ Backend:
 - `internal/apps/`: feature modules and HTTP handlers.
 - `internal/model/`: GORM entities and model-level business methods.
 - `internal/db/`: PostgreSQL, Redis, ClickHouse, GORM logging, ID generation,
-  and AutoMigrate wiring.
+  and goose SQL migration wiring.
 - `internal/storage/`: S3-compatible storage and cache abstraction.
 - `internal/task/`: Asynq task framework; see `new-async-task` for changes.
 - `internal/service/`: complex business services when handlers/models are too
@@ -163,7 +166,8 @@ Database:
 - Admin code should prefer `db.DB(ctx)` to get tracing-aware DB access.
 - Do not put complex SQL in handlers; move it to `internal/model/` or
   `internal/service/`.
-- Use AutoMigrate wiring under `internal/db/migrator/`; do not add manual DDL.
+- Use goose SQL migrations under `internal/db/migrator/goose/`; do not add
+  GORM AutoMigrate-based schema upgrades.
 - Do not create physical database foreign keys. Add explicit indexes for
   relation fields instead.
 - Database defaults must match Go model zero values (`nil`, `0`, `false`, `""`)
@@ -181,7 +185,7 @@ Strict dependency guard:
 Admin module workflow:
 
 1. Define or extend models in `internal/model/`.
-2. Register AutoMigrate changes under `internal/db/migrator/`.
+2. Add goose SQL migrations under `internal/db/migrator/goose/`.
 3. Create `internal/apps/admin/<module>/routers.go` and optional `errs.go`.
 4. Register routes in `internal/router/router.go`.
 5. Run `make swagger`.
