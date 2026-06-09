@@ -32,6 +32,8 @@ Admin dispatch -> ValidateAndNormalizePayload -> DispatchTask
 
 按任务影响面选择对应步骤。不要只改其中一条链路。
 
+> 需要可复制的代码模板时，阅读 [references/CODE-EXAMPLES.md](references/CODE-EXAMPLES.md)。那里包含任务常量、无参数 handler、带参数 `PayloadValidator`、统一注册、Worker 路由、Cron 配置和测试示例。
+
 1. 定义任务元数据。
    - 在 `internal/task/constants.go` 添加 Asynq task type 常量，例如 `upload:cleanup_unused`。
    - 添加 Admin 可下发 task type 常量，例如 `cleanup_unused_uploads`。
@@ -69,73 +71,14 @@ Admin dispatch -> ValidateAndNormalizePayload -> DispatchTask
 
 ## Handler 模式
 
-无参数任务：
-
-```go
-type CleanupUnusedUploadsHandler struct{}
-
-func (h *CleanupUnusedUploadsHandler) Execute(ctx context.Context, payload []byte) (*task.TaskResult, error) {
-    task.AppendLog(ctx, "开始扫描未使用上传")
-
-    // 调用 model/service 完成业务逻辑。
-
-    msg := "清理完成"
-    task.AppendLog(ctx, "%s", msg)
-    return &task.TaskResult{Message: msg}, nil
-}
-```
-
-带参数任务：
-
-```go
-type SendEmailPayload struct {
-    To      string `json:"to"`
-    Subject string `json:"subject"`
-    Body    string `json:"body"`
-}
-
-type SendEmailHandler struct{}
-
-func (h *SendEmailHandler) ValidatePayload(payload []byte) ([]byte, error) {
-    if len(payload) == 0 {
-        return nil, errors.New("任务参数不能为空")
-    }
-
-    var req SendEmailPayload
-    if err := json.Unmarshal(payload, &req); err != nil {
-        return nil, fmt.Errorf("无效的 JSON 格式: %w", err)
-    }
-
-    req.To = strings.TrimSpace(req.To)
-    req.Subject = strings.TrimSpace(req.Subject)
-    req.Body = strings.TrimSpace(req.Body)
-    if req.To == "" || req.Subject == "" || req.Body == "" {
-        return nil, errors.New("to、subject、body 不能为空")
-    }
-
-    return json.Marshal(req)
-}
-
-func (h *SendEmailHandler) Execute(ctx context.Context, payload []byte) (*task.TaskResult, error) {
-    var req SendEmailPayload
-    if err := json.Unmarshal(payload, &req); err != nil {
-        return nil, fmt.Errorf("解析参数失败: %w", err)
-    }
-
-    task.AppendLog(ctx, "开始发送邮件到: %s", req.To)
-
-    msg := fmt.Sprintf("邮件成功发送至: %s", req.To)
-    task.AppendLog(ctx, "%s", msg)
-    return &task.TaskResult{Message: msg}, nil
-}
-```
-
 约定：
 
 - `ValidatePayload` 是 Admin 下发时的服务端校验入口，返回值会作为标准化 payload 存库和入队。
 - `TaskParam` 只是前端表单元数据，不代替服务端校验。
 - 成功返回 `&task.TaskResult{Message: "...", Detail: "..."}`；失败返回 `nil, fmt.Errorf("...")`，由 `ProcessTask` 标记失败并交给 Asynq 重试。
 - 错误要返回给框架，不在 handler 内吞掉；可继续的单条失败可用 `AppendLog` 记录后继续处理。
+
+> 在新增无参数任务、带参数任务或 `PayloadValidator` 时，阅读 [references/CODE-EXAMPLES.md](references/CODE-EXAMPLES.md) 的 Handler 示例。
 
 ## AppendLog 规则
 
@@ -192,3 +135,11 @@ make code-check
 ```
 
 如涉及前端或整体构建，补跑 `make build-test`。测试中需要 Redis/Asynq 时，可用现有测试模式或 `miniredis`；不要为了测试便利把 `internal/task` 反向塞进通用 util/testhelper，避免 import cycle。
+
+## 相关 Skills
+
+- Go 错误处理：在设计 handler 返回错误、包装底层错误或避免“记录并返回”时，参见 [go-error-handling](../go-error-handling/SKILL.md)。
+- Go 测试：在编写 handler、dispatch 或 retry 单测时，参见 [go-testing](../go-testing/SKILL.md)。
+- Go context：在任务业务逻辑传播取消、超时或 request scoped 值时，参见 [go-context](../go-context/SKILL.md)。
+- Go logging：在决定任务日志、应用日志和日志级别边界时，参见 [go-logging](../go-logging/SKILL.md)。
+- shadcn：在修改 Admin 任务 UI 时，参见 [shadcn](../shadcn/SKILL.md)。
