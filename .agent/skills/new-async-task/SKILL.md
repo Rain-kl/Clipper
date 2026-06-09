@@ -7,6 +7,8 @@ description: "项目专用：指导如何在 wavelet 项目中新增异步任务
 
 本项目中异步任务基于 Asynq（Redis 任务队列）构建。开发者只需编写业务逻辑，框架负责执行记录、状态流转、日志、重试等全部外围工作。
 
+通用 Wavelet 目录、Handler、配置、数据库和前端规范见仓库根目录 `Agents.md`。本技能只覆盖异步任务相关规则。
+
 ## 架构概览
 
 ```
@@ -34,6 +36,18 @@ TaskHandler.Execute (← 你写这一步)
 - `internal/task/scheduler/scheduler.go` — Cron 定时调度
 - `internal/model/task_execution.go` — `TaskExecution` GORM 模型
 - `internal/apps/admin/task/routers.go` — 管理 API（下发、查询、重试）
+
+**队列优先级**：`webhook` > `whitelist_only` > `default`。
+
+**Admin 任务管理 API**：
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/api/v1/admin/tasks/types` | 获取可调度任务类型列表 |
+| POST | `/api/v1/admin/tasks/dispatch` | 手动下发任务 |
+| GET | `/api/v1/admin/tasks/executions` | 分页查询任务执行记录（支持 status / task_type 筛选） |
+| GET | `/api/v1/admin/tasks/executions/:id` | 查询单条任务执行详情（含完整 Log） |
+| POST | `/api/v1/admin/tasks/executions/:id/retry` | 重试失败任务（校验 Retryable && RetryCount < MaxRetry） |
 
 ## 新增任务的完整步骤
 
