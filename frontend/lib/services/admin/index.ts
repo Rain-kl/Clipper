@@ -40,4 +40,7 @@ export type {
   UpdateUserStatusRequest,
   SystemStatus,
   DatabaseInfo,
+  Schedule,
+  CreateScheduleRequest,
+  UpdateScheduleRequest,
 } from './types';

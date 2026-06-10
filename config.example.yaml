@@ -93,9 +93,6 @@ log:
   max_backups: 10
   compress: true
 
-# ─── Task Scheduler (Cron) ──────────────────────────────────────────────────────
-scheduler:
-  cleanup_unused_uploads_task_cron: "0 */2 * * *"   # Clean up orphaned upload records
 
 # ─── Async Task Worker ──────────────────────────────────────────────────────────
 worker:

@@ -110,6 +110,9 @@ export type {
   UpdateUserStatusRequest,
   SystemStatus,
   DatabaseInfo,
+  Schedule,
+  CreateScheduleRequest,
+  UpdateScheduleRequest,
 } from './admin';
 
 // 用户服务
