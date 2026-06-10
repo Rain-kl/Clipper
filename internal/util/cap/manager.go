@@ -1,18 +1,5 @@
-/*
-Copyright 2026 Arctel.net
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+// Copyright 2026 Arctel.net
+// SPDX-License-Identifier: Apache-2.0
 
 package cap
 
@@ -31,15 +18,15 @@ import (
 )
 
 const (
-	managerDefaultChallengeCount      = 1
-	managerDefaultChallengeSize       = 32
-	defaultChallengeDifficulty = 4
-	defaultChallengeTTL        = 10 * time.Minute
-	defaultTokenTTL            = 20 * time.Minute
-	redeemTokenIDLength        = 8  // 兑换 Token ID 字节长度
-	redeemVerTokenLength       = 15 // 兑换验证 Token 字节长度
-	tokenPartsCount            = 2  // 兑换 Token 由两部分组成
-	valuePartsCount            = 2  // 存储值由 scope 和过期时间组成
+	managerDefaultChallengeCount = 1
+	managerDefaultChallengeSize  = 32
+	defaultChallengeDifficulty   = 4
+	defaultChallengeTTL          = 10 * time.Minute
+	defaultTokenTTL              = 20 * time.Minute
+	redeemTokenIDLength          = 8  // 兑换 Token ID 字节长度
+	redeemVerTokenLength         = 15 // 兑换验证 Token 字节长度
+	tokenPartsCount              = 2  // 兑换 Token 由两部分组成
+	valuePartsCount              = 2  // 存储值由 scope 和过期时间组成
 )
 
 // Config holds settings for the CAPTCHA manager
