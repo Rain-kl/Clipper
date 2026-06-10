@@ -118,7 +118,11 @@ func getSQLiteOverview(gormDB *gorm.DB) (DBOverviewResponse, error) {
 
 	var sizeStr string
 	if fi, err := os.Stat(name); err == nil {
-		sizeStr = formatBytes(uint64(fi.Size()))
+		size := fi.Size()
+		if size < 0 {
+			size = 0
+		}
+		sizeStr = formatBytes(uint64(size))
 	} else {
 		sizeStr = "0 B"
 	}
@@ -160,7 +164,11 @@ func getPostgresOverview(gormDB *gorm.DB) (DBOverviewResponse, error) {
 	var sizeStr string
 	var sizeBytes sql.NullInt64
 	if err := gormDB.Raw("SELECT pg_database_size(current_database())").Scan(&sizeBytes).Error; err == nil && sizeBytes.Valid {
-		sizeStr = formatBytes(uint64(sizeBytes.Int64))
+		size := sizeBytes.Int64
+		if size < 0 {
+			size = 0
+		}
+		sizeStr = formatBytes(uint64(size))
 	} else {
 		sizeStr = "0 B"
 	}

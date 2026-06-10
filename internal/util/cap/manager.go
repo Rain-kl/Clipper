@@ -94,7 +94,7 @@ func (m *Manager) Redeem(ctx context.Context, token string, solutions []int, sco
 	// TTL is set to the challenge's remaining lifetime so the slot auto-expires.
 	payload, err := VerifyChallengeSolutions(token, solutions, m.conf.Secret, scope)
 	if err != nil {
-		return &RedeemResponse{Success: false, Error: err.Error()}, nil
+		return &RedeemResponse{Success: false, Error: err.Error()}, nil //nolint:nilerr // expected behavior: validation error is returned as response, not system error
 	}
 
 	// Calculate remaining lifetime of the challenge JWT for the nonce TTL.
@@ -174,7 +174,7 @@ func (m *Manager) VerifyToken(ctx context.Context, token string, expectedScope s
 
 	expNano, err := strconv.ParseInt(valParts[0], 10, 64)
 	if err != nil {
-		return false, nil
+		return false, nil //nolint:nilerr // expected behavior: invalid format is treated as validation failure, not system error
 	}
 	tokenScope := valParts[1]
 

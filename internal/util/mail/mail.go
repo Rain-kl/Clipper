@@ -6,6 +6,7 @@ package mail
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"fmt"
 	"net"
@@ -29,12 +30,12 @@ type Config struct {
 }
 
 // SendMail sends an HTML email using the provided config and message details
-func SendMail(cfg Config, to string, subject, body string) error {
-	return SendMailHTML(cfg, to, subject, body)
+func SendMail(ctx context.Context, cfg Config, to string, subject, body string) error {
+	return SendMailHTML(ctx, cfg, to, subject, body)
 }
 
 // SendMailHTML sends an HTML format email
-func SendMailHTML(cfg Config, to string, subject, body string) error {
+func SendMailHTML(ctx context.Context, cfg Config, to string, subject, body string) error {
 	addr := net.JoinHostPort(cfg.Host, strconv.Itoa(cfg.Port))
 
 	// Header & MIME settings for HTML email
@@ -55,7 +56,7 @@ func SendMailHTML(cfg Config, to string, subject, body string) error {
 
 	// If using SSL port 465, we connection via TLS dial
 	if cfg.Port == smtpSSLPort {
-		return sendMailViaSSL(addr, auth, cfg, to, message)
+		return sendMailViaSSL(ctx, addr, auth, cfg, to, message)
 	}
 
 	// For standard port (587 / 25), use smtp.SendMail directly (handles STARTTLS automatically if server supports it)
@@ -68,13 +69,17 @@ func SendMailHTML(cfg Config, to string, subject, body string) error {
 }
 
 // sendMailViaSSL 通过 TLS 直接连接 SMTP SSL 端口发送邮件
-func sendMailViaSSL(addr string, auth smtp.Auth, cfg Config, to, message string) error {
+func sendMailViaSSL(ctx context.Context, addr string, auth smtp.Auth, cfg Config, to, message string) error {
 	tlsConfig := &tls.Config{
-		InsecureSkipVerify: true,
+		InsecureSkipVerify: true, //nolint:gosec // SMTP servers might use self-signed certificates
 		ServerName:         cfg.Host,
 	}
 	dialer := &net.Dialer{Timeout: smtpDialTimeout}
-	conn, err := tls.DialWithDialer(dialer, "tcp", addr, tlsConfig)
+	tlsDialer := &tls.Dialer{
+		NetDialer: dialer,
+		Config:    tlsConfig,
+	}
+	conn, err := tlsDialer.DialContext(ctx, "tcp", addr)
 	if err != nil {
 		return fmt.Errorf(errDialTLSFailed, err)
 	}
@@ -111,7 +116,7 @@ func sendMailViaSSL(addr string, auth smtp.Auth, cfg Config, to, message string)
 }
 
 // SendMailWithLog sends a test email and records a detailed SMTP connection log
-func SendMailWithLog(cfg Config, to string, subject, body string) (string, error) {
+func SendMailWithLog(ctx context.Context, cfg Config, to string, subject, body string) (string, error) {
 	var logBuf bytes.Buffer
 	logLine := func(dir string, format string, args ...interface{}) {
 		fmt.Fprintf(&logBuf, "[%s] %s\n", dir, fmt.Sprintf(format, args...))
@@ -125,12 +130,16 @@ func SendMailWithLog(cfg Config, to string, subject, body string) (string, error
 	dialer := &net.Dialer{Timeout: smtpDialTimeout}
 	if cfg.Port == smtpSSLPort {
 		tlsConfig := &tls.Config{
-			InsecureSkipVerify: true,
+			InsecureSkipVerify: true, //nolint:gosec // SMTP servers might use self-signed certificates
 			ServerName:         cfg.Host,
 		}
-		conn, err = tls.DialWithDialer(dialer, "tcp", addr, tlsConfig)
+		tlsDialer := &tls.Dialer{
+			NetDialer: dialer,
+			Config:    tlsConfig,
+		}
+		conn, err = tlsDialer.DialContext(ctx, "tcp", addr)
 	} else {
-		conn, err = dialer.Dial("tcp", addr)
+		conn, err = dialer.DialContext(ctx, "tcp", addr)
 	}
 	if err != nil {
 		logLine("Error", "Connection failed: %v", err)
@@ -154,7 +163,7 @@ func SendMailWithLog(cfg Config, to string, subject, body string) (string, error
 		if ok, _ := client.Extension("STARTTLS"); ok {
 			logLine("C", "STARTTLS")
 			tlsConfig := &tls.Config{
-				InsecureSkipVerify: true,
+				InsecureSkipVerify: true, //nolint:gosec // SMTP servers might use self-signed certificates
 				ServerName:         cfg.Host,
 			}
 			if err = client.StartTLS(tlsConfig); err != nil {

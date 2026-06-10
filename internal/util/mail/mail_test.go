@@ -6,6 +6,7 @@ package mail
 
 import (
 	"bufio"
+	"context"
 	"net"
 	"net/textproto"
 	"testing"
@@ -84,7 +85,7 @@ func TestSendMailMock(t *testing.T) {
 		Password: "password",
 	}
 
-	err = SendMail(cfg, "recipient@example.com", "Test Subject", "<h1>Test Body</h1>")
+	err = SendMail(context.Background(), cfg, "recipient@example.com", "Test Subject", "<h1>Test Body</h1>")
 	if err != nil {
 		t.Errorf("failed to send mail: %v", err)
 	}

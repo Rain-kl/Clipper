@@ -70,7 +70,7 @@ func init() {
 	if err := viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
 			// 文件存在但读取/解析失败
-			if _, statErr := os.Stat(configPath); statErr == nil {
+			if _, statErr := os.Stat(configPath); statErr == nil { //nolint:gosec // configPath is loaded from CONFIG_PATH environment variable
 				log.Fatalf("[Config] read config failed: %v\n", err)
 			}
 		}

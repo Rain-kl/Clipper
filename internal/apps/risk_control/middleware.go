@@ -60,6 +60,14 @@ func RiskControlMiddleware() gin.HandlerFunc {
 			}
 		}
 
+		const maxHTTPStatus = 999
+		status := c.Writer.Status()
+		if status < 0 {
+			status = 0
+		} else if status > maxHTTPStatus {
+			status = maxHTTPStatus
+		}
+
 		logItem := &UserAccessLog{
 			ID:        idgen.NextUint64ID(),
 			UserID:    userObj.ID, // 直接从 Context 获取已登录用户ID，避免数据库查询
@@ -68,7 +76,7 @@ func RiskControlMiddleware() gin.HandlerFunc {
 			IP:        c.ClientIP(),
 			UserAgent: c.Request.UserAgent(),
 			Headers:   headersStr,
-			Status:    int32(c.Writer.Status()),
+			Status:    int32(status),
 			Latency:   latency,
 			CreatedAt: time.Now(),
 		}
