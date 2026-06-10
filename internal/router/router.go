@@ -17,6 +17,7 @@ import (
 
 	"github.com/Rain-kl/Wavelet/internal/apps/admin"
 	admin_auth_source "github.com/Rain-kl/Wavelet/internal/apps/admin/auth_source"
+	admin_db_manage "github.com/Rain-kl/Wavelet/internal/apps/admin/db_manage"
 	admin_logs "github.com/Rain-kl/Wavelet/internal/apps/admin/logs"
 	admin_status "github.com/Rain-kl/Wavelet/internal/apps/admin/status"
 	admin_task "github.com/Rain-kl/Wavelet/internal/apps/admin/task"
@@ -187,6 +188,12 @@ func Serve() {
 				// Database info & export
 				adminRouter.GET("/db-info", admin_status.GetDatabaseInfo)
 				adminRouter.GET("/db-export", admin_status.ExportDatabase)
+
+				// Database management
+				adminRouter.GET("/db-manage/overview", admin_db_manage.GetDBOverview)
+				adminRouter.GET("/db-manage/tables", admin_db_manage.ListDBTables)
+				adminRouter.GET("/db-manage/table-data", admin_db_manage.GetDBTableData)
+				adminRouter.POST("/db-manage/query", admin_db_manage.ExecuteSQL)
 
 				// System logs
 				adminRouter.GET("/logs", admin_logs.GetLogs)
