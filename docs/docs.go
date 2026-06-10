@@ -677,88 +677,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/admin/db-manage/table-data": {
-            "get": {
-                "security": [
-                    {
-                        "SessionCookie": []
-                    }
-                ],
-                "description": "根据传入的数据表名称进行分页数据查询，返回表结构列名及动态行数据，需要管理员权限",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "admin"
-                ],
-                "summary": "获取数据表数据",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "表名称",
-                        "name": "table",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "description": "页码，默认 1",
-                        "name": "page",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "每页大小，默认 10",
-                        "name": "pageSize",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "获取成功",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/util.ResponseAny"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/db_manage.TableDataResponse"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    "400": {
-                        "description": "参数错误",
-                        "schema": {
-                            "$ref": "#/definitions/util.ResponseAny"
-                        }
-                    },
-                    "401": {
-                        "description": "未登录",
-                        "schema": {
-                            "$ref": "#/definitions/util.ResponseAny"
-                        }
-                    },
-                    "403": {
-                        "description": "无管理员权限",
-                        "schema": {
-                            "$ref": "#/definitions/util.ResponseAny"
-                        }
-                    },
-                    "500": {
-                        "description": "内部错误",
-                        "schema": {
-                            "$ref": "#/definitions/util.ResponseAny"
-                        }
-                    }
-                }
-            }
-        },
         "/api/v1/admin/db-manage/tables": {
             "get": {
                 "security": [
@@ -2574,6 +2492,38 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/custom/hello": {
+            "get": {
+                "description": "A sample business API for customization",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "custom"
+                ],
+                "summary": "Sample Hello API",
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/util.ResponseAny"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/health": {
             "get": {
                 "description": "检查服务是否正常运行，可用于负载均衡存活探测",
@@ -4162,27 +4112,6 @@ const docTemplate = `{
                 "type": {
                     "description": "\"select\" 或 \"exec\"",
                     "type": "string"
-                }
-            }
-        },
-        "db_manage.TableDataResponse": {
-            "type": "object",
-            "properties": {
-                "columns": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "results": {
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "additionalProperties": true
-                    }
-                },
-                "total": {
-                    "type": "integer"
                 }
             }
         },

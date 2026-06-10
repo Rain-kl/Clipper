@@ -280,6 +280,9 @@ func registerRoutes(r *gin.Engine) {
 				adminRouter.PUT("/auth-sources/:id/toggle", admin_auth_source.ToggleAuthSource)
 				adminRouter.DELETE("/auth-sources/:id", admin_auth_source.DeleteAuthSource)
 			}
+
+			// Register custom business routes
+			registerCustomRoutes(apiV1Router)
 		}
 	}
 

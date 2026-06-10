@@ -114,20 +114,6 @@ definitions:
         description: '"select" 或 "exec"'
         type: string
     type: object
-  db_manage.TableDataResponse:
-    properties:
-      columns:
-        items:
-          type: string
-        type: array
-      results:
-        items:
-          additionalProperties: true
-          type: object
-        type: array
-      total:
-        type: integer
-    type: object
   logger.LogEntry:
     properties:
       data:
@@ -1365,56 +1351,6 @@ paths:
       summary: 执行 SQL 查询
       tags:
       - admin
-  /api/v1/admin/db-manage/table-data:
-    get:
-      description: 根据传入的数据表名称进行分页数据查询，返回表结构列名及动态行数据，需要管理员权限
-      parameters:
-      - description: 表名称
-        in: query
-        name: table
-        required: true
-        type: string
-      - description: 页码，默认 1
-        in: query
-        name: page
-        type: integer
-      - description: 每页大小，默认 10
-        in: query
-        name: pageSize
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 获取成功
-          schema:
-            allOf:
-            - $ref: '#/definitions/util.ResponseAny'
-            - properties:
-                data:
-                  $ref: '#/definitions/db_manage.TableDataResponse'
-              type: object
-        "400":
-          description: 参数错误
-          schema:
-            $ref: '#/definitions/util.ResponseAny'
-        "401":
-          description: 未登录
-          schema:
-            $ref: '#/definitions/util.ResponseAny'
-        "403":
-          description: 无管理员权限
-          schema:
-            $ref: '#/definitions/util.ResponseAny'
-        "500":
-          description: 内部错误
-          schema:
-            $ref: '#/definitions/util.ResponseAny'
-      security:
-      - SessionCookie: []
-      summary: 获取数据表数据
-      tags:
-      - admin
   /api/v1/admin/db-manage/tables:
     get:
       description: 返回当前数据库的所有用户自定义表名称列表，需要管理员权限
@@ -2509,6 +2445,24 @@ paths:
       summary: 获取公共配置
       tags:
       - config
+  /api/v1/custom/hello:
+    get:
+      description: A sample business API for customization
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/util.ResponseAny'
+            - properties:
+                data:
+                  type: string
+              type: object
+      summary: Sample Hello API
+      tags:
+      - custom
   /api/v1/health:
     get:
       description: 检查服务是否正常运行，可用于负载均衡存活探测
