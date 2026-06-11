@@ -2360,7 +2360,7 @@ const docTemplate = `{
                         "SessionCookie": []
                     }
                 ],
-                "description": "返回系统中所有已上传文件所拥有的业务类型，并合并默认内置类型（avatar, attachment, doc, generic）",
+                "description": "返回数据库中所有已上传文件实际拥有的业务类型列表",
                 "produces": [
                     "application/json"
                 ],
@@ -3454,6 +3454,18 @@ const docTemplate = `{
                         "name": "id",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "是否启用压缩 (传任意非空值代表启用，非图片文件将被忽略)",
+                        "name": "compress",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "压缩质量等级 (low, medium, high)，默认为 high",
+                        "name": "level",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -4228,6 +4240,18 @@ const docTemplate = `{
                         "name": "id",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "是否启用压缩 (传任意非空值代表启用，非图片文件将被忽略)",
+                        "name": "compress",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "压缩质量等级 (low, medium, high)，默认为 high",
+                        "name": "level",
+                        "in": "query"
                     }
                 ],
                 "responses": {
