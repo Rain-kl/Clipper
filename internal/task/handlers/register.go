@@ -11,8 +11,13 @@ import (
 	"github.com/Rain-kl/Wavelet/internal/task"
 )
 
-// Register registers all built-in task handlers.
+// Register registers all built-in task handlers and their metadata.
 func Register() {
-	task.RegisterHandler(task.CleanupUnusedUploadsTask, &upload.CleanupUnusedUploadsHandler{})
-	task.RegisterHandler(task.SendEmailTask, &user.SendEmailHandler{})
+	// upload
+	task.RegisterHandler(upload.CleanupUnusedUploadsTask, &upload.CleanupUnusedUploadsHandler{})
+	task.RegisterTaskMeta(upload.CleanupUnusedUploadsMeta)
+
+	// user
+	task.RegisterHandler(user.SendEmailTask, &user.SendEmailHandler{})
+	task.RegisterTaskMeta(user.SendEmailMeta)
 }
