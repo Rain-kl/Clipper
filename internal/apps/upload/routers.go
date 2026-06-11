@@ -174,8 +174,7 @@ func UploadFile(c *gin.Context) {
 // @Tags upload
 // @Produce octet-stream
 // @Param id path string true "文件 ID"
-// @Param compress query string false "是否启用压缩 (传任意非空值代表启用，非图片文件将被忽略)"
-// @Param level query string false "压缩质量等级 (low, medium, high)，默认为 high"
+// @Param quality query string false "图片质量 (low, medium, high, origin)，默认为 origin"
 // @Security SessionCookie
 // @Success 200 {file} file "成功下载文件"
 // @Failure 400 {object} util.ResponseAny "参数错误"
@@ -198,10 +197,10 @@ func DownloadFile(c *gin.Context) {
 	}
 
 	fileName := upload.FileName
-	compressStr := c.Query("compress")
+	quality := normalizeImageQuality(c.Query("quality"))
 	isImage := strings.HasPrefix(strings.ToLower(upload.MimeType), "image/") || isImageExtension(strings.ToLower(upload.Extension))
 
-	if compressStr != "" && isImage {
+	if quality != "origin" && isImage {
 		ext := filepath.Ext(fileName)
 		if ext != "" {
 			fileName = strings.TrimSuffix(fileName, ext) + ".webp"

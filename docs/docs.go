@@ -3618,14 +3618,8 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "是否启用压缩 (传任意非空值代表启用，非图片文件将被忽略)",
-                        "name": "compress",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "压缩质量等级 (low, medium, high)，默认为 high",
-                        "name": "level",
+                        "description": "图片质量 (low, medium, high, origin)，默认为 origin",
+                        "name": "quality",
                         "in": "query"
                     }
                 ],
@@ -4404,14 +4398,8 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "是否启用压缩 (传任意非空值代表启用，非图片文件将被忽略)",
-                        "name": "compress",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "压缩质量等级 (low, medium, high)，默认为 high",
-                        "name": "level",
+                        "description": "图片质量 (low, medium, high, origin)，默认为 origin",
+                        "name": "quality",
                         "in": "query"
                     }
                 ],
