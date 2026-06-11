@@ -19,6 +19,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -576,4 +577,45 @@ func saveUploadRecord(ctx context.Context, upload *model.Upload, storageDriver, 
 		return ErrSaveUploadRecordFailed
 	}
 	return ""
+}
+
+// DefaultUploadTypes 默认内置的文件业务类型
+var DefaultUploadTypes = []string{"avatar", "attachment", "doc", "generic"}
+
+// GetDistinctUploadTypes 获取所有已存在的文件业务类型及默认内置类型
+// @Summary 获取文件业务类型列表
+// @Description 返回系统中所有已上传文件所拥有的业务类型，并合并默认内置类型（avatar, attachment, doc, generic）
+// @Tags admin
+// @Produce json
+// @Security SessionCookie
+// @Success 200 {object} util.ResponseAny{data=[]string} "业务类型列表"
+// @Failure 401 {object} util.ResponseAny "未登录"
+// @Failure 403 {object} util.ResponseAny "无管理员权限"
+// @Failure 500 {object} util.ResponseAny "内部错误"
+// @Router /api/v1/admin/uploads/types [get]
+func GetDistinctUploadTypes(c *gin.Context) {
+	var dbTypes []string
+	if err := db.DB(c.Request.Context()).Model(&model.Upload{}).Distinct().Pluck("type", &dbTypes).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, util.Err(err.Error()))
+		return
+	}
+
+	// 合并默认内置类型并去重
+	typeMap := make(map[string]bool)
+	for _, t := range DefaultUploadTypes {
+		typeMap[t] = true
+	}
+	for _, t := range dbTypes {
+		if t != "" {
+			typeMap[t] = true
+		}
+	}
+
+	result := make([]string, 0, len(typeMap))
+	for t := range typeMap {
+		result = append(result, t)
+	}
+	sort.Strings(result)
+
+	c.JSON(http.StatusOK, util.OK(result))
 }

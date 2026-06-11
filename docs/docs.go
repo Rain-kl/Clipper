@@ -2353,6 +2353,64 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/admin/uploads/types": {
+            "get": {
+                "security": [
+                    {
+                        "SessionCookie": []
+                    }
+                ],
+                "description": "返回系统中所有已上传文件所拥有的业务类型，并合并默认内置类型（avatar, attachment, doc, generic）",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin"
+                ],
+                "summary": "获取文件业务类型列表",
+                "responses": {
+                    "200": {
+                        "description": "业务类型列表",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/util.ResponseAny"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "未登录",
+                        "schema": {
+                            "$ref": "#/definitions/util.ResponseAny"
+                        }
+                    },
+                    "403": {
+                        "description": "无管理员权限",
+                        "schema": {
+                            "$ref": "#/definitions/util.ResponseAny"
+                        }
+                    },
+                    "500": {
+                        "description": "内部错误",
+                        "schema": {
+                            "$ref": "#/definitions/util.ResponseAny"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/admin/users": {
             "get": {
                 "security": [
@@ -4185,6 +4243,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/util.ResponseAny"
                         }
                     },
+                    "401": {
+                        "description": "未登录",
+                        "schema": {
+                            "$ref": "#/definitions/util.ResponseAny"
+                        }
+                    },
                     "404": {
                         "description": "文件未找到",
                         "schema": {
@@ -4558,9 +4622,6 @@ const docTemplate = `{
                 },
                 "is_admin": {
                     "type": "boolean"
-                },
-                "last_used_at": {
-                    "type": "string"
                 },
                 "masked_token": {
                     "type": "string"

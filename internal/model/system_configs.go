@@ -43,6 +43,7 @@ const (
 	ConfigKeyEmailRegisterVerificationEnabled = "email_register_verification_enabled" // 是否启用邮箱注册验证
 	ConfigKeyMenuDisplayConfig                = "menu_display_config"                 // 目录显示配置 (JSON 字符串)
 	ConfigKeySearchEngineIndexingEnabled      = "search_engine_indexing_enabled"      // 是否允许搜索引擎检索
+	ConfigKeyFileAccessWhitelist              = "file_access_whitelist"               // 免登录访问的文件业务类型白名单 (JSON 数组格式)
 )
 
 const (

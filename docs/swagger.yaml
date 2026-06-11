@@ -222,8 +222,6 @@ definitions:
         type: integer
       is_admin:
         type: boolean
-      last_used_at:
-        type: string
       masked_token:
         type: string
       name:
@@ -2418,6 +2416,40 @@ paths:
       summary: 更新模板
       tags:
       - admin
+  /api/v1/admin/uploads/types:
+    get:
+      description: 返回系统中所有已上传文件所拥有的业务类型，并合并默认内置类型（avatar, attachment, doc, generic）
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 业务类型列表
+          schema:
+            allOf:
+            - $ref: '#/definitions/util.ResponseAny'
+            - properties:
+                data:
+                  items:
+                    type: string
+                  type: array
+              type: object
+        "401":
+          description: 未登录
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+        "403":
+          description: 无管理员权限
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+        "500":
+          description: 内部错误
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      security:
+      - SessionCookie: []
+      summary: 获取文件业务类型列表
+      tags:
+      - admin
   /api/v1/admin/users:
     get:
       description: 分页返回用户列表，支持按用户 ID 和用户名筛选，需要管理员权限
@@ -3510,6 +3542,10 @@ paths:
             type: file
         "400":
           description: 文件 ID 格式错误
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+        "401":
+          description: 未登录
           schema:
             $ref: '#/definitions/util.ResponseAny'
         "404":

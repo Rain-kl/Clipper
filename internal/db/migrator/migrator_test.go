@@ -38,8 +38,8 @@ func TestMigrateInitializesSQLiteDatabase(t *testing.T) {
 	if err := sqliteDB.Table("w_system_configs").Count(&systemConfigCount).Error; err != nil {
 		t.Fatalf("Migrate() count w_system_configs error = %v", err)
 	}
-	if systemConfigCount != 23 {
-		t.Errorf("Migrate() w_system_configs count = %d, want %d", systemConfigCount, 23)
+	if systemConfigCount != 24 {
+		t.Errorf("Migrate() w_system_configs count = %d, want %d", systemConfigCount, 24)
 	}
 
 	var adminCount int64

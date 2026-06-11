@@ -37,6 +37,8 @@ func SetupTestEnvironment(t *testing.T) (*gorm.DB, *miniredis.Miniredis, func())
 		&model.Upload{},
 		&model.TaskExecution{},
 		&model.Template{},
+		&model.AccessToken{},
+		&model.Schedule{},
 	)
 	if err != nil {
 		t.Fatalf("failed to auto migrate tables: %v", err)
@@ -212,6 +214,12 @@ func seedDefaultConfigs(t *testing.T, tx *gorm.DB) {
 			Type:        "system",
 			Description: "是否允许搜索引擎检索",
 		},
+		{
+			Key:         model.ConfigKeyFileAccessWhitelist,
+			Value:       `["avatar"]`,
+			Type:        "system",
+			Description: "免登录访问的文件业务类型白名单",
+		},
 	}
 
 	if err := tx.Create(&defaultConfigs).Error; err != nil {
@@ -232,6 +240,7 @@ func seedDefaultConfigs(t *testing.T, tx *gorm.DB) {
 		model.ConfigKeyEmailRegisterVerificationEnabled: {},
 		model.ConfigKeyMenuDisplayConfig:                {},
 		model.ConfigKeySearchEngineIndexingEnabled:      {},
+		model.ConfigKeyFileAccessWhitelist:              {},
 	}
 	keys := make([]string, 0, len(publicKeys))
 	for key := range publicKeys {
