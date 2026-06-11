@@ -764,7 +764,7 @@ definitions:
         description: 是否必填
         type: boolean
       Type:
-        description: 类型：string, text, number
+        description: 类型：string, text, number, boolean
         type: string
     type: object
   task.UpdateScheduleRequest:

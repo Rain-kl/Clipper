@@ -5356,7 +5356,7 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "Type": {
-                    "description": "类型：string, text, number",
+                    "description": "类型：string, text, number, boolean",
                     "type": "string"
                 }
             }

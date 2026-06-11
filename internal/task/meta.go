@@ -43,6 +43,11 @@ var (
 func RegisterTaskMeta(meta TaskMeta) {
 	dispatchableTasksMutex.Lock()
 	defer dispatchableTasksMutex.Unlock()
+	for _, t := range dispatchableTasks {
+		if t.Type == meta.Type {
+			return
+		}
+	}
 	dispatchableTasks = append(dispatchableTasks, meta)
 }
 
