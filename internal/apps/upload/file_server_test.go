@@ -190,22 +190,8 @@ func TestGetDistinctUploadTypes(t *testing.T) {
 		t.Fatalf("unexpected error: %s", resp.ErrorMsg)
 	}
 
-	// Verify that custom_type_xyz and default types are present
-	hasCustom := false
-	hasAvatar := false
-	for _, typeName := range resp.Data {
-		if typeName == "custom_type_xyz" {
-			hasCustom = true
-		}
-		if typeName == "avatar" {
-			hasAvatar = true
-		}
-	}
-
-	if !hasCustom {
-		t.Errorf("expected custom_type_xyz to be in types, got: %v", resp.Data)
-	}
-	if !hasAvatar {
-		t.Errorf("expected avatar to be in types, got: %v", resp.Data)
+	// Verify that only custom_type_xyz is present
+	if len(resp.Data) != 1 || resp.Data[0] != "custom_type_xyz" {
+		t.Errorf("expected only custom_type_xyz in types list, got: %v", resp.Data)
 	}
 }
