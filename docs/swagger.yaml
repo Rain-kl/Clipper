@@ -26,6 +26,20 @@ definitions:
       is_active:
         type: boolean
     type: object
+  cache.updateCacheConfigRequest:
+    properties:
+      lru_enabled:
+        type: boolean
+      max_size_mb:
+        minimum: 1
+        type: integer
+      ttl_minutes:
+        minimum: 0
+        type: integer
+    required:
+    - max_size_mb
+    - ttl_minutes
+    type: object
   cap.ChallengeResponse:
     properties:
       challenge:
@@ -113,6 +127,21 @@ definitions:
       type:
         description: '"select" 或 "exec"'
         type: string
+    type: object
+  diskcache.Status:
+    properties:
+      base_path:
+        type: string
+      keys_count:
+        type: integer
+      lru_enabled:
+        type: boolean
+      max_size_mb:
+        type: integer
+      total_size:
+        type: integer
+      ttl_minutes:
+        type: integer
     type: object
   logger.LogEntry:
     properties:
@@ -1275,6 +1304,105 @@ paths:
       security:
       - SessionCookie: []
       summary: 切换认证源启用状态
+      tags:
+      - admin
+  /api/v1/admin/cache/clear:
+    post:
+      description: 清除系统磁盘缓存目录中的所有临时文件，并重置缓存容量和 Key 追踪数据
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 清理成功
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+        "401":
+          description: 未登录
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+        "403":
+          description: 无管理员权限
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+        "500":
+          description: 服务内部错误
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      security:
+      - SessionCookie: []
+      summary: 清空缓存
+      tags:
+      - admin
+  /api/v1/admin/cache/config:
+    post:
+      consumes:
+      - application/json
+      description: 更改磁盘缓存最大容量限制、文件生存时间（TTL）以及是否启用 LRU 淘汰淘汰算法，并进行热更新
+      parameters:
+      - description: 缓存配置请求体
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/cache.updateCacheConfigRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 更新成功
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+        "401":
+          description: 未登录
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+        "403":
+          description: 无管理员权限
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+        "500":
+          description: 服务内部错误
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      security:
+      - SessionCookie: []
+      summary: 更新缓存配置
+      tags:
+      - admin
+  /api/v1/admin/cache/status:
+    get:
+      description: 获取当前系统磁盘缓存的使用情况（已占用字节、Key 数量等）与策略配置
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 获取成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/util.ResponseAny'
+            - properties:
+                data:
+                  $ref: '#/definitions/diskcache.Status'
+              type: object
+        "401":
+          description: 未登录
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+        "403":
+          description: 无管理员权限
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+        "500":
+          description: 内部错误
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      security:
+      - SessionCookie: []
+      summary: 获取缓存状态
       tags:
       - admin
   /api/v1/admin/db-export:

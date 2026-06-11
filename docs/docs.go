@@ -455,6 +455,167 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/admin/cache/clear": {
+            "post": {
+                "security": [
+                    {
+                        "SessionCookie": []
+                    }
+                ],
+                "description": "清除系统磁盘缓存目录中的所有临时文件，并重置缓存容量和 Key 追踪数据",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin"
+                ],
+                "summary": "清空缓存",
+                "responses": {
+                    "200": {
+                        "description": "清理成功",
+                        "schema": {
+                            "$ref": "#/definitions/util.ResponseAny"
+                        }
+                    },
+                    "401": {
+                        "description": "未登录",
+                        "schema": {
+                            "$ref": "#/definitions/util.ResponseAny"
+                        }
+                    },
+                    "403": {
+                        "description": "无管理员权限",
+                        "schema": {
+                            "$ref": "#/definitions/util.ResponseAny"
+                        }
+                    },
+                    "500": {
+                        "description": "服务内部错误",
+                        "schema": {
+                            "$ref": "#/definitions/util.ResponseAny"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/admin/cache/config": {
+            "post": {
+                "security": [
+                    {
+                        "SessionCookie": []
+                    }
+                ],
+                "description": "更改磁盘缓存最大容量限制、文件生存时间（TTL）以及是否启用 LRU 淘汰淘汰算法，并进行热更新",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin"
+                ],
+                "summary": "更新缓存配置",
+                "parameters": [
+                    {
+                        "description": "缓存配置请求体",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/cache.updateCacheConfigRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "更新成功",
+                        "schema": {
+                            "$ref": "#/definitions/util.ResponseAny"
+                        }
+                    },
+                    "400": {
+                        "description": "参数错误",
+                        "schema": {
+                            "$ref": "#/definitions/util.ResponseAny"
+                        }
+                    },
+                    "401": {
+                        "description": "未登录",
+                        "schema": {
+                            "$ref": "#/definitions/util.ResponseAny"
+                        }
+                    },
+                    "403": {
+                        "description": "无管理员权限",
+                        "schema": {
+                            "$ref": "#/definitions/util.ResponseAny"
+                        }
+                    },
+                    "500": {
+                        "description": "服务内部错误",
+                        "schema": {
+                            "$ref": "#/definitions/util.ResponseAny"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/admin/cache/status": {
+            "get": {
+                "security": [
+                    {
+                        "SessionCookie": []
+                    }
+                ],
+                "description": "获取当前系统磁盘缓存的使用情况（已占用字节、Key 数量等）与策略配置",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin"
+                ],
+                "summary": "获取缓存状态",
+                "responses": {
+                    "200": {
+                        "description": "获取成功",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/util.ResponseAny"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/diskcache.Status"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "未登录",
+                        "schema": {
+                            "$ref": "#/definitions/util.ResponseAny"
+                        }
+                    },
+                    "403": {
+                        "description": "无管理员权限",
+                        "schema": {
+                            "$ref": "#/definitions/util.ResponseAny"
+                        }
+                    },
+                    "500": {
+                        "description": "内部错误",
+                        "schema": {
+                            "$ref": "#/definitions/util.ResponseAny"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/admin/db-export": {
             "get": {
                 "security": [
@@ -4350,6 +4511,26 @@ const docTemplate = `{
                 }
             }
         },
+        "cache.updateCacheConfigRequest": {
+            "type": "object",
+            "required": [
+                "max_size_mb",
+                "ttl_minutes"
+            ],
+            "properties": {
+                "lru_enabled": {
+                    "type": "boolean"
+                },
+                "max_size_mb": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "ttl_minutes": {
+                    "type": "integer",
+                    "minimum": 0
+                }
+            }
+        },
         "cap.ChallengeResponse": {
             "type": "object",
             "properties": {
@@ -4481,6 +4662,29 @@ const docTemplate = `{
                 "type": {
                     "description": "\"select\" 或 \"exec\"",
                     "type": "string"
+                }
+            }
+        },
+        "diskcache.Status": {
+            "type": "object",
+            "properties": {
+                "base_path": {
+                    "type": "string"
+                },
+                "keys_count": {
+                    "type": "integer"
+                },
+                "lru_enabled": {
+                    "type": "boolean"
+                },
+                "max_size_mb": {
+                    "type": "integer"
+                },
+                "total_size": {
+                    "type": "integer"
+                },
+                "ttl_minutes": {
+                    "type": "integer"
                 }
             }
         },

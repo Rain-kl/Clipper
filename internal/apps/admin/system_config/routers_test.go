@@ -137,9 +137,9 @@ func TestListSystemConfigs(t *testing.T) {
 		var configs []model.SystemConfig
 		_ = json.Unmarshal(dataBytes, &configs)
 
-		// Defaults seed 24 configurations
-		if len(configs) != 24 {
-			t.Errorf("expected 24 default configs, got %d", len(configs))
+		// Defaults seed 27 configurations
+		if len(configs) != 27 {
+			t.Errorf("expected 27 default configs, got %d", len(configs))
 		}
 	})
 
