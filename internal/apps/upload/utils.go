@@ -54,11 +54,11 @@ func CompressImageToWebP(srcReader io.Reader, quality string) ([]byte, error) {
 	// Determine quality
 	var qualityScore float32
 	switch strings.ToLower(quality) {
-	case "low":
+	case imageQualityLow:
 		qualityScore = 60
-	case "medium":
+	case imageQualityMedium:
 		qualityScore = 75
-	case "high", "":
+	case imageQualityHigh, "":
 		qualityScore = 85
 	default:
 		qualityScore = 85

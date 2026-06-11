@@ -292,7 +292,7 @@ func TestImageCompression(t *testing.T) {
 			t.Errorf("expected Content-Type image/webp, got %s", w.Header().Get("Content-Type"))
 		}
 
-		cacheKey := imageCompressionCacheKey(&uploadRecord, "medium")
+		cacheKey := imageCompressionCacheKey(&uploadRecord, imageQualityMedium)
 		cachedBytes, err := cache.Get(cacheKey)
 		if err != nil {
 			t.Fatalf("disk cache Get(%q) returned error: %v", cacheKey, err)
@@ -343,11 +343,11 @@ func TestNormalizeImageQuality(t *testing.T) {
 		quality string
 		want    string
 	}{
-		{name: "low", quality: "low", want: "low"},
-		{name: "medium", quality: "medium", want: "medium"},
-		{name: "high", quality: "high", want: "high"},
+		{name: imageQualityLow, quality: imageQualityLow, want: imageQualityLow},
+		{name: imageQualityMedium, quality: imageQualityMedium, want: imageQualityMedium},
+		{name: imageQualityHigh, quality: imageQualityHigh, want: imageQualityHigh},
 		{name: "origin", quality: "origin", want: "origin"},
-		{name: "uppercase", quality: "LOW", want: "low"},
+		{name: "uppercase", quality: "LOW", want: imageQualityLow},
 		{name: "empty", quality: "", want: "origin"},
 		{name: "invalid", quality: "maximum", want: "origin"},
 	}

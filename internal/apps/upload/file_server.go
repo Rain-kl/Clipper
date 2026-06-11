@@ -91,7 +91,7 @@ func ServeUpload(c *gin.Context, upload *model.Upload) {
 	quality := normalizeImageQuality(c.Query("quality"))
 	isImage := strings.HasPrefix(strings.ToLower(upload.MimeType), "image/") || isImageExtension(strings.ToLower(upload.Extension))
 
-	if quality == "origin" || !isImage {
+	if quality == imageQualityOrigin || !isImage {
 		serveOriginal(c, upload)
 		return
 	}
@@ -142,16 +142,16 @@ func imageCompressionCacheKey(upload *model.Upload, quality string) string {
 
 func normalizeImageQuality(quality string) string {
 	switch strings.ToLower(quality) {
-	case "low", "medium", "high":
+	case imageQualityLow, imageQualityMedium, imageQualityHigh:
 		return strings.ToLower(quality)
 	default:
-		return "origin"
+		return imageQualityOrigin
 	}
 }
 
 // serveOriginal 原始文件的流式响应逻辑
 func serveOriginal(c *gin.Context, upload *model.Upload) {
-	if upload.StorageDriver == "local" || (upload.StorageDriver == "" && !storage.IsEnabled()) {
+	if upload.StorageDriver == storageDriverLocal || (upload.StorageDriver == "" && !storage.IsEnabled()) {
 		c.File(upload.FilePath)
 		return
 	}
@@ -178,7 +178,7 @@ func serveOriginal(c *gin.Context, upload *model.Upload) {
 
 // getOriginalFileBytes 获取原始文件所有字节
 func getOriginalFileBytes(ctx context.Context, upload *model.Upload) ([]byte, error) {
-	if upload.StorageDriver == "local" || (upload.StorageDriver == "" && !storage.IsEnabled()) {
+	if upload.StorageDriver == storageDriverLocal || (upload.StorageDriver == "" && !storage.IsEnabled()) {
 		return os.ReadFile(upload.FilePath)
 	}
 

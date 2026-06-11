@@ -200,7 +200,7 @@ func DownloadFile(c *gin.Context) {
 	quality := normalizeImageQuality(c.Query("quality"))
 	isImage := strings.HasPrefix(strings.ToLower(upload.MimeType), "image/") || isImageExtension(strings.ToLower(upload.Extension))
 
-	if quality != "origin" && isImage {
+	if quality != imageQualityOrigin && isImage {
 		ext := filepath.Ext(fileName)
 		if ext != "" {
 			fileName = strings.TrimSuffix(fileName, ext) + ".webp"
@@ -290,7 +290,7 @@ func BatchDownloadFiles(c *gin.Context) {
 
 		// 打开底层文件数据源
 		var rc io.ReadCloser
-		if upload.StorageDriver == "local" || (upload.StorageDriver == "" && !storage.IsEnabled()) {
+		if upload.StorageDriver == storageDriverLocal || (upload.StorageDriver == "" && !storage.IsEnabled()) {
 			fileSrc, err := os.Open(upload.FilePath)
 			if err != nil {
 				logger.ErrorF(ctx, "打包时读取本地文件失败: %v", err)
@@ -516,7 +516,7 @@ func storeUploadFile(ctx context.Context, id uint64, ext, subPath string, size i
 		logger.ErrorF(ctx, "本地磁盘写入文件失败: %v", err)
 		return "", "", ErrSaveFileFailed
 	}
-	return "local", localPath, ""
+	return storageDriverLocal, localPath, ""
 }
 
 // isImageExtension 判断文件扩展名是否属于常见图片格式
@@ -556,7 +556,7 @@ func detectMimeType(buf *bytes.Buffer, header *multipart.FileHeader, size int64)
 // saveUploadRecord 保存上传记录到数据库，失败时清理本地垃圾文件
 func saveUploadRecord(ctx context.Context, upload *model.Upload, storageDriver, filePath string) string {
 	if err := db.DB(ctx).Create(upload).Error; err != nil {
-		if storageDriver == "local" {
+		if storageDriver == storageDriverLocal {
 			_ = os.Remove(filePath)
 		}
 		return ErrSaveUploadRecordFailed
