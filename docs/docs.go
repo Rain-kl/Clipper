@@ -5576,13 +5576,13 @@ const docTemplate = `{
         "task.TaskMeta": {
             "type": "object",
             "properties": {
-                "asynqTask": {
+                "asynq_task": {
                     "type": "string"
                 },
                 "description": {
                     "type": "string"
                 },
-                "maxRetry": {
+                "max_retry": {
                     "type": "integer"
                 },
                 "name": {
@@ -5601,7 +5601,7 @@ const docTemplate = `{
                     "description": "是否支持手动重试",
                     "type": "boolean"
                 },
-                "supportsTime": {
+                "supports_time": {
                     "type": "boolean"
                 },
                 "type": {
@@ -5612,27 +5612,27 @@ const docTemplate = `{
         "task.TaskParam": {
             "type": "object",
             "properties": {
-                "Description": {
+                "description": {
                     "description": "描述",
                     "type": "string"
                 },
-                "Label": {
+                "label": {
                     "description": "显示名称",
                     "type": "string"
                 },
-                "Name": {
+                "name": {
                     "description": "参数键名",
                     "type": "string"
                 },
-                "Placeholder": {
+                "placeholder": {
                     "description": "占位符",
                     "type": "string"
                 },
-                "Required": {
+                "required": {
                     "description": "是否必填",
                     "type": "boolean"
                 },
-                "Type": {
+                "type": {
                     "description": "类型：string, text, number, boolean",
                     "type": "string"
                 }

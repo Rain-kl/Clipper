@@ -1,3 +1,6 @@
+// Copyright 2026 Arctel.net
+// SPDX-License-Identifier: Apache-2.0
+
 // Package diskcache implements a platform-level disk-backed cache with size limit, TTL, and LRU eviction.
 package diskcache
 
