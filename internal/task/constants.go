@@ -31,7 +31,7 @@ const defaultMaxRetry = 3
 type TaskParam struct {
 	Name        string `json:"Name"`        // 参数键名
 	Label       string `json:"Label"`       // 显示名称
-	Type        string `json:"Type"`        // 类型：string, text, number
+	Type        string `json:"Type"`        // 类型：string, text, number, boolean
 	Required    bool   `json:"Required"`    // 是否必填
 	Placeholder string `json:"Placeholder"` // 占位符
 	Description string `json:"Description"` // 描述
