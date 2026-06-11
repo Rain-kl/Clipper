@@ -35,15 +35,15 @@ func TestMigrateInitializesSQLiteDatabase(t *testing.T) {
 	Migrate()
 
 	var systemConfigCount int64
-	if err := sqliteDB.Table("system_configs").Count(&systemConfigCount).Error; err != nil {
-		t.Fatalf("Migrate() count system_configs error = %v", err)
+	if err := sqliteDB.Table("w_system_configs").Count(&systemConfigCount).Error; err != nil {
+		t.Fatalf("Migrate() count w_system_configs error = %v", err)
 	}
 	if systemConfigCount != 23 {
-		t.Errorf("Migrate() system_configs count = %d, want %d", systemConfigCount, 23)
+		t.Errorf("Migrate() w_system_configs count = %d, want %d", systemConfigCount, 23)
 	}
 
 	var adminCount int64
-	if err := sqliteDB.Table("users").Where("username = ?", "admin").Count(&adminCount).Error; err != nil {
+	if err := sqliteDB.Table("w_users").Where("username = ?", "admin").Count(&adminCount).Error; err != nil {
 		t.Fatalf("Migrate() count admin user error = %v", err)
 	}
 	if adminCount != 1 {
@@ -51,7 +51,7 @@ func TestMigrateInitializesSQLiteDatabase(t *testing.T) {
 	}
 
 	var templateCount int64
-	if err := sqliteDB.Table("templates").Count(&templateCount).Error; err != nil {
+	if err := sqliteDB.Table("w_templates").Count(&templateCount).Error; err != nil {
 		t.Fatalf("Migrate() count templates error = %v", err)
 	}
 	if templateCount != 2 {
