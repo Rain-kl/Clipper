@@ -16,6 +16,8 @@ func Register() {
 	// upload
 	task.RegisterHandler(upload.CleanupUnusedUploadsTask, &upload.CleanupUnusedUploadsHandler{})
 	task.RegisterTaskMeta(upload.CleanupUnusedUploadsMeta)
+	task.RegisterHandler(upload.WarmImageCacheTask, &upload.WarmImageCacheHandler{})
+	task.RegisterTaskMeta(upload.WarmImageCacheMeta)
 
 	// user
 	task.RegisterHandler(user.SendEmailTask, &user.SendEmailHandler{})
