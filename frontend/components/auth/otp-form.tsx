@@ -4,9 +4,9 @@ import * as React from "react"
 import {RefreshCwIcon} from "lucide-react"
 
 import {Button} from "@/components/ui/button"
-import {Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle,} from "@/components/ui/card"
 import {Field, FieldLabel} from "@/components/ui/field"
 import {InputOTP, InputOTPGroup, InputOTPSeparator, InputOTPSlot,} from "@/components/ui/input-otp"
+import {AuthHeading} from "@/components/auth/auth-shell"
 import {cn} from "@/lib/utils"
 
 interface OTPFormProps {
@@ -29,17 +29,16 @@ export function OTPForm({
   onSubmit,
 }: OTPFormProps) {
   return (
-    <Card className="w-full border-border/60 bg-background/80 shadow-2xl backdrop-blur">
-      <CardHeader className="space-y-1.5 p-5 sm:p-6 pb-2 text-center">
-        <CardTitle className="text-xl font-semibold tracking-tight text-foreground">
-          验证登录
-        </CardTitle>
-        <CardDescription className="text-sm text-muted-foreground leading-normal">
-          {loginCodeTip}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-5 p-5 sm:p-6 pt-2">
-        <Field className="space-y-3">
+    <div className="flex flex-col gap-6 [@media(max-height:700px)]:gap-4">
+      <AuthHeading
+        title="验证您的登录"
+        description="输入发送到安全邮箱的 6 位验证码。"
+      />
+      {loginCodeTip ? (
+        <p className="text-sm leading-6 text-muted-foreground">{loginCodeTip}</p>
+      ) : null}
+      <div className="flex flex-col gap-5 [@media(max-height:700px)]:gap-3">
+        <Field className="gap-3">
           <div className="flex items-center justify-between">
             <FieldLabel htmlFor="otp-verification" className="text-sm font-medium">
               验证码
@@ -50,13 +49,13 @@ export function OTPForm({
               type="button"
               onClick={onResend}
               disabled={loginCooldown > 0 || isPending}
-              className="gap-1 text-xs px-2 py-1 h-7"
+              className="h-8 text-xs"
             >
-              <RefreshCwIcon className={cn("size-3", isPending && "animate-spin")} />
+              <RefreshCwIcon className={cn(isPending && "animate-spin")} />
               {loginCooldown > 0 ? `${loginCooldown}秒后重发` : "重新发送"}
             </Button>
           </div>
-          <div className="flex justify-center">
+          <div className="flex justify-start">
             <InputOTP
               maxLength={6}
               id="otp-verification"
@@ -80,17 +79,16 @@ export function OTPForm({
             </InputOTP>
           </div>
         </Field>
-      </CardContent>
-      <CardFooter className="flex-col gap-4 p-5 sm:p-6 pt-2">
         <Button
           type="button"
-          className="w-full"
+          className="h-10 w-full [@media(max-height:700px)]:h-9"
+          variant="auth"
           onClick={onSubmit}
           disabled={isPending || code.length < 6}
         >
           {isPending ? "验证中..." : "验证"}
         </Button>
-        <div className="text-xs text-muted-foreground text-center">
+        <div className="text-center text-sm text-muted-foreground">
           遇到登录问题？{" "}
           <a
             href="#"
@@ -99,7 +97,7 @@ export function OTPForm({
             联系客服
           </a>
         </div>
-      </CardFooter>
-    </Card>
+      </div>
+    </div>
   )
 }

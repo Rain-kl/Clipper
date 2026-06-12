@@ -3,28 +3,31 @@
 import {useEffect, useMemo, useRef, useState} from "react"
 import {useMutation, useQuery} from "@tanstack/react-query"
 import {useRouter, useSearchParams} from "next/navigation"
-import {KeyRound} from "lucide-react"
+import {EyeIcon, EyeOffIcon} from "lucide-react"
 import {toast} from "sonner"
 import Link from "next/link"
 
 import {useAuth} from "@/components/providers/auth-provider"
 import {Button} from "@/components/ui/button"
 import {Input} from "@/components/ui/input"
-import {Label} from "@/components/ui/label"
 import {Separator} from "@/components/ui/separator"
 import {Spinner} from "@/components/ui/spinner"
-import {Card, CardContent} from "@/components/ui/card"
+import {Field, FieldGroup, FieldLabel} from "@/components/ui/field"
 import {CapWidget} from "@/components/auth/cap-widget"
+import {AuthHeading} from "@/components/auth/auth-shell"
 import {OTPForm} from "./otp-form"
 import services from "@/lib/services"
 import type {LoginRequest} from "@/lib/services/auth/types"
 
 function getRedirectTarget(searchParams: ReturnType<typeof useSearchParams>) {
   const callbackUrl = searchParams.get("callbackUrl")
-  const storedRedirect = sessionStorage.getItem("redirect_after_login")
+  const storedRedirect =
+    typeof window === "undefined"
+      ? null
+      : sessionStorage.getItem("redirect_after_login")
   const target = callbackUrl || storedRedirect || "/home"
 
-  if (storedRedirect) {
+  if (storedRedirect && typeof window !== "undefined") {
     sessionStorage.removeItem("redirect_after_login")
   }
 
@@ -33,7 +36,7 @@ function getRedirectTarget(searchParams: ReturnType<typeof useSearchParams>) {
 
 function persistRedirectTarget(searchParams: ReturnType<typeof useSearchParams>) {
   const callbackUrl = searchParams.get("callbackUrl")
-  if (callbackUrl) {
+  if (callbackUrl && typeof window !== "undefined") {
     sessionStorage.setItem("redirect_after_login", callbackUrl)
   }
 }
@@ -43,17 +46,22 @@ function configBool(value: string | undefined, fallback: boolean) {
   return value === "true"
 }
 
-export function LoginForm() {
+export function LoginForm({ onOTPStateChange }: { onOTPStateChange?: (show: boolean) => void }) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { setUser } = useAuth()
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
   const [code, setCode] = useState("")
   const [showLoginCodeInput, setShowLoginCodeInput] = useState(false)
   const [loginCooldown, setLoginCooldown] = useState(0)
   const [errorMessage, setErrorMessage] = useState("")
   const [loginCodeTip, setLoginCodeTip] = useState<React.ReactNode>(null)
+
+  useEffect(() => {
+    onOTPStateChange?.(showLoginCodeInput)
+  }, [showLoginCodeInput, onOTPStateChange])
 
   useEffect(() => {
     if (loginCooldown > 0) {
@@ -125,9 +133,7 @@ export function LoginForm() {
 
       if (errorMsg.startsWith("smtp_invalid:")) {
         const tip = errorMsg.substring("smtp_invalid:".length)
-        setLoginCodeTip(
-          <span className="text-amber-500 font-medium">{tip}</span>
-        )
+        setLoginCodeTip("请输入您的登录验证码。")
         setShowLoginCodeInput(true)
         setLoginCooldown(0)
         toast.warning(tip)
@@ -217,11 +223,9 @@ export function LoginForm() {
 
   if (publicConfigQuery.isPending) {
     return (
-      <Card className="w-full border-border/60 bg-background/80 shadow-2xl backdrop-blur">
-        <CardContent className="flex justify-center items-center py-12">
-          <Spinner />
-        </CardContent>
-      </Card>
+      <div className="flex items-center justify-center py-24">
+        <Spinner />
+      </div>
     )
   }
 
@@ -240,111 +244,123 @@ export function LoginForm() {
   }
 
   return (
-    <Card className="w-full border-border/60 bg-background/80 shadow-2xl backdrop-blur">
-      <CardContent className="space-y-5 p-5 sm:p-6">
-        <div className="space-y-2 text-center">
-          <h2 className="text-xl font-semibold tracking-tight text-foreground">
-            账号登录
-          </h2>
-        </div>
+    <div className="flex flex-col gap-6 [@media(max-height:700px)]:gap-4">
+      <AuthHeading
+        siteName={publicConfigQuery.data?.site_name}
+        title="登录到您的账号"
+        description="欢迎回来，请输入您的账号信息继续。"
+      />
 
-        <div className="space-y-4 pt-2">
-          <div className="space-y-3">
-            <div className="space-y-3">
-              <div className="space-y-1.5">
-                <Label htmlFor="username">邮箱/用户名</Label>
-                <Input
-                  id="username"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder="请输入邮箱或用户名"
-                  autoComplete="username"
-                  onKeyDown={(e) => e.key === "Enter" && handlePasswordLogin()}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="password">密码</Label>
-                <Input
-                  id="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  type="password"
-                  placeholder="请输入密码"
-                  autoComplete="current-password"
-                  onKeyDown={(e) => e.key === "Enter" && handlePasswordLogin()}
-                />
-              </div>
-
-            </div>
-
-            {/* Cap 人机验证 */}
-            {capEnabled && (
-              <CapWidget
-                key={capResetKey}
-                onToken={handleCapToken}
-                onError={handleCapError}
-                autoStart={capAutoSolve}
+      <div className="flex flex-col gap-5 [@media(max-height:700px)]:gap-3">
+        <FieldGroup className="gap-4 [@media(max-height:700px)]:gap-3">
+          <Field className="gap-1.5">
+            <FieldLabel htmlFor="username">
+              邮箱或用户名 <span className="text-destructive">*</span>
+            </FieldLabel>
+            <Input
+              id="username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="输入邮箱或用户名"
+              autoComplete="username"
+              className="h-10 text-sm [@media(max-height:700px)]:h-9"
+              onKeyDown={(e) => e.key === "Enter" && handlePasswordLogin()}
+            />
+          </Field>
+          <Field className="gap-1.5">
+            <FieldLabel htmlFor="password">
+              密码 <span className="text-destructive">*</span>
+            </FieldLabel>
+            <div className="relative">
+              <Input
+                id="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                type={showPassword ? "text" : "password"}
+                placeholder="输入您的密码"
+                autoComplete="current-password"
+                className="h-10 pr-11 text-sm [@media(max-height:700px)]:h-9"
+                onKeyDown={(e) => e.key === "Enter" && handlePasswordLogin()}
               />
-            )}
-
-            {errorMessage ? (
-              <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
-                {errorMessage}
-              </div>
-            ) : null}
-
-            <Button
-              type="button"
-              className="w-full"
-              variant={"secondary"}
-              onClick={handlePasswordLogin}
-              disabled={loginDisabled}
-            >
-              {loginMutation.isPending ? (
-                <>
-                  <Spinner className="mr-2" />
-                  登录中...
-                </>
-              ) : (
-                <>
-                  <KeyRound className="mr-2 size-4" />
-                  登录
-                </>
-              )}
-            </Button>
-          </div>
-        </div>
-
-        {authSources.length > 0 ? (
-          <>
-            <Separator />
-            <div className="space-y-3">
-              <div className="grid gap-2">
-                {authSources.map((source) => (
-                  <Button
-                    key={source.id}
-                    type="button"
-                    variant="outline"
-                    className="justify-start"
-                    onClick={() => void handleOAuthLogin(source.name)}
-                  >
-                    {source.display_name || source.name} 登录
-                  </Button>
-                ))}
-              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                aria-label={showPassword ? "隐藏密码" : "显示密码"}
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+                onClick={() => setShowPassword((visible) => !visible)}
+              >
+                {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+              </Button>
             </div>
-          </>
+          </Field>
+        </FieldGroup>
+
+        {/* Cap 人机验证 */}
+        {capEnabled && (
+          <CapWidget
+            key={capResetKey}
+            onToken={handleCapToken}
+            onError={handleCapError}
+            autoStart={capAutoSolve}
+          />
+        )}
+
+        {errorMessage ? (
+          <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+            {errorMessage}
+          </div>
         ) : null}
 
-        {registrationEnabled && (
-          <div className="text-center text-xs text-muted-foreground mt-4">
-            {"Don't have an account?"}{" "}
-            <Link href="/register" className="font-semibold text-indigo-500 hover:text-indigo-600 transition-colors">
-              Sign up
-            </Link>
+        <Button
+          type="button"
+          className="h-10 w-full [@media(max-height:700px)]:h-9"
+          variant="auth"
+          onClick={handlePasswordLogin}
+          disabled={loginDisabled}
+        >
+          {loginMutation.isPending ? (
+            <>
+              <Spinner />
+              登录中...
+            </>
+          ) : (
+            "登录"
+          )}
+        </Button>
+      </div>
+
+      {authSources.length > 0 ? (
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center gap-3">
+            <Separator className="flex-1" />
+            <span className="text-xs text-muted-foreground">或者使用</span>
+            <Separator className="flex-1" />
           </div>
-        )}
-      </CardContent>
-    </Card>
+          <div className="grid gap-2">
+            {authSources.map((source) => (
+              <Button
+                key={source.id}
+                type="button"
+                variant="outline"
+                className="h-10 [@media(max-height:700px)]:h-9"
+                onClick={() => void handleOAuthLogin(source.name)}
+              >
+                {source.display_name || source.name} 登录
+              </Button>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      {registrationEnabled && (
+        <div className="text-center text-sm text-muted-foreground">
+          还没有账号？{" "}
+          <Link href="/register" className="font-medium text-foreground underline underline-offset-4">
+            立即注册
+          </Link>
+        </div>
+      )}
+    </div>
   )
 }
