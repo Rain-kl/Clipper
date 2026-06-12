@@ -55,3 +55,4 @@ s3_cache
 /frontend/out/
 /.idea/
 /uploads/
+/*-source/
