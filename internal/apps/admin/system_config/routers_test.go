@@ -23,6 +23,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+const expectedDefaultConfigsCount = 28
+
 func setupTestRouter(authUser *model.User) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
@@ -137,9 +139,9 @@ func TestListSystemConfigs(t *testing.T) {
 		var configs []model.SystemConfig
 		_ = json.Unmarshal(dataBytes, &configs)
 
-		// Defaults seed 27 configurations
-		if len(configs) != 27 {
-			t.Errorf("expected 27 default configs, got %d", len(configs))
+		// Defaults seed configurations
+		if len(configs) != expectedDefaultConfigsCount {
+			t.Errorf("expected %d default configs, got %d", expectedDefaultConfigsCount, len(configs))
 		}
 	})
 

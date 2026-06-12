@@ -47,6 +47,7 @@ const (
 	ConfigKeyDiskCacheMaxSizeMB               = "disk_cache_max_size_mb"              // 磁盘缓存最大空间大小 (MB)
 	ConfigKeyDiskCacheTTLMinutes              = "disk_cache_ttl_minutes"              // 磁盘缓存默认有效期 (分钟)
 	ConfigKeyDiskCacheLRUEnabled              = "disk_cache_lru_enabled"              // 是否启用 LRU 淘汰机制
+	ConfigKeyLoginSessionTTLHours             = "login_session_ttl_hours"             // 登录会话过期时间 (小时，0表示浏览器关闭后自动退出登录，-1表示永不过期)
 )
 
 const (

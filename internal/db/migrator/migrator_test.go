@@ -16,6 +16,8 @@ import (
 	"gorm.io/gorm"
 )
 
+const expectedMigratedSystemConfigCount = 28
+
 func TestMigrateInitializesSQLiteDatabase(t *testing.T) {
 	sqliteDB, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{
 		DisableForeignKeyConstraintWhenMigrating: true,
@@ -38,8 +40,8 @@ func TestMigrateInitializesSQLiteDatabase(t *testing.T) {
 	if err := sqliteDB.Table("w_system_configs").Count(&systemConfigCount).Error; err != nil {
 		t.Fatalf("Migrate() count w_system_configs error = %v", err)
 	}
-	if systemConfigCount != 27 {
-		t.Errorf("Migrate() w_system_configs count = %d, want %d", systemConfigCount, 27)
+	if systemConfigCount != expectedMigratedSystemConfigCount {
+		t.Errorf("Migrate() w_system_configs count = %d, want %d", systemConfigCount, expectedMigratedSystemConfigCount)
 	}
 
 	var adminCount int64
