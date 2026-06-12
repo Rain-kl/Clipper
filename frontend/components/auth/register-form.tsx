@@ -10,6 +10,7 @@ import Link from "next/link"
 import {useAuth} from "@/components/providers/auth-provider"
 import {Button} from "@/components/ui/button"
 import {Input} from "@/components/ui/input"
+import {Label} from "@/components/ui/label"
 import {Spinner} from "@/components/ui/spinner"
 import {Card, CardContent} from "@/components/ui/card"
 import services from "@/lib/services"
@@ -116,17 +117,25 @@ export function RegisterForm() {
       toast.error("密码长度不能少于 8 位")
       return
     }
-    if (emailRegisterEnabled) {
-      if (!email.trim() || !code.trim()) {
-        toast.error("邮箱和验证码不能为空")
-        return
-      }
+    const trimmedEmail = email.trim()
+    if (!trimmedEmail) {
+      toast.error("邮箱不能为空")
+      return
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(trimmedEmail)) {
+      toast.error("请输入有效的邮箱地址")
+      return
+    }
+    if (emailRegisterEnabled && !code.trim()) {
+      toast.error("验证码不能为空")
+      return
     }
     registerMutation.mutate({
       username: username.trim(),
       password,
       nickname: nickname.trim() || undefined,
-      email: email.trim() || undefined,
+      email: trimmedEmail,
       code: code.trim() || undefined,
     })
   }
@@ -155,55 +164,78 @@ export function RegisterForm() {
         </div>
 
         <div className="space-y-3 pt-2">
-          <div className="space-y-2">
-            <Input
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="用户名"
-              autoComplete="username"
-              onKeyDown={(e) => e.key === "Enter" && handleRegister()}
-            />
-            <Input
-              value={nickname}
-              onChange={(e) => setNickname(e.target.value)}
-              placeholder="昵称（可选）"
-              autoComplete="nickname"
-              onKeyDown={(e) => e.key === "Enter" && handleRegister()}
-            />
-            <Input
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              type="password"
-              placeholder="密码（至少 8 位）"
-              autoComplete="new-password"
-              onKeyDown={(e) => e.key === "Enter" && handleRegister()}
-            />
-            <Input
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder={emailRegisterEnabled ? "电子邮箱" : "电子邮箱（可选）"}
-              autoComplete="email"
-              onKeyDown={(e) => e.key === "Enter" && handleRegister()}
-            />
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="username">用户名</Label>
+              <Input
+                id="username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="请输入用户名"
+                autoComplete="username"
+                onKeyDown={(e) => e.key === "Enter" && handleRegister()}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="nickname">
+                昵称
+                <span className="text-muted-foreground font-normal text-xs ml-1">（可选）</span>
+              </Label>
+              <Input
+                id="nickname"
+                value={nickname}
+                onChange={(e) => setNickname(e.target.value)}
+                placeholder="请输入昵称"
+                autoComplete="nickname"
+                onKeyDown={(e) => e.key === "Enter" && handleRegister()}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="password">密码</Label>
+              <Input
+                id="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                type="password"
+                placeholder="请输入密码（至少 8 位）"
+                autoComplete="new-password"
+                onKeyDown={(e) => e.key === "Enter" && handleRegister()}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="email">电子邮箱</Label>
+              <Input
+                id="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="请输入电子邮箱"
+                autoComplete="email"
+                onKeyDown={(e) => e.key === "Enter" && handleRegister()}
+              />
+            </div>
             {emailRegisterEnabled && (
-              <div className="flex gap-2">
-                <Input
-                  value={code}
-                  onChange={(e) => setCode(e.target.value)}
-                  placeholder="6 位邮箱验证码"
-                  maxLength={6}
-                  className="flex-1"
-                  onKeyDown={(e) => e.key === "Enter" && handleRegister()}
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleSendRegisterCode}
-                  disabled={registerCooldown > 0 || sendRegisterCodeMutation.isPending}
-                  className="w-[120px] text-xs"
-                >
-                  {registerCooldown > 0 ? `${registerCooldown}秒后重发` : "获取验证码"}
-                </Button>
+              <div className="space-y-1.5">
+                <Label htmlFor="code">邮箱验证码</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="code"
+                    value={code}
+                    onChange={(e) => setCode(e.target.value)}
+                    placeholder="请输入 6 位邮箱验证码"
+                    maxLength={6}
+                    className="flex-1"
+                    onKeyDown={(e) => e.key === "Enter" && handleRegister()}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleSendRegisterCode}
+                    disabled={registerCooldown > 0 || sendRegisterCodeMutation.isPending}
+                    className="w-[120px] text-xs"
+                  >
+                    {registerCooldown > 0 ? `${registerCooldown}秒后重发` : "获取验证码"}
+                  </Button>
+                </div>
               </div>
             )}
           </div>

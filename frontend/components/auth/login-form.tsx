@@ -10,10 +10,12 @@ import Link from "next/link"
 import {useAuth} from "@/components/providers/auth-provider"
 import {Button} from "@/components/ui/button"
 import {Input} from "@/components/ui/input"
+import {Label} from "@/components/ui/label"
 import {Separator} from "@/components/ui/separator"
 import {Spinner} from "@/components/ui/spinner"
 import {Card, CardContent} from "@/components/ui/card"
 import {CapWidget} from "@/components/auth/cap-widget"
+import {OTPForm} from "./otp-form"
 import services from "@/lib/services"
 import type {LoginRequest} from "@/lib/services/auth/types"
 
@@ -49,9 +51,9 @@ export function LoginForm() {
   const [password, setPassword] = useState("")
   const [code, setCode] = useState("")
   const [showLoginCodeInput, setShowLoginCodeInput] = useState(false)
-  const [maskedEmail, setMaskedEmail] = useState("")
   const [loginCooldown, setLoginCooldown] = useState(0)
   const [errorMessage, setErrorMessage] = useState("")
+  const [loginCodeTip, setLoginCodeTip] = useState<React.ReactNode>(null)
 
   useEffect(() => {
     if (loginCooldown > 0) {
@@ -105,10 +107,30 @@ export function LoginForm() {
       const errorMsg = error.message || ""
       if (errorMsg.startsWith("need_email_code:")) {
         const emailMasked = errorMsg.substring("need_email_code:".length)
-        setMaskedEmail(emailMasked)
+        setLoginCodeTip(
+          <>
+            已向您的安全邮箱 <span className="font-medium text-foreground">{emailMasked}</span> 发送了登录验证码。
+          </>
+        )
         setShowLoginCodeInput(true)
         setLoginCooldown(60)
         toast.success("登录验证码已发送至您的邮箱，请注意查收")
+        if (capEnabled) {
+          capTokenRef.current = null
+          setCapReady(false)
+          setCapResetKey((key) => key + 1)
+        }
+        return
+      }
+
+      if (errorMsg.startsWith("smtp_invalid:")) {
+        const tip = errorMsg.substring("smtp_invalid:".length)
+        setLoginCodeTip(
+          <span className="text-amber-500 font-medium">{tip}</span>
+        )
+        setShowLoginCodeInput(true)
+        setLoginCooldown(0)
+        toast.warning(tip)
         if (capEnabled) {
           capTokenRef.current = null
           setCapReady(false)
@@ -130,8 +152,8 @@ export function LoginForm() {
     setErrorMessage("")
     const trimmedUsername = username.trim()
     if (!trimmedUsername || !password) {
-      toast.error("账号或密码未填写完整", {
-        description: "请先输入账号 and 密码后再登录",
+      toast.error("邮箱/用户名或密码未填写完整", {
+        description: "请先输入邮箱/用户名和密码后再登录",
       })
       return
     }
@@ -203,6 +225,20 @@ export function LoginForm() {
     )
   }
 
+  if (showLoginCodeInput) {
+    return (
+      <OTPForm
+        code={code}
+        setCode={setCode}
+        loginCodeTip={loginCodeTip}
+        loginCooldown={loginCooldown}
+        isPending={loginMutation.isPending}
+        onResend={handleResendLoginCode}
+        onSubmit={handlePasswordLogin}
+      />
+    )
+  }
+
   return (
     <Card className="w-full border-border/60 bg-background/80 shadow-2xl backdrop-blur">
       <CardContent className="space-y-5 p-5 sm:p-6">
@@ -214,49 +250,31 @@ export function LoginForm() {
 
         <div className="space-y-4 pt-2">
           <div className="space-y-3">
-            <div className="space-y-2">
-              <Input
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="用户名"
-                autoComplete="username"
-                onKeyDown={(e) => e.key === "Enter" && handlePasswordLogin()}
-              />
-              <Input
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                type="password"
-                placeholder="密码"
-                autoComplete="current-password"
-                onKeyDown={(e) => e.key === "Enter" && handlePasswordLogin()}
-              />
+            <div className="space-y-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="username">邮箱/用户名</Label>
+                <Input
+                  id="username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="请输入邮箱或用户名"
+                  autoComplete="username"
+                  onKeyDown={(e) => e.key === "Enter" && handlePasswordLogin()}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="password">密码</Label>
+                <Input
+                  id="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  type="password"
+                  placeholder="请输入密码"
+                  autoComplete="current-password"
+                  onKeyDown={(e) => e.key === "Enter" && handlePasswordLogin()}
+                />
+              </div>
 
-              {showLoginCodeInput && (
-                <div className="space-y-1.5 pt-1">
-                  <p className="text-[11px] text-muted-foreground leading-normal">
-                    已向您的安全邮箱 <span className="font-medium text-foreground">{maskedEmail}</span> 发送了登录验证码。
-                  </p>
-                  <div className="flex gap-2">
-                    <Input
-                      value={code}
-                      onChange={(e) => setCode(e.target.value)}
-                      placeholder="6 位邮箱验证码"
-                      maxLength={6}
-                      className="flex-1"
-                      onKeyDown={(e) => e.key === "Enter" && handlePasswordLogin()}
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={handleResendLoginCode}
-                      disabled={loginCooldown > 0 || loginMutation.isPending}
-                      className="w-[120px] text-xs"
-                    >
-                      {loginCooldown > 0 ? `${loginCooldown}秒后重发` : "重新发送"}
-                    </Button>
-                  </div>
-                </div>
-              )}
             </div>
 
             {/* Cap 人机验证 */}
@@ -320,7 +338,7 @@ export function LoginForm() {
 
         {registrationEnabled && (
           <div className="text-center text-xs text-muted-foreground mt-4">
-            Don't have an account?{" "}
+            {"Don't have an account?"}{" "}
             <Link href="/register" className="font-semibold text-indigo-500 hover:text-indigo-600 transition-colors">
               Sign up
             </Link>
