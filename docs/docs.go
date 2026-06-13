@@ -5196,6 +5196,9 @@ const docTemplate = `{
         "model.Upload": {
             "type": "object",
             "properties": {
+                "access_mode": {
+                    "type": "integer"
+                },
                 "created_at": {
                     "type": "string"
                 },

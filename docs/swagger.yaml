@@ -420,6 +420,8 @@ definitions:
     type: object
   model.Upload:
     properties:
+      access_mode:
+        type: integer
       created_at:
         type: string
       extension:
