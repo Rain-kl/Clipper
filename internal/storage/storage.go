@@ -5,8 +5,16 @@ package storage
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"strings"
+	"sync"
+	"time"
+
+	"github.com/Rain-kl/Wavelet/internal/model"
+	"gorm.io/gorm"
 )
 
 const (
@@ -35,25 +43,87 @@ var (
 	// IsEnabledFunc preserves the legacy S3 test hook while tests migrate to backend injection.
 	IsEnabledFunc = func() bool { return false }
 	mockBackend   Backend
+
+	activeBackend    Backend
+	activeDriver     Driver
+	activeConfigJSON string
+	lastChecked      time.Time
+	cacheMutex       sync.RWMutex
 )
 
-// Active returns the configured active driver and backend.
+// ResetCache clears the local cache for storage configuration and client singletons.
+func ResetCache() {
+	cacheMutex.Lock()
+	defer cacheMutex.Unlock()
+	activeBackend = nil
+	activeDriver = ""
+	activeConfigJSON = ""
+	lastChecked = time.Time{}
+}
+
+// Active returns the configured active driver and backend, using an in-memory cache with 5s TTL.
 func Active(ctx context.Context) (Driver, Backend, error) {
 	if IsEnabledFunc() && mockBackend != nil {
 		return DriverS3, mockBackend, nil
 	}
-	cfg, err := LoadConfig(ctx)
+
+	cacheMutex.RLock()
+	isCacheValid := time.Since(lastChecked) < 5*time.Second && activeBackend != nil
+	if isCacheValid {
+		d, b := activeDriver, activeBackend
+		cacheMutex.RUnlock()
+		return d, b, nil
+	}
+	cacheMutex.RUnlock()
+
+	cacheMutex.Lock()
+	defer cacheMutex.Unlock()
+
+	// Double-check under write lock
+	if time.Since(lastChecked) < 5*time.Second && activeBackend != nil {
+		return activeDriver, activeBackend, nil
+	}
+
+	var sc model.SystemConfig
+	err := sc.GetByKey(ctx, model.ConfigKeyStorageConfig)
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return "", nil, err
+	}
+
+	lastChecked = time.Now()
+
+	// Reuse existing backend client singleton if configuration JSON matches
+	if sc.Value == activeConfigJSON && activeBackend != nil {
+		return activeDriver, activeBackend, nil
+	}
+
+	cfg := DefaultConfig()
+	if strings.TrimSpace(sc.Value) != "" {
+		if err := json.Unmarshal([]byte(sc.Value), &cfg); err != nil {
+			return "", nil, fmt.Errorf("parse storage config: %w", err)
+		}
+	}
+
+	backend, err := NewBackend(ctx, cfg, cfg.Driver)
 	if err != nil {
 		return "", nil, err
 	}
-	backend, err := NewBackend(ctx, cfg, cfg.Driver)
-	return cfg.Driver, backend, err
+
+	activeDriver = cfg.Driver
+	activeBackend = backend
+	activeConfigJSON = sc.Value
+
+	return activeDriver, activeBackend, nil
 }
 
-// ForDriver returns the active or pending backend for an upload record.
+// ForDriver returns the active or pending backend for an upload record, reusing the active singleton if matched.
 func ForDriver(ctx context.Context, driver Driver) (Backend, error) {
 	if driver == DriverS3 && mockBackend != nil {
 		return mockBackend, nil
+	}
+	activeDrv, activeBnd, err := Active(ctx)
+	if err == nil && activeDrv == driver {
+		return activeBnd, nil
 	}
 	cfg, err := LoadConfig(ctx)
 	if err != nil {
