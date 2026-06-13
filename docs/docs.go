@@ -6286,10 +6286,15 @@ const docTemplate = `{
         "user.createUserRequest": {
             "type": "object",
             "required": [
+                "email",
                 "password",
                 "username"
             ],
             "properties": {
+                "email": {
+                    "type": "string",
+                    "maxLength": 255
+                },
                 "is_active": {
                     "type": "boolean"
                 },

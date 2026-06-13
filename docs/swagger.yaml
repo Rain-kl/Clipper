@@ -987,6 +987,9 @@ definitions:
     type: object
   user.createUserRequest:
     properties:
+      email:
+        maxLength: 255
+        type: string
       is_active:
         type: boolean
       is_admin:
@@ -1003,6 +1006,7 @@ definitions:
         minLength: 3
         type: string
     required:
+    - email
     - password
     - username
     type: object
