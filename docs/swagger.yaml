@@ -1190,6 +1190,24 @@ paths:
       summary: 校验人机验证解答
       tags:
       - cap
+  /api/health:
+    get:
+      description: 检查服务是否正常运行，可用于负载均衡存活探测
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 服务正常
+          schema:
+            allOf:
+            - $ref: '#/definitions/util.ResponseAny'
+            - properties:
+                data:
+                  type: string
+              type: object
+      summary: 健康检查
+      tags:
+      - health
   /api/v1/admin/auth-sources:
     get:
       description: 返回所有已配置的 OAuth/OIDC 认证源列表，包括已启用和未启用的，需要管理员权限
@@ -3193,24 +3211,6 @@ paths:
       summary: Sample Hello API
       tags:
       - custom
-  /api/v1/health:
-    get:
-      description: 检查服务是否正常运行，可用于负载均衡存活探测
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 服务正常
-          schema:
-            allOf:
-            - $ref: '#/definitions/util.ResponseAny'
-            - properties:
-                data:
-                  type: string
-              type: object
-      summary: 健康检查
-      tags:
-      - health
   /api/v1/oauth/{source}/authorize:
     get:
       description: 根据指定认证源名称发起 OAuth 授权，支持 purpose 参数用于区分登录和账号绑定场景。认证源必须已启用。
