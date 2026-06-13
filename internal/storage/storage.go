@@ -13,6 +13,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Rain-kl/Wavelet/internal/db"
 	"github.com/Rain-kl/Wavelet/internal/model"
 	"gorm.io/gorm"
 )
@@ -51,6 +52,10 @@ var (
 	cacheMutex       sync.RWMutex
 )
 
+const configInvalidationChannel = "storage:config_invalidation"
+
+var pubSubOnce sync.Once
+
 // ResetCache clears the local cache for storage configuration and client singletons.
 func ResetCache() {
 	cacheMutex.Lock()
@@ -61,11 +66,38 @@ func ResetCache() {
 	lastChecked = time.Time{}
 }
 
+// PublishCacheInvalidation broadcasts cache eviction to all nodes in the cluster via Redis.
+func PublishCacheInvalidation(ctx context.Context) {
+	if db.Redis != nil {
+		_ = db.Redis.Publish(ctx, configInvalidationChannel, "reset").Err()
+	}
+}
+
+// startPubSubListener starts the background subscriber for cache invalidations.
+func startPubSubListener() {
+	if db.Redis == nil {
+		return
+	}
+	go func() {
+		pubsub := db.Redis.Subscribe(context.Background(), configInvalidationChannel)
+		defer func() {
+			_ = pubsub.Close()
+		}()
+
+		ch := pubsub.Channel()
+		for range ch {
+			ResetCache()
+		}
+	}()
+}
+
 // Active returns the configured active driver and backend, using an in-memory cache with 5s TTL.
 func Active(ctx context.Context) (Driver, Backend, error) {
 	if IsEnabledFunc() && mockBackend != nil {
 		return DriverS3, mockBackend, nil
 	}
+
+	pubSubOnce.Do(startPubSubListener)
 
 	cacheMutex.RLock()
 	isCacheValid := time.Since(lastChecked) < 5*time.Second && activeBackend != nil

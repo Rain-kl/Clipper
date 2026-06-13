@@ -88,6 +88,8 @@ func DefaultConfig() Config {
 
 // LoadConfig loads the active storage configuration.
 func LoadConfig(ctx context.Context) (Config, error) {
+	pubSubOnce.Do(startPubSubListener)
+
 	cacheMutex.RLock()
 	isCacheValid := time.Since(lastChecked) < 5*time.Second && activeConfigJSON != ""
 	configJSON := activeConfigJSON
@@ -184,6 +186,7 @@ func saveSystemConfig(ctx context.Context, key string, value any, description st
 	})
 	if err == nil && key == model.ConfigKeyStorageConfig {
 		ResetCache()
+		PublishCacheInvalidation(ctx)
 	}
 	return err
 }

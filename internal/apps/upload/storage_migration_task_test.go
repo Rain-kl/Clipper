@@ -14,10 +14,14 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/Rain-kl/Wavelet/internal/db"
 	"github.com/Rain-kl/Wavelet/internal/model"
 	"github.com/Rain-kl/Wavelet/internal/storage"
 	"github.com/Rain-kl/Wavelet/internal/testhelper"
+	"github.com/alicebob/miniredis/v2"
+	"github.com/redis/go-redis/v9"
 )
 
 func TestMigrationHandlerExecute(t *testing.T) {
@@ -218,5 +222,64 @@ func TestMigrationHandlerExecuteWithHashValidation(t *testing.T) {
 	}
 	if migrated.StorageDriver != string(storage.DriverS3) {
 		t.Errorf("StorageDriver = %q, want %q", migrated.StorageDriver, storage.DriverS3)
+	}
+}
+
+func TestMigrationHandlerExecuteWithRedisLock(t *testing.T) {
+	_, _, cleanup := testhelper.SetupTestEnvironment(t)
+	defer cleanup()
+
+	mr, err := miniredis.Run()
+	if err != nil {
+		t.Fatalf("Failed to run miniredis: %v", err)
+	}
+	defer mr.Close()
+
+	rdb := redis.NewClient(&redis.Options{
+		Addr: mr.Addr(),
+	})
+	defer rdb.Close()
+
+	oldRedis := db.Redis
+	db.Redis = rdb
+	defer func() {
+		db.Redis = oldRedis
+	}()
+
+	ctx := context.Background()
+
+	// Acquire lock manually
+	lockKey := db.PrefixedKey("lock:storage:migrate")
+	if err := rdb.Set(ctx, lockKey, "locked", time.Hour).Err(); err != nil {
+		t.Fatalf("Failed to set manual lock in Redis: %v", err)
+	}
+
+	active := storage.DefaultConfig()
+	if err := storage.SaveActiveConfig(ctx, active); err != nil {
+		t.Fatalf("SaveActiveConfig() returned error: %v", err)
+	}
+
+	payload, err := json.Marshal(storageMigrationPayload{Target: active})
+	if err != nil {
+		t.Fatalf("Marshal payload failed: %v", err)
+	}
+
+	// Execution should fail because lock is already acquired
+	_, err = (&MigrationHandler{}).Execute(ctx, payload)
+	if err == nil {
+		t.Fatal("Execute() succeeded when lock was held, want error")
+	}
+	if !strings.Contains(err.Error(), "另一个存储迁移任务正在运行中") {
+		t.Errorf("expected lock warning, got: %v", err)
+	}
+
+	// Release lock and run again, should succeed
+	if err := rdb.Del(ctx, lockKey).Err(); err != nil {
+		t.Fatalf("Failed to delete lock: %v", err)
+	}
+
+	_, err = (&MigrationHandler{}).Execute(ctx, payload)
+	if err != nil {
+		t.Fatalf("Execute() failed after lock released: %v", err)
 	}
 }

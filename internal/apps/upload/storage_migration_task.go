@@ -14,6 +14,7 @@ import (
 	"os"
 	"strings"
 	"sync/atomic"
+	"time"
 
 	"github.com/Rain-kl/Wavelet/internal/db"
 	"github.com/Rain-kl/Wavelet/internal/model"
@@ -67,6 +68,18 @@ func (h *MigrationHandler) ValidatePayload(payload []byte) ([]byte, error) {
 
 // Execute migrates all unique active-storage objects to the pending backend.
 func (h *MigrationHandler) Execute(ctx context.Context, payload []byte) (*task.TaskResult, error) {
+	if db.Redis != nil {
+		lockKey := db.PrefixedKey("lock:storage:migrate")
+		ok, err := db.Redis.SetNX(ctx, lockKey, "locked", time.Hour).Result()
+		if err != nil {
+			return nil, fmt.Errorf("acquire migration lock: %w", err)
+		}
+		if !ok {
+			return nil, errors.New("另一个存储迁移任务正在运行中")
+		}
+		defer db.Redis.Del(ctx, lockKey)
+	}
+
 	active, err := storage.LoadConfig(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("load active storage config: %w", err)

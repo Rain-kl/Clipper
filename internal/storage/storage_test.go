@@ -4,11 +4,16 @@
 package storage
 
 import (
-	"context"
-	"encoding/json"
-	"io"
-	"testing"
-	"time"
+    "context"
+    "encoding/json"
+    "io"
+    "sync"
+    "testing"
+    "time"
+
+    "github.com/Rain-kl/Wavelet/internal/db"
+    "github.com/alicebob/miniredis/v2"
+    "github.com/redis/go-redis/v9"
 )
 
 func TestStorageCache(t *testing.T) {
@@ -78,5 +83,70 @@ func TestStorageCache(t *testing.T) {
 	ResetCache()
 	if activeConfigJSON != "" || activeDriver != "" || activeBackend != nil || !lastChecked.IsZero() {
 		t.Fatal("ResetCache did not clear cache variables after setting them")
+	}
+}
+
+func TestStorageCachePubSub(t *testing.T) {
+	// 1. Start miniredis
+	mr, err := miniredis.Run()
+	if err != nil {
+		t.Fatalf("Failed to run miniredis: %v", err)
+	}
+	defer mr.Close()
+
+	// 2. Initialize Redis client
+	rdb := redis.NewClient(&redis.Options{
+		Addr: mr.Addr(),
+	})
+	defer rdb.Close()
+
+	// 3. Set db.Redis to our client
+	oldRedis := db.Redis
+	db.Redis = rdb
+	defer func() {
+		db.Redis = oldRedis
+	}()
+
+	// Reset cache and set some cached config
+	ResetCache()
+	cacheMutex.Lock()
+	activeConfigJSON = "some_config"
+	lastChecked = time.Now()
+	cacheMutex.Unlock()
+
+	// 4. Force trigger lazy initialization of subscription
+	// Reset the once guard so it runs the listener
+	pubSubOnce = sync.Once{}
+	ctx := context.Background()
+
+	// Create mock backend for Active call
+	mockBnd := &functionBackend{
+		put:    func(context.Context, string, io.Reader, int64, string) error { return nil },
+		get:    func(context.Context, string) (*Object, error) { return nil, nil },
+		delete: func(context.Context, string) error { return nil },
+	}
+	cacheMutex.Lock()
+	activeBackend = mockBnd
+	activeDriver = DriverLocal
+	cacheMutex.Unlock()
+
+	_, _, _ = Active(ctx) // This calls startPubSubListener()
+
+	// Allow some time for subscriber connection
+	time.Sleep(100 * time.Millisecond)
+
+	// 5. Publish cache invalidation
+	PublishCacheInvalidation(ctx)
+
+	// Allow message propagation
+	time.Sleep(100 * time.Millisecond)
+
+	// 6. Verify cache was cleared
+	cacheMutex.RLock()
+	configJSON := activeConfigJSON
+	cacheMutex.RUnlock()
+
+	if configJSON != "" {
+		t.Error("Memory cache was not cleared after Redis Pub/Sub broadcast")
 	}
 }
