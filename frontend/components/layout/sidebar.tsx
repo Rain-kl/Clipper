@@ -68,6 +68,7 @@ import {usePublicConfig} from "@/hooks/use-public-config"
 const data = {
   navMain: [
     { title: "首页", url: "/home", icon: Home },
+    { title: "我的文件", url: "/files", icon: FolderOpen },
   ],
   admin: [
     { title: "用户管理", url: "/admin/users", icon: UserRound },
