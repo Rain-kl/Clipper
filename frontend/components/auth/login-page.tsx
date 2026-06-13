@@ -41,6 +41,7 @@ export function LoginPage() {
   const [loginSuccess, setLoginSuccess] = useState(false)
   const redirectedRef = useRef(false)
   const callbackProcessedRef = useRef(false)
+  const wasUserPresentRef = useRef(!!user)
 
   const resolveRedirectTarget = useCallback(() => {
     const callbackUrl = searchParams.get('callbackUrl')
@@ -71,10 +72,12 @@ export function LoginPage() {
     }
 
     if (user) {
-      if (!redirectedRef.current) {
-        redirectedRef.current = true
-        router.replace(resolveRedirectTargetRef.current())
-        setIsCheckingSession(false)
+      if (wasUserPresentRef.current) {
+        if (!redirectedRef.current) {
+          redirectedRef.current = true
+          router.replace(resolveRedirectTargetRef.current())
+          setIsCheckingSession(false)
+        }
       }
       return
     }
