@@ -90,6 +90,15 @@ func hashSessionToken(token string) string {
 	return hex.EncodeToString(h.Sum(nil))
 }
 
+func isOIDCLoginEnabled(ctx context.Context) bool {
+	enabled, err := model.GetBoolByKey(ctx, model.ConfigKeyOIDCLoginEnabled)
+	if err != nil {
+		return true
+	}
+	return enabled
+}
+
+
 
 func resolveAuthSource(sourceName string) (*model.AuthSource, error) {
 	name := strings.TrimSpace(strings.ToLower(sourceName))
@@ -348,11 +357,23 @@ func GetLoginSources(c *gin.Context) {
 // @Failure 500 {object} util.ResponseAny "Redis 异常或构造 URL 失败"
 // @Router /api/v1/oauth/login [get]
 func GetLoginURL(c *gin.Context) {
+	ctx := c.Request.Context()
+	if !isOIDCLoginEnabled(ctx) {
+		c.JSON(http.StatusBadRequest, util.Err(AuthSourceDisabled))
+		return
+	}
+
 	source, err := resolveAuthSource(c.Query("source"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, util.Err(err.Error()))
 		return
 	}
+
+	if !source.IsActive {
+		c.JSON(http.StatusBadRequest, util.Err(AuthSourceDisabled))
+		return
+	}
+
 
 	session := sessions.Default(c)
 	token, isNew := ensureSessionToken(session)
@@ -418,11 +439,18 @@ func buildAuthorizeURL(ctx context.Context, source *model.AuthSource, state stri
 // @Failure 500 {object} util.ResponseAny "Redis 异常或构造 URL 失败"
 // @Router /api/v1/oauth/{source}/authorize [get]
 func Authorize(c *gin.Context) {
+	ctx := c.Request.Context()
+	if !isOIDCLoginEnabled(ctx) {
+		c.JSON(http.StatusBadRequest, util.Err(AuthSourceDisabled))
+		return
+	}
+
 	source, err := resolveAuthSource(c.Param("source"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, util.Err(err.Error()))
 		return
 	}
+
 	if !source.IsActive {
 		c.JSON(http.StatusBadRequest, util.Err(AuthSourceDisabled))
 		return
@@ -533,11 +561,22 @@ func Callback(c *gin.Context) {
 
 
 
+	if !isOIDCLoginEnabled(ctx) {
+		c.JSON(http.StatusBadRequest, util.Err(AuthSourceDisabled))
+		return
+	}
+
 	source, err := resolveAuthSource(payload.SourceName)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, util.Err(err.Error()))
 		return
 	}
+
+	if !source.IsActive {
+		c.JSON(http.StatusBadRequest, util.Err(AuthSourceDisabled))
+		return
+	}
+
 
 	redirectURL, err := getFrontendLoginRedirectURL(ctx)
 	if err != nil {
@@ -633,18 +672,10 @@ func handleCallbackRegister(ctx context.Context, c *gin.Context, source *model.A
 	}
 
 	if !registrationEnabled {
-		session := sessions.Default(c)
-		session.Set(PendingOAuthSourceIDKey, source.ID)
-		session.Set(PendingOAuthExternalIDKey, userInfo.Sub)
-		session.Set(PendingOAuthExternalUsernameKey, userInfo.Username)
-		session.Set(PendingOAuthEmailKey, userInfo.Email)
-		if err := session.Save(); err != nil {
-			c.JSON(http.StatusInternalServerError, util.Err(err.Error()))
-			return model.User{}, false
-		}
 		c.JSON(http.StatusOK, util.OK(buildCallbackResult(nil, "need_bind")))
 		return model.User{}, false
 	}
+
 
 	username, uniqueErr := uniqueUsername(ctx, userInfo.Username)
 	if uniqueErr != nil {

@@ -1068,3 +1068,116 @@ func TestExternalAccountsListAndDelete(t *testing.T) {
 		t.Error("binding record was not deleted from DB")
 	}
 }
+
+func TestOIDCPolicyEnforcement(t *testing.T) {
+	initializeTestConfig()
+	dbConn := setupTestDB(t)
+	mockRedis := newMockRedisClient()
+	seedTestAuthSource(t, dbConn) // seeds testSourceName ("linuxdo") active=true
+
+	// Set up mock client & router
+	var state string
+	httpMock := newMockOIDCClient(testIssuerURL, testClientID, &state, "88888", "test_oauth_user", "oauth@linux.do", "Oauth Test User")
+	util.SetHTTPClient(httpMock)
+	router := setupTestRouter(dbConn, mockRedis, httpMock)
+
+	// --- 1. Test GetLoginURL enforcement ---
+	// Disable globally
+	dbConn.Create(&model.SystemConfig{
+		Key:   model.ConfigKeyOIDCLoginEnabled,
+		Value: "false",
+	})
+	mockRedis.Del(context.Background(), db.PrefixedKey(model.SystemConfigRedisHashKey)+":"+model.ConfigKeyOIDCLoginEnabled)
+	wLoginDisabled := performRequest(router, http.MethodGet, "/api/v1/oauth/login?source="+testSourceName, nil, nil, nil)
+	if wLoginDisabled.Code != http.StatusBadRequest {
+		t.Errorf("expected 400 when OIDC globally disabled, got %d", wLoginDisabled.Code)
+	}
+
+	// Re-enable globally, but deactivate source
+	dbConn.Model(&model.SystemConfig{}).Where("key = ?", model.ConfigKeyOIDCLoginEnabled).Update("value", "true")
+	mockRedis.Del(context.Background(), db.PrefixedKey(model.SystemConfigRedisHashKey)+":"+model.ConfigKeyOIDCLoginEnabled)
+	dbConn.Model(&model.AuthSource{}).Where("name = ?", testSourceName).Update("is_active", false)
+
+	wSourceInactive := performRequest(router, http.MethodGet, "/api/v1/oauth/login?source="+testSourceName, nil, nil, nil)
+	if wSourceInactive.Code != http.StatusBadRequest {
+		t.Errorf("expected 400 when OIDC source is inactive, got %d", wSourceInactive.Code)
+	}
+
+	// --- 2. Test Authorize enforcement ---
+	// Deactivate globally again
+	dbConn.Model(&model.SystemConfig{}).Where("key = ?", model.ConfigKeyOIDCLoginEnabled).Update("value", "false")
+	mockRedis.Del(context.Background(), db.PrefixedKey(model.SystemConfigRedisHashKey)+":"+model.ConfigKeyOIDCLoginEnabled)
+	dbConn.Model(&model.AuthSource{}).Where("name = ?", testSourceName).Update("is_active", true)
+
+	wAuthDisabled := performRequest(router, http.MethodGet, "/api/v1/oauth/"+testSourceName+"/authorize", nil, nil, nil)
+	if wAuthDisabled.Code != http.StatusBadRequest {
+		t.Errorf("expected 400 when OIDC globally disabled in Authorize, got %d", wAuthDisabled.Code)
+	}
+
+	// --- 3. Test Callback enforcement ---
+	// Set up a valid state beforehand (when enabled)
+	dbConn.Model(&model.SystemConfig{}).Where("key = ?", model.ConfigKeyOIDCLoginEnabled).Update("value", "true")
+	mockRedis.Del(context.Background(), db.PrefixedKey(model.SystemConfigRedisHashKey)+":"+model.ConfigKeyOIDCLoginEnabled)
+	dbConn.Model(&model.AuthSource{}).Where("name = ?", testSourceName).Update("is_active", true)
+
+	wLogin := performRequest(router, http.MethodGet, "/api/v1/oauth/login?source="+testSourceName, nil, nil, nil)
+
+	if wLogin.Code != http.StatusOK {
+		t.Fatalf("failed to setup login: %s", wLogin.Body.String())
+	}
+	var loginUrlResp struct {
+		Data OAuthAuthorizeResponse `json:"data"`
+	}
+	_ = json.Unmarshal(wLogin.Body.Bytes(), &loginUrlResp)
+	parsedURL, _ := url.Parse(loginUrlResp.Data.AuthorizeURL)
+	state = parsedURL.Query().Get("state")
+
+	var anonymousCookie *http.Cookie
+	for _, cookie := range wLogin.Result().Cookies() {
+		if cookie.Name == config.Config.App.SessionCookieName {
+			anonymousCookie = cookie
+			break
+		}
+	}
+
+	// Now disable OIDC globally and attempt callback
+	dbConn.Model(&model.SystemConfig{}).Where("key = ?", model.ConfigKeyOIDCLoginEnabled).Update("value", "false")
+	mockRedis.Del(context.Background(), db.PrefixedKey(model.SystemConfigRedisHashKey)+":"+model.ConfigKeyOIDCLoginEnabled)
+	reqBody := fmt.Sprintf(`{"state":"%s","code":"test_auth_code"}`, state)
+	wCallbackDisabled := performRequest(router, http.MethodPost, "/api/v1/oauth/callback", []byte(reqBody), map[string]string{
+		"Content-Type": "application/json",
+	}, []*http.Cookie{anonymousCookie})
+	if wCallbackDisabled.Code != http.StatusBadRequest {
+		t.Errorf("expected 400 for callback when OIDC globally disabled, got %d, body: %s", wCallbackDisabled.Code, wCallbackDisabled.Body.String())
+	}
+
+	// Enable globally but deactivate source and attempt callback
+	dbConn.Model(&model.SystemConfig{}).Where("key = ?", model.ConfigKeyOIDCLoginEnabled).Update("value", "true")
+	mockRedis.Del(context.Background(), db.PrefixedKey(model.SystemConfigRedisHashKey)+":"+model.ConfigKeyOIDCLoginEnabled)
+	dbConn.Model(&model.AuthSource{}).Where("name = ?", testSourceName).Update("is_active", false)
+
+	// Since callback deletes state, we need to generate state again
+	dbConn.Model(&model.AuthSource{}).Where("name = ?", testSourceName).Update("is_active", true)
+	wLogin2 := performRequest(router, http.MethodGet, "/api/v1/oauth/login?source="+testSourceName, nil, nil, nil)
+	_ = json.Unmarshal(wLogin2.Body.Bytes(), &loginUrlResp)
+	parsedURL, _ = url.Parse(loginUrlResp.Data.AuthorizeURL)
+	state = parsedURL.Query().Get("state")
+	var anonymousCookie2 *http.Cookie
+	for _, cookie := range wLogin2.Result().Cookies() {
+		if cookie.Name == config.Config.App.SessionCookieName {
+			anonymousCookie2 = cookie
+			break
+		}
+	}
+
+	// Deactivate source
+	dbConn.Model(&model.AuthSource{}).Where("name = ?", testSourceName).Update("is_active", false)
+	reqBody2 := fmt.Sprintf(`{"state":"%s","code":"test_auth_code"}`, state)
+	wCallbackSourceInactive := performRequest(router, http.MethodPost, "/api/v1/oauth/callback", []byte(reqBody2), map[string]string{
+		"Content-Type": "application/json",
+	}, []*http.Cookie{anonymousCookie2})
+	if wCallbackSourceInactive.Code != http.StatusBadRequest {
+		t.Errorf("expected 400 for callback when OIDC source deactivated, got %d, body: %s", wCallbackSourceInactive.Code, wCallbackSourceInactive.Body.String())
+	}
+}
+
