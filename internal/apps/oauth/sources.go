@@ -5,13 +5,14 @@ package oauth
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
-
-	"strconv"
 
 	"github.com/Rain-kl/Wavelet/internal/common"
 	"github.com/Rain-kl/Wavelet/internal/config"
@@ -72,6 +73,23 @@ func GetUserIDFromContext(c *gin.Context) uint64 {
 	session := sessions.Default(c)
 	return GetUserIDFromSession(session)
 }
+
+func ensureSessionToken(s sessions.Session) (string, bool) {
+	token, ok := s.Get(SessionTokenKey).(string)
+	if !ok || token == "" {
+		token = uuid.NewString()
+		s.Set(SessionTokenKey, token)
+		return token, true
+	}
+	return token, false
+}
+
+func hashSessionToken(token string) string {
+	h := sha256.New()
+	h.Write([]byte(token))
+	return hex.EncodeToString(h.Sum(nil))
+}
+
 
 func resolveAuthSource(sourceName string) (*model.AuthSource, error) {
 	name := strings.TrimSpace(strings.ToLower(sourceName))
@@ -335,10 +353,25 @@ func GetLoginURL(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, util.Err(err.Error()))
 		return
 	}
+
+	session := sessions.Default(c)
+	token, isNew := ensureSessionToken(session)
+	if isNew {
+		if err := session.Save(); err != nil {
+			c.JSON(http.StatusInternalServerError, util.Err(err.Error()))
+			return
+		}
+	}
+
+	userID := GetUserIDFromSession(session)
+	sessionHash := hashSessionToken(token)
+
 	state := uuid.NewString()
 	payloadValue, err := encodeOAuthStatePayload(oauthStatePayload{
-		SourceName: source.Name,
-		Purpose:    OAuthPurposeLogin,
+		SourceName:  source.Name,
+		Purpose:     OAuthPurposeLogin,
+		UserID:      userID,
+		SessionHash: sessionHash,
 	})
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, util.Err(err.Error()))
@@ -348,6 +381,7 @@ func GetLoginURL(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, util.Err(err.Error()))
 		return
 	}
+
 
 	authorizeURL, err := buildAuthorizeURL(c.Request.Context(), source, state)
 	if err != nil {
@@ -397,10 +431,30 @@ func Authorize(c *gin.Context) {
 	if purpose != OAuthPurposeBind {
 		purpose = OAuthPurposeLogin
 	}
+
+	session := sessions.Default(c)
+	userID := GetUserIDFromSession(session)
+	if purpose == OAuthPurposeBind && userID == 0 {
+		c.JSON(http.StatusUnauthorized, util.Err(common.UnAuthorized))
+		return
+	}
+
+	token, isNew := ensureSessionToken(session)
+	if isNew {
+		if err := session.Save(); err != nil {
+			c.JSON(http.StatusInternalServerError, util.Err(err.Error()))
+			return
+		}
+	}
+
+	sessionHash := hashSessionToken(token)
+
 	state := uuid.NewString()
 	payloadValue, err := encodeOAuthStatePayload(oauthStatePayload{
-		SourceName: source.Name,
-		Purpose:    purpose,
+		SourceName:  source.Name,
+		Purpose:     purpose,
+		UserID:      userID,
+		SessionHash: sessionHash,
 	})
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, util.Err(err.Error()))
@@ -410,6 +464,7 @@ func Authorize(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, util.Err(err.Error()))
 		return
 	}
+
 	authorizeURL, err := buildAuthorizeURL(c.Request.Context(), source, state)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, util.Err(err.Error()))
@@ -451,6 +506,32 @@ func Callback(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, util.Err(err.Error()))
 		return
 	}
+
+	session := sessions.Default(c)
+	currentUserID := GetUserIDFromSession(session)
+
+	if payload.Purpose == OAuthPurposeBind && currentUserID == 0 {
+		c.JSON(http.StatusUnauthorized, util.Err(common.UnAuthorized))
+		return
+	}
+
+	token, ok := session.Get(SessionTokenKey).(string)
+	if !ok || token == "" {
+		c.JSON(http.StatusBadRequest, util.Err("invalid session context"))
+		return
+	}
+
+	if hashSessionToken(token) != payload.SessionHash {
+		c.JSON(http.StatusBadRequest, util.Err("session mismatch for oauth state"))
+		return
+	}
+
+	if payload.Purpose == OAuthPurposeBind && currentUserID != payload.UserID {
+		c.JSON(http.StatusBadRequest, util.Err("user context mismatch for oauth binding"))
+		return
+	}
+
+
 
 	source, err := resolveAuthSource(payload.SourceName)
 	if err != nil {

@@ -20,6 +20,7 @@ const (
 	PendingOAuthExternalIDKey       = "pending_oauth_external_id"
 	PendingOAuthExternalUsernameKey = "pending_oauth_external_username"
 	PendingOAuthEmailKey            = "pending_oauth_email"
+	SessionTokenKey                 = "oauth_session_token" //nolint:gosec // false positive: this is a session key, not hardcoded credentials
 )
 
 // OAuth State 缓存 Key 格式与过期时间
@@ -35,8 +36,10 @@ const (
 )
 
 type oauthStatePayload struct {
-	SourceName string `json:"source_name"`
-	Purpose    string `json:"purpose"`
+	SourceName  string `json:"source_name"`
+	Purpose     string `json:"purpose"`
+	UserID      uint64 `json:"user_id,omitempty"`
+	SessionHash string `json:"session_hash"`
 }
 
 func encodeOAuthStatePayload(payload oauthStatePayload) (string, error) {
@@ -54,3 +57,4 @@ func decodeOAuthStatePayload(value string) (oauthStatePayload, error) {
 	}
 	return payload, nil
 }
+
