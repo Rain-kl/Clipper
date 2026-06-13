@@ -659,7 +659,6 @@ definitions:
         - business
         type: string
       value:
-        maxLength: 255
         type: string
       visibility:
         enum:
@@ -708,7 +707,6 @@ definitions:
         maxLength: 255
         type: string
       value:
-        maxLength: 255
         type: string
       visibility:
         enum:

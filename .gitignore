@@ -56,3 +56,4 @@ s3_cache
 /.idea/
 /uploads/
 /*-source/
+/.cache/

@@ -23,7 +23,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-const expectedDefaultConfigsCount = 29
+const expectedDefaultConfigsCount = 30
 
 func setupTestRouter(authUser *model.User) *gin.Engine {
 	gin.SetMode(gin.TestMode)

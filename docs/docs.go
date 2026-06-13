@@ -5601,8 +5601,7 @@ const docTemplate = `{
                     ]
                 },
                 "value": {
-                    "type": "string",
-                    "maxLength": 255
+                    "type": "string"
                 },
                 "visibility": {
                     "type": "integer",
@@ -5668,8 +5667,7 @@ const docTemplate = `{
                     "maxLength": 255
                 },
                 "value": {
-                    "type": "string",
-                    "maxLength": 255
+                    "type": "string"
                 },
                 "visibility": {
                     "type": "integer",
