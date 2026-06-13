@@ -899,6 +899,34 @@ definitions:
     required:
     - ids
     type: object
+  upload.distributionItem:
+    properties:
+      count:
+        type: integer
+      name:
+        type: string
+      size:
+        type: integer
+    type: object
+  upload.fileStatsResponse:
+    properties:
+      categories:
+        items:
+          $ref: '#/definitions/upload.distributionItem'
+        type: array
+      total_count:
+        type: integer
+      total_size:
+        type: integer
+      trend:
+        items:
+          $ref: '#/definitions/upload.trendItem'
+        type: array
+      types:
+        items:
+          $ref: '#/definitions/upload.distributionItem'
+        type: array
+    type: object
   upload.listMyFilesResponse:
     properties:
       items:
@@ -910,6 +938,15 @@ definitions:
       page_size:
         type: integer
       total:
+        type: integer
+    type: object
+  upload.trendItem:
+    properties:
+      count:
+        type: integer
+      date:
+        type: string
+      size:
         type: integer
     type: object
   user.changePasswordRequest:
@@ -3129,7 +3166,7 @@ paths:
           schema:
             $ref: '#/definitions/util.ResponseAny'
         "500":
-          description: Redis 异常或构造 URL 失败
+          description: Redis 异常 or 构造 URL 失败
           schema:
             $ref: '#/definitions/util.ResponseAny'
       summary: 获取登录授权地址
@@ -3392,6 +3429,34 @@ paths:
       security:
       - SessionCookie: []
       summary: 获取我的文件列表
+      tags:
+      - upload
+  /api/v1/upload/stats:
+    get:
+      description: 返回当前用户的总文件数、占用大小、最近 7 天新增趋势、文件类型/格式分布等数据
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 获取成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/util.ResponseAny'
+            - properties:
+                data:
+                  $ref: '#/definitions/upload.fileStatsResponse'
+              type: object
+        "401":
+          description: 未登录
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+        "500":
+          description: 内部错误
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      security:
+      - SessionCookie: []
+      summary: 获取文件统计数据
       tags:
       - upload
   /api/v1/user-info:

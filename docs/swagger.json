@@ -3372,7 +3372,7 @@
                         }
                     },
                     "500": {
-                        "description": "Redis 异常或构造 URL 失败",
+                        "description": "Redis 异常 or 构造 URL 失败",
                         "schema": {
                             "$ref": "#/definitions/util.ResponseAny"
                         }
@@ -3816,6 +3816,55 @@
                     },
                     "401": {
                         "description": "未登录",
+                        "schema": {
+                            "$ref": "#/definitions/util.ResponseAny"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/upload/stats": {
+            "get": {
+                "security": [
+                    {
+                        "SessionCookie": []
+                    }
+                ],
+                "description": "返回当前用户的总文件数、占用大小、最近 7 天新增趋势、文件类型/格式分布等数据",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "upload"
+                ],
+                "summary": "获取文件统计数据",
+                "responses": {
+                    "200": {
+                        "description": "获取成功",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/util.ResponseAny"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/upload.fileStatsResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "未登录",
+                        "schema": {
+                            "$ref": "#/definitions/util.ResponseAny"
+                        }
+                    },
+                    "500": {
+                        "description": "内部错误",
                         "schema": {
                             "$ref": "#/definitions/util.ResponseAny"
                         }
@@ -5886,6 +5935,49 @@
                 }
             }
         },
+        "upload.distributionItem": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "size": {
+                    "type": "integer"
+                }
+            }
+        },
+        "upload.fileStatsResponse": {
+            "type": "object",
+            "properties": {
+                "categories": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/upload.distributionItem"
+                    }
+                },
+                "total_count": {
+                    "type": "integer"
+                },
+                "total_size": {
+                    "type": "integer"
+                },
+                "trend": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/upload.trendItem"
+                    }
+                },
+                "types": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/upload.distributionItem"
+                    }
+                }
+            }
+        },
         "upload.listMyFilesResponse": {
             "type": "object",
             "properties": {
@@ -5902,6 +5994,20 @@
                     "type": "integer"
                 },
                 "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "upload.trendItem": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                },
+                "date": {
+                    "type": "string"
+                },
+                "size": {
                     "type": "integer"
                 }
             }
