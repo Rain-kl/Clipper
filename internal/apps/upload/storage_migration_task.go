@@ -69,6 +69,11 @@ func (h *MigrationHandler) ValidatePayload(payload []byte) ([]byte, error) {
 // Execute migrates all unique active-storage objects to the pending backend.
 func (h *MigrationHandler) Execute(ctx context.Context, payload []byte) (*task.TaskResult, error) {
 	if db.Redis != nil {
+		const (
+			cleanupTimeout  = 5 * time.Second
+			renewalInterval = 10 * time.Minute
+		)
+
 		lockKey := db.PrefixedKey("lock:storage:migrate")
 		ok, err := db.Redis.SetNX(ctx, lockKey, "locked", time.Hour).Result()
 		if err != nil {
@@ -77,7 +82,35 @@ func (h *MigrationHandler) Execute(ctx context.Context, payload []byte) (*task.T
 		if !ok {
 			return nil, errors.New("另一个存储迁移任务正在运行中")
 		}
-		defer db.Redis.Del(ctx, lockKey)
+		
+		// 任务结束时清理锁，使用 Background context 避免受任务 context 取消的影响
+		stopRenewal := make(chan struct{})
+		//nolint:contextcheck
+		defer func() {
+			close(stopRenewal)
+			cleanupCtx, cancel := context.WithTimeout(context.Background(), cleanupTimeout)
+			defer cancel()
+			_ = db.Redis.Del(cleanupCtx, lockKey)
+		}()
+
+		// 启动看门狗续租协程，每 10 分钟将锁的 TTL 自动延长为 1 小时
+		//nolint:contextcheck,gosec
+		go func() {
+			ticker := time.NewTicker(renewalInterval)
+			defer ticker.Stop()
+			for {
+				select {
+				case <-ticker.C:
+					renewCtx, cancel := context.WithTimeout(context.Background(), cleanupTimeout)
+					_ = db.Redis.Expire(renewCtx, lockKey, time.Hour).Err()
+					cancel()
+				case <-stopRenewal:
+					return
+				case <-ctx.Done():
+					return
+				}
+			}
+		}()
 	}
 
 	active, err := storage.LoadConfig(ctx)
