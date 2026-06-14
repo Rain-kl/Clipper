@@ -306,6 +306,91 @@ definitions:
       id:
         type: integer
     type: object
+  model.PushChannel:
+    properties:
+      created_at:
+        type: string
+      description:
+        description: 备注
+        type: string
+      enabled:
+        description: 通道是否启用
+        type: boolean
+      id:
+        type: integer
+      name:
+        description: 通道名称，仅英文字母和下划线，唯一
+        type: string
+      other:
+        description: 请求体/SMTP 密码等
+        type: string
+      token:
+        description: 鉴权令牌或发信用户名等
+        type: string
+      type:
+        description: 通道类型：custom, lark, email
+        type: string
+      updated_at:
+        type: string
+      url:
+        description: 请求地址，HTTPS 协议或 SMTP 地址
+        type: string
+    type: object
+  model.PushEvent:
+    properties:
+      channels:
+        description: 推送渠道列表，如 ["lark"]
+        items:
+          type: string
+        type: array
+      created_at:
+        type: string
+      enabled:
+        description: 是否启用
+        type: boolean
+      event_key:
+        description: 如 admin_login
+        type: string
+      id:
+        type: integer
+      name:
+        description: 如 管理员登录
+        type: string
+      targets:
+        description: 推送目标用户/邮箱列表
+        items:
+          type: string
+        type: array
+      template:
+        description: 消息模板 JSON
+        type: string
+      updated_at:
+        type: string
+    type: object
+  model.PushHistory:
+    properties:
+      channel:
+        type: string
+      content:
+        type: string
+      created_at:
+        type: string
+      error_msg:
+        type: string
+      event_key:
+        type: string
+      id:
+        type: integer
+      level:
+        type: string
+      status:
+        description: success / failed
+        type: string
+      target:
+        type: string
+      title:
+        type: string
+    type: object
   model.Schedule:
     properties:
       created_at:
@@ -576,6 +661,192 @@ definitions:
         type: string
       user:
         $ref: '#/definitions/oauth.BasicUserInfo'
+    type: object
+  push.Config:
+    properties:
+      channel:
+        description: 渠道名称，例如 "lark", "custom", "email" 等，唯一标识
+        type: string
+      ext:
+        additionalProperties: {}
+        description: 预留拓展 JSON 配置
+        type: object
+      key:
+        description: AppID 或 SMTP 用户名
+        type: string
+      secret:
+        description: 签名密钥或 SMTP 密码/Token
+        type: string
+      url:
+        description: Webhook 地址或 SMTP 地址
+        type: string
+    type: object
+  push.CreateChannelRequest:
+    properties:
+      description:
+        type: string
+      enabled:
+        type: boolean
+      name:
+        type: string
+      other:
+        type: string
+      token:
+        type: string
+      type:
+        type: string
+      url:
+        type: string
+    required:
+    - name
+    - type
+    type: object
+  push.CreateEventRequest:
+    properties:
+      channels:
+        items:
+          type: string
+        type: array
+      enabled:
+        type: boolean
+      event_key:
+        type: string
+      targets:
+        items:
+          type: string
+        type: array
+      template:
+        type: string
+    required:
+    - event_key
+    type: object
+  push.Definition:
+    properties:
+      description:
+        description: short description
+        type: string
+      fields:
+        description: form fields
+        items:
+          $ref: '#/definitions/push.Field'
+        type: array
+      name:
+        description: display name
+        type: string
+      type:
+        description: channel type (e.g., custom, lark, email)
+        type: string
+    type: object
+  push.EventMetadata:
+    properties:
+      default_template:
+        $ref: '#/definitions/push.NotificationMessage'
+      description:
+        type: string
+      key:
+        type: string
+      name:
+        type: string
+    type: object
+  push.Field:
+    properties:
+      description:
+        description: field explanation/help text
+        type: string
+      key:
+        description: unique key for the field (e.g. url, token, other)
+        type: string
+      label:
+        description: human readable label (e.g. "Webhook 地址")
+        type: string
+      placeholder:
+        description: input placeholder
+        type: string
+      required:
+        description: whether this field is required
+        type: boolean
+      type:
+        description: 'input type: "text" | "password" | "textarea"'
+        type: string
+    type: object
+  push.NotificationMessage:
+    properties:
+      content:
+        type: string
+      ext:
+        additionalProperties: {}
+        type: object
+      level:
+        type: string
+      title:
+        type: string
+    type: object
+  push.TestChannelRequest:
+    properties:
+      name:
+        type: string
+      other:
+        type: string
+      target:
+        type: string
+      token:
+        type: string
+      type:
+        type: string
+      url:
+        type: string
+    type: object
+  push.TestPushRequest:
+    properties:
+      config:
+        $ref: '#/definitions/push.Config'
+      target:
+        type: string
+    required:
+    - config
+    type: object
+  push.UpdateChannelRequest:
+    properties:
+      description:
+        type: string
+      enabled:
+        type: boolean
+      other:
+        type: string
+      token:
+        type: string
+      type:
+        type: string
+      url:
+        type: string
+    required:
+    - type
+    type: object
+  push.UpdateEventRequest:
+    properties:
+      channels:
+        items:
+          type: string
+        type: array
+      enabled:
+        type: boolean
+      targets:
+        items:
+          type: string
+        type: array
+      template:
+        type: string
+    required:
+    - template
+    type: object
+  push.pushHistoriesResponse:
+    properties:
+      results:
+        items:
+          $ref: '#/definitions/model.PushHistory'
+        type: array
+      total:
+        type: integer
     type: object
   status.DatabaseInfoResponse:
     properties:
@@ -1820,6 +2091,381 @@ paths:
       summary: 系统日志实时推送
       tags:
       - admin
+  /api/v1/admin/push/channels:
+    get:
+      description: 返回系统配置的所有消息通道列表，需要管理员权限
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 消息通道列表
+          schema:
+            allOf:
+            - $ref: '#/definitions/util.ResponseAny'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/model.PushChannel'
+                  type: array
+              type: object
+      security:
+      - SessionCookie: []
+      summary: 获取所有消息通道
+      tags:
+      - admin-push
+    post:
+      consumes:
+      - application/json
+      description: 新建一个消息通道配置，需要管理员权限
+      parameters:
+      - description: 创建参数
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/push.CreateChannelRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 创建成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/util.ResponseAny'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.PushChannel'
+              type: object
+      security:
+      - SessionCookie: []
+      summary: 创建消息通道
+      tags:
+      - admin-push
+  /api/v1/admin/push/channels/{id}:
+    delete:
+      description: 根据ID删除消息通道，需要管理员权限
+      parameters:
+      - description: 通道ID
+        format: int64
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 删除成功
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      security:
+      - SessionCookie: []
+      summary: 删除消息通道
+      tags:
+      - admin-push
+    put:
+      consumes:
+      - application/json
+      description: 修改消息通道配置，需要管理员权限
+      parameters:
+      - description: 通道ID
+        format: int64
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 更新参数
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/push.UpdateChannelRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 更新成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/util.ResponseAny'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.PushChannel'
+              type: object
+      security:
+      - SessionCookie: []
+      summary: 更新消息通道
+      tags:
+      - admin-push
+  /api/v1/admin/push/channels/definitions:
+    get:
+      description: 返回系统支持的所有消息通道类型（如飞书、邮件、自定义）的动态表单定义，需要管理员权限
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 通道配置定义列表
+          schema:
+            allOf:
+            - $ref: '#/definitions/util.ResponseAny'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/push.Definition'
+                  type: array
+              type: object
+      security:
+      - SessionCookie: []
+      summary: 获取所有消息通道配置字段定义
+      tags:
+      - admin-push
+  /api/v1/admin/push/channels/test:
+    post:
+      consumes:
+      - application/json
+      description: 触发一次临时的或现有的通道连通性推送测试，需要管理员权限
+      parameters:
+      - description: 测试参数
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/push.TestChannelRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 测试触发成功
+          schema:
+            $ref: '#/definitions/util.ResponseAny'
+      security:
+      - SessionCookie: []
+      summary: 测试通道连通性
+      tags:
+      - admin-push
+  /api/v1/admin/push/events:
+    get:
+      description: 返回系统配置的通知事件列表，包括预置和自定义事件，需要管理员权限
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 通知事件列表
+          schema:
+            allOf:
+            - $ref: '#/definitions/util.ResponseAny'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/model.PushEvent'
+                  type: array
+              type: object
+      security:
+      - SessionCookie: []
+      summary: 获取所有通知事件
+      tags:
+      - admin-push
+    post:
+      consumes:
+      - application/json
+      description: 绑定系统内置事件、推送渠道、接收目标并创建通知事件配置，需要管理员权限
+      parameters:
+      - description: 创建参数
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/push.CreateEventRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 创建成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/util.ResponseAny'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.PushEvent'
+              type: object
+      security:
+      - SessionCookie: []
+      summary: 创建通知事件
+      tags:
+      - admin-push
+  /api/v1/admin/push/events/{id}:
+    delete:
+      description: 删除数据库中的特定通知事件配置，需要管理员权限
+      parameters:
+      - description: 事件 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 删除成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/util.ResponseAny'
+            - properties:
+                data:
+                  type: string
+              type: object
+      security:
+      - SessionCookie: []
+      summary: 删除通知事件配置
+      tags:
+      - admin-push
+    put:
+      consumes:
+      - application/json
+      description: 更新已有通知事件的推送渠道、接收目标和内容模板，需要管理员权限
+      parameters:
+      - description: 事件 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 更新参数
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/push.UpdateEventRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 修改成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/util.ResponseAny'
+            - properties:
+                data:
+                  type: string
+              type: object
+      security:
+      - SessionCookie: []
+      summary: 更新通知事件
+      tags:
+      - admin-push
+  /api/v1/admin/push/events/{id}/toggle:
+    post:
+      description: 启用或禁用指定的通知事件
+      parameters:
+      - description: 事件 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 切换成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/util.ResponseAny'
+            - properties:
+                data:
+                  type: string
+              type: object
+      security:
+      - SessionCookie: []
+      summary: 快捷切换通知事件启用状态
+      tags:
+      - admin-push
+  /api/v1/admin/push/events/builtin:
+    get:
+      description: 返回系统定义的所有内置通知事件元数据，供前端下拉框选择，需要管理员权限
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 内置通知事件列表
+          schema:
+            allOf:
+            - $ref: '#/definitions/util.ResponseAny'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/push.EventMetadata'
+                  type: array
+              type: object
+      security:
+      - SessionCookie: []
+      summary: 获取所有内置通知事件
+      tags:
+      - admin-push
+  /api/v1/admin/push/histories:
+    get:
+      description: 返回分页的通知历史日志数据，需要管理员权限
+      parameters:
+      - description: 当前页码
+        in: query
+        name: page
+        type: integer
+      - description: 分页大小
+        in: query
+        name: page_size
+        type: integer
+      - description: 过滤事件名称
+        in: query
+        name: event_key
+        type: string
+      - description: 过滤发送状态
+        in: query
+        name: status
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 推送历史列表
+          schema:
+            allOf:
+            - $ref: '#/definitions/util.ResponseAny'
+            - properties:
+                data:
+                  $ref: '#/definitions/push.pushHistoriesResponse'
+              type: object
+      security:
+      - SessionCookie: []
+      summary: 分页获取通知推送历史
+      tags:
+      - admin-push
+  /api/v1/admin/push/test:
+    post:
+      consumes:
+      - application/json
+      description: 接收临时通知渠道配置并在本地同步调用 Pusher.Send 发送测试消息
+      parameters:
+      - description: 测试请求体
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/push.TestPushRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 测试成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/util.ResponseAny'
+            - properties:
+                data:
+                  type: string
+              type: object
+      security:
+      - SessionCookie: []
+      summary: 测试推送通道发送
+      tags:
+      - admin-push
   /api/v1/admin/status:
     get:
       description: 获取后端服务运行状态、Goroutine、内存指标等详细统计数据，需要管理员权限
