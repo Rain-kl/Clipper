@@ -17,7 +17,8 @@ description: "Wavelet 项目专用：当新增或修改自定义业务 API、新
 
 | 目录/包名 | 职责定位 | 框架依赖限制 | 常见包含内容 |
 | :--- | :--- | :--- | :--- |
-| **`internal/router/`** | 路由分发层 | 依赖 Gin 框架 | `router.go` 核心路由、`custom.go` (自定义路由注册入口) |
+| **`internal/router/`** | 核心路由入口 | 依赖 Gin 框架 | `router.go` (全局路由配置与服务启动) |
+| **`internal/router/v1/`** | 路由分发层 | 依赖 Gin 框架 | `admin.go`, `user.go`, `public.go`, `custom.go` (各分类路由注册入口) |
 | **`internal/apps/custom/`** | 功能模块层 (Feature Module) | 依赖 Gin 框架 (仅限路由/Handler 部分) | 高度内聚的业务功能块。接收 HTTP 请求、解析请求体、校验基础参数、提取 Session。业务服务逻辑直接实现在当前目录下的 `service.go` 或 `logics.go` 中，不依赖 Gin/HTTP 框架。 |
 | **`internal/model/`** | 数据模型层 | 依赖 GORM / SQL 基础 | GORM 实体定义、表结构、主键生成、单表极简 SQL 查询方法。 |
 | **`internal/db/`** | 数据存储层 | 依赖 SQL 驱动 / GORM 连接 | PostgreSQL, SQLite 等数据库连接管理与 Goose 数据库迁移文件。 |
@@ -31,7 +32,9 @@ description: "Wavelet 项目专用：当新增或修改自定义业务 API、新
 ```text
 internal/
 ├── router/
-│   └── custom.go               # [修改/创建] 仅用于注册定制路由，将路由委托给 apps/custom
+│   ├── router.go               # 核心路由入口，委派路由给各分类
+│   └── v1/
+│       └── custom.go           # [修改/创建] 仅用于注册定制路由，将路由委托给 apps/custom
 └── apps/
     └── custom/
         ├── routers.go          # [新建] HTTP Handlers (Gin)，负责参数绑定、校验与响应
@@ -56,24 +59,24 @@ internal/
 创建应用路由文件 `routers.go`，定义接口的请求和响应 DTO，编写 Handler 绑定参数并调用 Service，编写 Swagger 注释。
 参考示例：[handler_example.go](file:///Users/ryan/DEV/Go/Wavelet/.agent/skills/new-api/references/handler_example.go)
 
-### 步骤 4：在 `internal/router/custom.go` 中注册路由
+### 步骤 4：在 `internal/router/v1/custom.go` 中注册路由
 创建路由挂载函数：
 ```go
-package router
+package v1
 
 import (
 	"github.com/Rain-kl/Wavelet/internal/apps/custom"
 	"github.com/gin-gonic/gin"
 )
 
-func registerCustomRoutes(apiV1Router *gin.RouterGroup) {
+func RegisterCustomRoutes(apiV1Router *gin.RouterGroup) {
 	customRouter := apiV1Router.Group("/custom")
 	{
 		customRouter.POST("/action", custom.DoActionHandler)
 	}
 }
 ```
-并在 [router.go](file:///Users/ryan/DEV/Go/Wavelet/internal/router/router.go) 中的 `/v1` 路由组末尾调用此函数。
+并在 [router.go](file:///Users/ryan/DEV/Go/Wavelet/internal/router/router.go) 中的 `/v1` 路由组内通过 `v1.RegisterCustomRoutes(apiV1Router)` 进行调用。
 
 ---
 
