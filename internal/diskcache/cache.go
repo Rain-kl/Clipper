@@ -1,7 +1,7 @@
 // Copyright 2026 Arctel.net
 // SPDX-License-Identifier: Apache-2.0
 
-// Package diskcache wraps the generic pkg/diskcache to provide database configuration integration.
+// Package diskcache wraps the generic pkg/cache/disk to provide database configuration integration.
 package diskcache
 
 import (
