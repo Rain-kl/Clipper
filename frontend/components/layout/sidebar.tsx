@@ -45,7 +45,9 @@ import {
 } from "@/components/ui/alert-dialog"
 import {
   ArrowUpRight,
+  Bell,
   ChevronDown,
+  Code,
   CreditCard,
   Database,
   FileQuestionMark,
@@ -54,12 +56,10 @@ import {
   Home,
   Layers,
   LogOut,
-  Palette,
   Settings,
   ShieldCheck,
   Terminal,
   UserRound,
-  Bell,
 } from "lucide-react"
 
 import {useUser} from "@/contexts/user-context"
@@ -82,7 +82,7 @@ const data = {
     { title: "系统设置", url: "/admin/settings", icon: Settings },
   ],
   document: [
-    { title: "组件库", url: "/components", icon: Palette },
+    { title: "规范示例", url: "/admin/demo", icon: Code },
     { title: "接口文档", url: "/docs/api", icon: CreditCard, external: true },
     { title: "使用文档", url: "/docs/how-to-use", icon: FileText, external: true },
   ],
