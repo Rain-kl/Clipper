@@ -1249,7 +1249,7 @@ const docTemplate = `{
                         "SessionCookie": []
                     }
                 ],
-                "description": "返回系统支持的所有消息通道类型（如飞书、邮件、自定义）的动态表单定义，需要管理员权限",
+                "description": "返回系统支持的所有消息通道类型（如飞书、邮件、自定义、Telegram）的动态表单定义，需要管理员权限",
                 "produces": [
                     "application/json"
                 ],
