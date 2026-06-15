@@ -7,7 +7,7 @@ import (
 	"net/http"
 
 	"github.com/Rain-kl/Wavelet/internal/util"
-	caputil "github.com/Rain-kl/Wavelet/internal/util/cap"
+	caputil "github.com/Rain-kl/Wavelet/internal/service/cap"
 	"github.com/gin-gonic/gin"
 )
 

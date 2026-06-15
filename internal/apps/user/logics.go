@@ -20,6 +20,7 @@ import (
 	"github.com/Rain-kl/Wavelet/internal/model"
 	"github.com/Rain-kl/Wavelet/internal/task"
 	"github.com/Rain-kl/Wavelet/internal/util"
+	pkgu "github.com/Rain-kl/Wavelet/pkg/util"
 	"github.com/gin-gonic/gin"
 )
 
@@ -171,7 +172,7 @@ func handleLoginEmailVerification(ctx context.Context, c *gin.Context, req *logi
 		}
 	}
 
-	maskedEmail := util.MaskEmail(user.Email)
+	maskedEmail := pkgu.MaskEmail(user.Email)
 	c.JSON(http.StatusOK, util.Err(errNeedEmailCodePrefix+maskedEmail))
 	return errors.New("handled")
 }

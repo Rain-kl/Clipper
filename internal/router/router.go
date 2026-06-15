@@ -34,7 +34,7 @@ import (
 	"github.com/Rain-kl/Wavelet/internal/apps/user"
 	"github.com/Rain-kl/Wavelet/internal/model"
 	"github.com/Rain-kl/Wavelet/internal/util"
-	capUtil "github.com/Rain-kl/Wavelet/internal/util/cap"
+	capUtil "github.com/Rain-kl/Wavelet/internal/service/cap"
 
 	// Swagger 文档生成
 	_ "github.com/Rain-kl/Wavelet/docs"
@@ -42,7 +42,7 @@ import (
 	"github.com/Rain-kl/Wavelet/internal/apps/admin/system_config"
 	"github.com/Rain-kl/Wavelet/internal/apps/oauth"
 	"github.com/Rain-kl/Wavelet/internal/config"
-	"github.com/Rain-kl/Wavelet/internal/otel_trace"
+	otel_trace "github.com/Rain-kl/Wavelet/pkg/trace"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/redis"
 	"github.com/gin-gonic/gin"

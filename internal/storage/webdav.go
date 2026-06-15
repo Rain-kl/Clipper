@@ -10,7 +10,7 @@ import (
 	"path"
 	"strings"
 
-	"github.com/Rain-kl/Wavelet/internal/httppool"
+	"github.com/Rain-kl/Wavelet/pkg/httppool"
 	"github.com/studio-b12/gowebdav"
 )
 
@@ -36,7 +36,7 @@ func (b *webDAVBackend) Put(_ context.Context, key string, body io.Reader, size 
 		}
 	}
 	if err := b.client.WriteStreamWithLength(key, body, size, storageFilePerm); err != nil {
-			return PutResult{}, fmt.Errorf("put WebDAV object: %w", err)
+		return PutResult{}, fmt.Errorf("put WebDAV object: %w", err)
 	}
 	return PutResult{Key: key}, nil
 }

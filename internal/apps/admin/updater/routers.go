@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/Rain-kl/Wavelet/internal/logger"
 	"github.com/Rain-kl/Wavelet/internal/util"
+	"github.com/Rain-kl/Wavelet/pkg/logger"
 	"github.com/gin-gonic/gin"
 )
 

@@ -13,11 +13,11 @@ import (
 	"time"
 
 	"github.com/Rain-kl/Wavelet/internal/db"
-	"github.com/Rain-kl/Wavelet/internal/logger"
 	"github.com/Rain-kl/Wavelet/internal/model"
 	"github.com/Rain-kl/Wavelet/internal/storage"
 	"github.com/Rain-kl/Wavelet/internal/util"
-	mail "github.com/Rain-kl/Wavelet/internal/util/mail"
+	"github.com/Rain-kl/Wavelet/pkg/logger"
+	mail "github.com/Rain-kl/Wavelet/pkg/mail"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )

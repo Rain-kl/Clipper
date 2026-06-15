@@ -12,12 +12,12 @@ import (
 	"time"
 
 	"github.com/Rain-kl/Wavelet/internal/apps/admin"
-	"github.com/Rain-kl/Wavelet/internal/logger"
 	"github.com/Rain-kl/Wavelet/internal/model"
 	"github.com/Rain-kl/Wavelet/internal/task"
 	taskhandlers "github.com/Rain-kl/Wavelet/internal/task/handlers"
 	"github.com/Rain-kl/Wavelet/internal/task/scheduler"
 	"github.com/Rain-kl/Wavelet/internal/util"
+	"github.com/Rain-kl/Wavelet/pkg/logger"
 	"github.com/gin-gonic/gin"
 	"github.com/robfig/cron/v3"
 )

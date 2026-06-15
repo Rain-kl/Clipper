@@ -6,7 +6,7 @@ package cap
 import (
 	"net/http"
 
-	"github.com/Rain-kl/Wavelet/internal/util/cap"
+	capService "github.com/Rain-kl/Wavelet/internal/service/cap"
 	"github.com/gin-gonic/gin"
 )
 
@@ -38,10 +38,10 @@ func Challenge(c *gin.Context) {
 		req.Scope = "login"
 	}
 
-	mgr := cap.GetDefaultManager()
+	mgr := capService.GetDefaultManager()
 	resp, err := mgr.Generate(c.Request.Context(), req.Scope)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, cap.RedeemResponse{
+		c.JSON(http.StatusInternalServerError, capService.RedeemResponse{
 			Success: false,
 			Error:   err.Error(),
 		})
@@ -65,7 +65,7 @@ func Challenge(c *gin.Context) {
 func Redeem(c *gin.Context) {
 	var req redeemRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, cap.RedeemResponse{
+		c.JSON(http.StatusBadRequest, capService.RedeemResponse{
 			Success: false,
 			Error:   "无效的参数",
 		})
@@ -76,10 +76,10 @@ func Redeem(c *gin.Context) {
 		req.Scope = "login"
 	}
 
-	mgr := cap.GetDefaultManager()
+	mgr := capService.GetDefaultManager()
 	resp, err := mgr.Redeem(c.Request.Context(), req.Token, req.Solutions, req.Scope)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, cap.RedeemResponse{
+		c.JSON(http.StatusInternalServerError, capService.RedeemResponse{
 			Success: false,
 			Error:   err.Error(),
 		})

@@ -15,7 +15,8 @@ import (
 	"github.com/Rain-kl/Wavelet/internal/model"
 	"github.com/Rain-kl/Wavelet/internal/testhelper"
 	"github.com/Rain-kl/Wavelet/internal/util"
-	capUtil "github.com/Rain-kl/Wavelet/internal/util/cap"
+	capUtil "github.com/Rain-kl/Wavelet/internal/service/cap"
+	pkgcap "github.com/Rain-kl/Wavelet/pkg/cap"
 	"github.com/gin-gonic/gin"
 )
 
@@ -53,7 +54,7 @@ func TestCapEndpointsAndMiddleware(t *testing.T) {
 		t.Fatalf("expected 200 OK, got %d. Body: %s", w.Code, w.Body.String())
 	}
 
-	var challengeResp capUtil.ChallengeResponse
+	var challengeResp pkgcap.ChallengeResponse
 	if err := json.Unmarshal(w.Body.Bytes(), &challengeResp); err != nil {
 		t.Fatalf("failed to unmarshal challenge response: %v", err)
 	}
@@ -89,7 +90,7 @@ func TestCapEndpointsAndMiddleware(t *testing.T) {
 	}
 
 	// 5. Solve the challenge
-	solutions := capUtil.Solve(challengeResp.Token, challengeResp.Challenge.C, challengeResp.Challenge.S, challengeResp.Challenge.D)
+	solutions := pkgcap.Solve(challengeResp.Token, challengeResp.Challenge.C, challengeResp.Challenge.S, challengeResp.Challenge.D)
 
 	// 6. Redeem solutions
 	redeemReqPayload := redeemRequest{
