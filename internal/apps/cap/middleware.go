@@ -3,13 +3,12 @@
 
 package cap
 
-import (
-	"net/http"
+import ("net/http"
 
-	"github.com/Rain-kl/Wavelet/internal/util"
 	caputil "github.com/Rain-kl/Wavelet/internal/service/cap"
 	"github.com/gin-gonic/gin"
-)
+
+	"github.com/Rain-kl/Wavelet/internal/common/response")
 
 // VerifyMiddleware returns a Gin middleware that checks and consumes the X-Cap-Token header.
 // enabledFunc is an optional callback allowing dynamic check of whether captcha protection is turned on.
@@ -22,13 +21,13 @@ func VerifyMiddleware(mgr *caputil.Manager, scope string, enabledFunc func() boo
 
 		token := c.GetHeader("X-Cap-Token")
 		if token == "" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, util.Err(errCapTokenMissing))
+			c.AbortWithStatusJSON(http.StatusUnauthorized, response.Err(errCapTokenMissing))
 			return
 		}
 
 		valid, err := mgr.VerifyToken(c.Request.Context(), token, scope)
 		if err != nil || !valid {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, util.Err(errCapTokenInvalidOrExpired))
+			c.AbortWithStatusJSON(http.StatusUnauthorized, response.Err(errCapTokenInvalidOrExpired))
 			return
 		}
 

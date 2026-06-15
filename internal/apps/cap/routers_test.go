@@ -3,8 +3,7 @@
 
 package cap
 
-import (
-	"bytes"
+import ("bytes"
 	"context"
 	"encoding/json"
 	"net/http"
@@ -14,11 +13,11 @@ import (
 	"github.com/Rain-kl/Wavelet/internal/db"
 	"github.com/Rain-kl/Wavelet/internal/model"
 	"github.com/Rain-kl/Wavelet/internal/testhelper"
-	"github.com/Rain-kl/Wavelet/internal/util"
 	capUtil "github.com/Rain-kl/Wavelet/internal/service/cap"
 	pkgcap "github.com/Rain-kl/Wavelet/pkg/cap"
 	"github.com/gin-gonic/gin"
-)
+
+	"github.com/Rain-kl/Wavelet/internal/common/response")
 
 func TestCapEndpointsAndMiddleware(t *testing.T) {
 	sqliteDB, _, cleanup := testhelper.SetupTestEnvironment(t)
@@ -42,7 +41,7 @@ func TestCapEndpointsAndMiddleware(t *testing.T) {
 		}
 		return enabled
 	}), func(c *gin.Context) {
-		c.JSON(http.StatusOK, util.OK("login success"))
+		c.JSON(http.StatusOK, response.OK("login success"))
 	})
 
 	// 1. Test challenge generation

@@ -57,17 +57,6 @@ definitions:
       token:
         type: string
     type: object
-  cap.RedeemResponse:
-    properties:
-      error:
-        type: string
-      expires:
-        type: integer
-      success:
-        type: boolean
-      token:
-        type: string
-    type: object
   cap.challengeRequest:
     properties:
       scope:
@@ -128,7 +117,7 @@ definitions:
         description: '"select" 或 "exec"'
         type: string
     type: object
-  diskcache.Status:
+  github_com_Rain-kl_Wavelet_internal_diskcache.Status:
     properties:
       base_path:
         type: string
@@ -142,6 +131,17 @@ definitions:
         type: integer
       ttl_minutes:
         type: integer
+    type: object
+  github_com_Rain-kl_Wavelet_internal_service_cap.RedeemResponse:
+    properties:
+      error:
+        type: string
+      expires:
+        type: integer
+      success:
+        type: boolean
+      token:
+        type: string
     type: object
   logger.LogEntry:
     properties:
@@ -852,6 +852,13 @@ definitions:
       total:
         type: integer
     type: object
+  response.Any:
+    properties:
+      data: {}
+      error_msg:
+        example: ""
+        type: string
+    type: object
   status.DatabaseInfoResponse:
     properties:
       name:
@@ -1392,13 +1399,6 @@ definitions:
       website:
         type: string
     type: object
-  util.ResponseAny:
-    properties:
-      data: {}
-      error_msg:
-        example: ""
-        type: string
-    type: object
 info:
   contact:
     name: Wavelet
@@ -1431,7 +1431,7 @@ paths:
         "500":
           description: 内部服务错误
           schema:
-            $ref: '#/definitions/cap.RedeemResponse'
+            $ref: '#/definitions/github_com_Rain-kl_Wavelet_internal_service_cap.RedeemResponse'
       summary: 生成人机验证难题
       tags:
       - cap
@@ -1453,15 +1453,15 @@ paths:
         "200":
           description: 核销成功，返回 X-Cap-Token
           schema:
-            $ref: '#/definitions/cap.RedeemResponse'
+            $ref: '#/definitions/github_com_Rain-kl_Wavelet_internal_service_cap.RedeemResponse'
         "400":
           description: 参数错误或核销失败
           schema:
-            $ref: '#/definitions/cap.RedeemResponse'
+            $ref: '#/definitions/github_com_Rain-kl_Wavelet_internal_service_cap.RedeemResponse'
         "500":
           description: 内部服务错误
           schema:
-            $ref: '#/definitions/cap.RedeemResponse'
+            $ref: '#/definitions/github_com_Rain-kl_Wavelet_internal_service_cap.RedeemResponse'
       summary: 校验人机验证解答
       tags:
       - cap
@@ -1475,7 +1475,7 @@ paths:
           description: 服务正常
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   type: string
@@ -1493,7 +1493,7 @@ paths:
           description: 认证源列表
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   items:
@@ -1503,15 +1503,15 @@ paths:
         "401":
           description: 未登录
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "403":
           description: 无管理员权限
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "500":
           description: 内部错误
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
       security:
       - SessionCookie: []
       summary: 获取认证源列表
@@ -1535,7 +1535,7 @@ paths:
           description: 创建成功，返回认证源信息
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   $ref: '#/definitions/model.AuthSource'
@@ -1543,15 +1543,15 @@ paths:
         "400":
           description: 参数错误或验证失败
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "401":
           description: 未登录
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "403":
           description: 无管理员权限
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
       security:
       - SessionCookie: []
       summary: 创建认证源
@@ -1574,7 +1574,7 @@ paths:
           description: 删除成功
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   type: string
@@ -1582,15 +1582,15 @@ paths:
         "400":
           description: ID 无效或删除失败
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "401":
           description: 未登录
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "403":
           description: 无管理员权限
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
       security:
       - SessionCookie: []
       summary: 删除认证源
@@ -1620,7 +1620,7 @@ paths:
           description: 更新成功，返回更新后的认证源信息
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   $ref: '#/definitions/model.AuthSource'
@@ -1628,19 +1628,19 @@ paths:
         "400":
           description: 参数错误或验证失败
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "401":
           description: 未登录
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "403":
           description: 无管理员权限
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "500":
           description: 内部错误
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
       security:
       - SessionCookie: []
       summary: 更新认证源
@@ -1671,7 +1671,7 @@ paths:
           description: 切换成功
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   type: string
@@ -1679,15 +1679,15 @@ paths:
         "400":
           description: 验证失败或认证源不存在
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "401":
           description: 未登录
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "403":
           description: 无管理员权限
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
       security:
       - SessionCookie: []
       summary: 切换认证源启用状态
@@ -1702,19 +1702,19 @@ paths:
         "200":
           description: 清理成功
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "401":
           description: 未登录
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "403":
           description: 无管理员权限
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "500":
           description: 服务内部错误
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
       security:
       - SessionCookie: []
       summary: 清空缓存
@@ -1738,23 +1738,23 @@ paths:
         "200":
           description: 更新成功
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "400":
           description: 参数错误
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "401":
           description: 未登录
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "403":
           description: 无管理员权限
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "500":
           description: 服务内部错误
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
       security:
       - SessionCookie: []
       summary: 更新缓存配置
@@ -1770,23 +1770,23 @@ paths:
           description: 获取成功
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
-                  $ref: '#/definitions/diskcache.Status'
+                  $ref: '#/definitions/github_com_Rain-kl_Wavelet_internal_diskcache.Status'
               type: object
         "401":
           description: 未登录
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "403":
           description: 无管理员权限
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "500":
           description: 内部错误
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
       security:
       - SessionCookie: []
       summary: 获取缓存状态
@@ -1805,15 +1805,15 @@ paths:
         "401":
           description: 未登录
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "403":
           description: 无管理员权限
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "500":
           description: 导出失败
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
       security:
       - SessionCookie: []
       summary: 导出数据库
@@ -1829,7 +1829,7 @@ paths:
           description: 获取成功
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   $ref: '#/definitions/status.DatabaseInfoResponse'
@@ -1837,11 +1837,11 @@ paths:
         "401":
           description: 未登录
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "403":
           description: 无管理员权限
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
       security:
       - SessionCookie: []
       summary: 获取数据库信息
@@ -1857,7 +1857,7 @@ paths:
           description: 获取成功
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   $ref: '#/definitions/db_manage.DBOverviewResponse'
@@ -1865,15 +1865,15 @@ paths:
         "401":
           description: 未登录
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "403":
           description: 无管理员权限
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "500":
           description: 内部错误
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
       security:
       - SessionCookie: []
       summary: 获取数据库运行概览
@@ -1898,7 +1898,7 @@ paths:
           description: 执行完毕
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   $ref: '#/definitions/db_manage.ExecuteSQLResponse'
@@ -1906,19 +1906,19 @@ paths:
         "400":
           description: SQL 语句错误
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "401":
           description: 未登录
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "403":
           description: 无管理员权限
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "500":
           description: 内部错误
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
       security:
       - SessionCookie: []
       summary: 执行 SQL 查询
@@ -1934,7 +1934,7 @@ paths:
           description: 获取成功
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   items:
@@ -1944,15 +1944,15 @@ paths:
         "401":
           description: 未登录
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "403":
           description: 无管理员权限
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "500":
           description: 内部错误
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
       security:
       - SessionCookie: []
       summary: 获取数据库所有表名
@@ -1979,7 +1979,7 @@ paths:
           description: 日志列表
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   $ref: '#/definitions/logs.logsResponse'
@@ -1987,11 +1987,11 @@ paths:
         "401":
           description: 未登录
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "403":
           description: 无管理员权限
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
       security:
       - SessionCookie: []
       summary: 获取系统日志
@@ -2034,7 +2034,7 @@ paths:
           description: 访问日志列表
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   $ref: '#/definitions/logs.accessLogsResponse'
@@ -2042,15 +2042,15 @@ paths:
         "400":
           description: ClickHouse 未启用或参数错误
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "401":
           description: 未登录
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "403":
           description: 无管理员权限
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
       security:
       - SessionCookie: []
       summary: 获取用户访问日志
@@ -2066,7 +2066,7 @@ paths:
           description: 分析统计数据
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   $ref: '#/definitions/logs.logsAnalyticsResponse'
@@ -2074,15 +2074,15 @@ paths:
         "400":
           description: ClickHouse 未启用
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "401":
           description: 未登录
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "403":
           description: 无管理员权限
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
       security:
       - SessionCookie: []
       summary: 获取访问日志分析数据
@@ -2105,7 +2105,7 @@ paths:
           description: 消息通道列表
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   items:
@@ -2135,7 +2135,7 @@ paths:
           description: 创建成功
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   $ref: '#/definitions/model.PushChannel'
@@ -2161,7 +2161,7 @@ paths:
         "200":
           description: 删除成功
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
       security:
       - SessionCookie: []
       summary: 删除消息通道
@@ -2191,7 +2191,7 @@ paths:
           description: 更新成功
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   $ref: '#/definitions/model.PushChannel'
@@ -2211,7 +2211,7 @@ paths:
           description: 通道配置定义列表
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   items:
@@ -2241,7 +2241,7 @@ paths:
         "200":
           description: 测试触发成功
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
       security:
       - SessionCookie: []
       summary: 测试通道连通性
@@ -2257,7 +2257,7 @@ paths:
           description: 通知事件列表
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   items:
@@ -2287,7 +2287,7 @@ paths:
           description: 创建成功
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   $ref: '#/definitions/model.PushEvent'
@@ -2313,7 +2313,7 @@ paths:
           description: 删除成功
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   type: string
@@ -2346,7 +2346,7 @@ paths:
           description: 修改成功
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   type: string
@@ -2372,7 +2372,7 @@ paths:
           description: 切换成功
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   type: string
@@ -2392,7 +2392,7 @@ paths:
           description: 内置通知事件列表
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   items:
@@ -2431,7 +2431,7 @@ paths:
           description: 推送历史列表
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   $ref: '#/definitions/push.pushHistoriesResponse'
@@ -2460,7 +2460,7 @@ paths:
           description: 测试成功
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   type: string
@@ -2480,7 +2480,7 @@ paths:
           description: 获取成功
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   $ref: '#/definitions/status.SystemStatusResponse'
@@ -2488,11 +2488,11 @@ paths:
         "401":
           description: 未登录
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "403":
           description: 无管理员权限
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
       security:
       - SessionCookie: []
       summary: 获取系统状态信息
@@ -2513,7 +2513,7 @@ paths:
           description: 系统配置列表
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   items:
@@ -2523,15 +2523,15 @@ paths:
         "401":
           description: 未登录
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "403":
           description: 无管理员权限
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "500":
           description: 内部错误
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
       security:
       - SessionCookie: []
       summary: 获取系统配置列表
@@ -2555,7 +2555,7 @@ paths:
           description: 创建成功
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   type: string
@@ -2563,19 +2563,19 @@ paths:
         "400":
           description: 参数错误或配置键已存在
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "401":
           description: 未登录
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "403":
           description: 无管理员权限
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "500":
           description: 内部错误
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
       security:
       - SessionCookie: []
       summary: 创建系统配置
@@ -2597,7 +2597,7 @@ paths:
           description: 系统配置详情
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   $ref: '#/definitions/model.SystemConfig'
@@ -2605,19 +2605,19 @@ paths:
         "401":
           description: 未登录
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "403":
           description: 无管理员权限
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "404":
           description: 配置不存在
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "500":
           description: 内部错误
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
       security:
       - SessionCookie: []
       summary: 获取单个系统配置
@@ -2646,7 +2646,7 @@ paths:
           description: 更新成功
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   type: string
@@ -2654,23 +2654,23 @@ paths:
         "400":
           description: 参数错误
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "401":
           description: 未登录
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "403":
           description: 无管理员权限
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "404":
           description: 配置不存在
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "500":
           description: 内部错误
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
       security:
       - SessionCookie: []
       summary: 更新系统配置
@@ -2695,7 +2695,7 @@ paths:
           description: 测试执行完毕
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   $ref: '#/definitions/system_config.TestSMTPResponse'
@@ -2703,7 +2703,7 @@ paths:
         "400":
           description: 参数错误
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
       security:
       - SessionCookie: []
       summary: 测试 SMTP 邮件发送
@@ -2728,7 +2728,7 @@ paths:
           description: 任务已入队
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   type: string
@@ -2736,19 +2736,19 @@ paths:
         "400":
           description: 任务类型不存在或参数错误
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "401":
           description: 未登录
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "403":
           description: 无管理员权限
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "500":
           description: 任务入队失败
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
       security:
       - SessionCookie: []
       summary: 下发异步任务
@@ -2783,7 +2783,7 @@ paths:
           description: 任务执行记录列表
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   type: object
@@ -2791,11 +2791,11 @@ paths:
         "401":
           description: 未登录
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "403":
           description: 无管理员权限
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
       security:
       - SessionCookie: []
       summary: 查询任务执行记录
@@ -2817,7 +2817,7 @@ paths:
           description: 任务执行详情
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   $ref: '#/definitions/model.TaskExecution'
@@ -2825,19 +2825,19 @@ paths:
         "400":
           description: 参数错误
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "401":
           description: 未登录
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "403":
           description: 无管理员权限
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "404":
           description: 记录不存在
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
       security:
       - SessionCookie: []
       summary: 查询任务执行详情
@@ -2859,7 +2859,7 @@ paths:
           description: 新任务的 TaskID
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   type: string
@@ -2867,23 +2867,23 @@ paths:
         "400":
           description: 任务不支持重试或参数错误
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "401":
           description: 未登录
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "403":
           description: 无管理员权限
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "404":
           description: 记录不存在
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "500":
           description: 重试失败
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
       security:
       - SessionCookie: []
       summary: 重试失败任务
@@ -2899,7 +2899,7 @@ paths:
           description: 定时任务列表
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   items:
@@ -2909,11 +2909,11 @@ paths:
         "401":
           description: 未登录
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "403":
           description: 无管理员权限
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
       security:
       - SessionCookie: []
       summary: 获取定时任务列表
@@ -2937,7 +2937,7 @@ paths:
           description: 创建成功的定时任务信息
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   $ref: '#/definitions/model.Schedule'
@@ -2945,19 +2945,19 @@ paths:
         "400":
           description: Cron 表达式无效、异步任务类型不存在或参数错误
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "401":
           description: 未登录
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "403":
           description: 无管理员权限
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "500":
           description: 保存定时任务失败
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
       security:
       - SessionCookie: []
       summary: 创建定时任务
@@ -2979,7 +2979,7 @@ paths:
           description: 删除结果
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   type: string
@@ -2987,19 +2987,19 @@ paths:
         "400":
           description: 参数错误
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "401":
           description: 未登录
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "403":
           description: 无管理员权限
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "500":
           description: 删除定时任务失败
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
       security:
       - SessionCookie: []
       summary: 删除定时任务
@@ -3028,7 +3028,7 @@ paths:
           description: 修改后的定时任务信息
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   $ref: '#/definitions/model.Schedule'
@@ -3036,23 +3036,23 @@ paths:
         "400":
           description: Cron 表达式无效、参数错误
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "401":
           description: 未登录
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "403":
           description: 无管理员权限
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "404":
           description: 定时任务不存在
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "500":
           description: 修改定时任务失败
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
       security:
       - SessionCookie: []
       summary: 修改定时任务
@@ -3068,7 +3068,7 @@ paths:
           description: 任务类型列表
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   items:
@@ -3078,11 +3078,11 @@ paths:
         "401":
           description: 未登录
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "403":
           description: 无管理员权限
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
       security:
       - SessionCookie: []
       summary: 获取支持的任务类型
@@ -3098,7 +3098,7 @@ paths:
           description: 模板列表
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   items:
@@ -3108,15 +3108,15 @@ paths:
         "401":
           description: 未登录
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "403":
           description: 无管理员权限
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "500":
           description: 内部错误
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
       security:
       - SessionCookie: []
       summary: 获取模板列表
@@ -3140,7 +3140,7 @@ paths:
           description: 创建成功
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   type: string
@@ -3148,19 +3148,19 @@ paths:
         "400":
           description: 参数错误或模板标识符已存在
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "401":
           description: 未登录
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "403":
           description: 无管理员权限
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "500":
           description: 内部错误
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
       security:
       - SessionCookie: []
       summary: 创建模板
@@ -3182,7 +3182,7 @@ paths:
           description: 删除成功
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   type: string
@@ -3190,23 +3190,23 @@ paths:
         "400":
           description: 不可删除系统模板
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "401":
           description: 未登录
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "403":
           description: 无管理员权限
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "404":
           description: 模板不存在
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "500":
           description: 内部错误
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
       security:
       - SessionCookie: []
       summary: 删除模板
@@ -3227,7 +3227,7 @@ paths:
           description: 模板详情
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   $ref: '#/definitions/model.Template'
@@ -3235,19 +3235,19 @@ paths:
         "401":
           description: 未登录
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "403":
           description: 无管理员权限
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "404":
           description: 模板不存在
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "500":
           description: 内部错误
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
       security:
       - SessionCookie: []
       summary: 获取单个模板
@@ -3276,7 +3276,7 @@ paths:
           description: 更新成功
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   $ref: '#/definitions/model.Template'
@@ -3284,23 +3284,23 @@ paths:
         "400":
           description: 参数错误
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "401":
           description: 未登录
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "403":
           description: 无管理员权限
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "404":
           description: 模板不存在
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "500":
           description: 内部错误
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
       security:
       - SessionCookie: []
       summary: 更新模板
@@ -3316,7 +3316,7 @@ paths:
           description: 更新状态
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   $ref: '#/definitions/updater.Status'
@@ -3324,15 +3324,15 @@ paths:
         "401":
           description: 未登录
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "403":
           description: 无管理员权限
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "500":
           description: 查询失败
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
       security:
       - SessionCookie: []
       summary: 获取应用更新状态
@@ -3347,23 +3347,23 @@ paths:
         "200":
           description: 升级已准备并即将重启
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "400":
           description: 当前版本不可升级
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "401":
           description: 未登录
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "403":
           description: 无管理员权限
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "500":
           description: 升级准备失败
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
       security:
       - SessionCookie: []
       summary: 下载并应用应用更新
@@ -3405,7 +3405,7 @@ paths:
           description: 查询成功
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   $ref: '#/definitions/upload.listFilesResponse'
@@ -3413,11 +3413,11 @@ paths:
         "401":
           description: 未登录
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "403":
           description: 无管理员权限
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
       security:
       - SessionCookie: []
       summary: 获取文件列表
@@ -3438,15 +3438,15 @@ paths:
         "200":
           description: 删除成功
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "403":
           description: 无权操作
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "404":
           description: 文件不存在
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
       security:
       - SessionCookie: []
       summary: 删除文件
@@ -3475,15 +3475,15 @@ paths:
         "400":
           description: 参数错误
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "404":
           description: 文件不存在
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "500":
           description: 服务内部错误
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
       security:
       - SessionCookie: []
       summary: 下载单文件
@@ -3511,11 +3511,11 @@ paths:
         "400":
           description: 参数错误
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "500":
           description: 打包失败
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
       security:
       - SessionCookie: []
       summary: 批量打包下载
@@ -3531,7 +3531,7 @@ paths:
           description: 获取成功
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   $ref: '#/definitions/upload.fileStatsResponse'
@@ -3539,15 +3539,15 @@ paths:
         "401":
           description: 未登录
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "403":
           description: 无管理员权限
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "500":
           description: 内部错误
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
       security:
       - SessionCookie: []
       summary: 获取文件统计数据
@@ -3563,7 +3563,7 @@ paths:
           description: 业务类型列表
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   items:
@@ -3573,15 +3573,15 @@ paths:
         "401":
           description: 未登录
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "403":
           description: 无管理员权限
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "500":
           description: 内部错误
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
       security:
       - SessionCookie: []
       summary: 获取文件业务类型列表
@@ -3613,7 +3613,7 @@ paths:
           description: 用户列表
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   $ref: '#/definitions/user.listUsersResponse'
@@ -3621,19 +3621,19 @@ paths:
         "400":
           description: 参数错误
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "401":
           description: 未登录
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "403":
           description: 无管理员权限
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "500":
           description: 内部错误
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
       security:
       - SessionCookie: []
       summary: 获取用户列表
@@ -3657,7 +3657,7 @@ paths:
           description: 创建成功
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   $ref: '#/definitions/user.user'
@@ -3665,19 +3665,19 @@ paths:
         "400":
           description: 参数错误或用户名已存在
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "401":
           description: 未登录
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "403":
           description: 无管理员权限
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "500":
           description: 内部错误
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
       security:
       - SessionCookie: []
       summary: 创建用户
@@ -3699,7 +3699,7 @@ paths:
           description: 删除成功
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   type: string
@@ -3707,23 +3707,23 @@ paths:
         "400":
           description: 参数错误
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "401":
           description: 未登录
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "403":
           description: 无管理员权限、尝试删除管理员或当前用户
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "404":
           description: 用户不存在
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "500":
           description: 内部错误
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
       security:
       - SessionCookie: []
       summary: 删除用户
@@ -3744,7 +3744,7 @@ paths:
           description: 用户详情
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   $ref: '#/definitions/user.user'
@@ -3752,23 +3752,23 @@ paths:
         "400":
           description: 参数错误
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "401":
           description: 未登录
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "403":
           description: 无管理员权限
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "404":
           description: 用户不存在
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "500":
           description: 内部错误
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
       security:
       - SessionCookie: []
       summary: 获取用户详情
@@ -3798,7 +3798,7 @@ paths:
           description: 更新成功
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   type: string
@@ -3806,23 +3806,23 @@ paths:
         "400":
           description: 参数错误
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "401":
           description: 未登录
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "403":
           description: 无管理员权限或尝试禁用管理员
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "404":
           description: 用户不存在
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "500":
           description: 内部错误
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
       security:
       - SessionCookie: []
       summary: 更新用户状态
@@ -3839,7 +3839,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
       summary: 获取公共配置
       tags:
       - config
@@ -3853,7 +3853,7 @@ paths:
           description: 成功
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   type: string
@@ -3881,7 +3881,7 @@ paths:
           description: 授权 URL
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   $ref: '#/definitions/oauth.OAuthAuthorizeResponse'
@@ -3889,11 +3889,11 @@ paths:
         "400":
           description: 认证源不存在或未启用
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "500":
           description: Redis 异常或构造 URL 失败
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
       summary: 发起指定认证源授权
       tags:
       - oauth
@@ -3916,7 +3916,7 @@ paths:
           description: 登录或绑定成功
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   $ref: '#/definitions/oauth.OAuthCallbackResult'
@@ -3924,15 +3924,15 @@ paths:
         "400":
           description: state 无效、参数错误或认证源错误
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "401":
           description: 绑定场景未登录
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "500":
           description: OAuth 认证失败或内部错误
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
       summary: OAuth 回调处理
       tags:
       - oauth
@@ -3946,7 +3946,7 @@ paths:
           description: 外部帐号列表
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   items:
@@ -3956,11 +3956,11 @@ paths:
         "401":
           description: 未登录
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "500":
           description: 内部错误
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
       security:
       - SessionCookie: []
       summary: 获取外部帐号列表
@@ -3983,7 +3983,7 @@ paths:
           description: 解除绑定成功
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   type: string
@@ -3991,11 +3991,11 @@ paths:
         "400":
           description: ID 无效或解除失败
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "401":
           description: 未登录
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
       security:
       - SessionCookie: []
       summary: 解除外部帐号绑定
@@ -4016,7 +4016,7 @@ paths:
           description: 授权 URL
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   $ref: '#/definitions/oauth.OAuthAuthorizeResponse'
@@ -4024,11 +4024,11 @@ paths:
         "400":
           description: 认证源不存在或未配置
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "500":
           description: Redis 异常 or 构造 URL 失败
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
       summary: 获取登录授权地址
       tags:
       - oauth
@@ -4042,7 +4042,7 @@ paths:
           description: 退出成功
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   type: string
@@ -4050,7 +4050,7 @@ paths:
         "500":
           description: Session 清除失败
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
       security:
       - SessionCookie: []
       summary: 退出登录
@@ -4066,7 +4066,7 @@ paths:
           description: 登录源列表
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   items:
@@ -4086,7 +4086,7 @@ paths:
           description: 用户信息
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   $ref: '#/definitions/oauth.BasicUserInfo'
@@ -4094,7 +4094,7 @@ paths:
         "401":
           description: 未登录
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
       security:
       - SessionCookie: []
       summary: 获取当前登录用户信息
@@ -4126,7 +4126,7 @@ paths:
           description: 上传成功
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   $ref: '#/definitions/model.Upload'
@@ -4134,15 +4134,15 @@ paths:
         "400":
           description: 请求参数错误或文件受限
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "401":
           description: 未登录
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "500":
           description: 内部错误
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
       security:
       - SessionCookie: []
       summary: 上传文件
@@ -4163,15 +4163,15 @@ paths:
         "200":
           description: 删除成功
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "403":
           description: 无权操作
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "404":
           description: 文件不存在
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
       security:
       - SessionCookie: []
       summary: 删除我的文件
@@ -4200,7 +4200,7 @@ paths:
           description: 更新成功
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   $ref: '#/definitions/model.Upload'
@@ -4208,11 +4208,11 @@ paths:
         "403":
           description: 无权操作
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "404":
           description: 文件不存在
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
       security:
       - SessionCookie: []
       summary: 更新我的文件信息
@@ -4249,7 +4249,7 @@ paths:
           description: 查询成功
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   $ref: '#/definitions/upload.listMyFilesResponse'
@@ -4257,7 +4257,7 @@ paths:
         "401":
           description: 未登录
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
       security:
       - SessionCookie: []
       summary: 获取我的文件列表
@@ -4273,7 +4273,7 @@ paths:
           description: 用户信息
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   $ref: '#/definitions/oauth.BasicUserInfo'
@@ -4281,7 +4281,7 @@ paths:
         "401":
           description: 未登录
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
       security:
       - SessionCookie: []
       summary: 获取当前登录用户信息
@@ -4297,7 +4297,7 @@ paths:
           description: 令牌列表
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   items:
@@ -4307,7 +4307,7 @@ paths:
         "401":
           description: 未登录
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
       security:
       - SessionCookie: []
       summary: 获取当前用户的 AccessToken 列表
@@ -4331,7 +4331,7 @@ paths:
           description: 新建令牌成功
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   $ref: '#/definitions/user.tokenResponse'
@@ -4339,7 +4339,7 @@ paths:
         "400":
           description: 参数错误或超限
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
       security:
       - SessionCookie: []
       summary: 创建一个新的 AccessToken
@@ -4361,7 +4361,7 @@ paths:
           description: 删除成功
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   type: string
@@ -4369,7 +4369,7 @@ paths:
         "400":
           description: 参数错误
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
       security:
       - SessionCookie: []
       summary: 删除一个 AccessToken
@@ -4391,7 +4391,7 @@ paths:
           description: 令牌轮换成功
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   $ref: '#/definitions/user.tokenResponse'
@@ -4399,7 +4399,7 @@ paths:
         "400":
           description: 参数错误
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
       security:
       - SessionCookie: []
       summary: 轮换一个 AccessToken
@@ -4424,7 +4424,7 @@ paths:
           description: 修改密码成功
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   type: string
@@ -4432,11 +4432,11 @@ paths:
         "400":
           description: 原密码错误或新密码不符合要求
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "401":
           description: 请先登录
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
       summary: 修改用户密码
       tags:
       - user
@@ -4459,7 +4459,7 @@ paths:
           description: 登录成功，返回用户信息
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   $ref: '#/definitions/oauth.BasicUserInfo'
@@ -4467,11 +4467,11 @@ paths:
         "400":
           description: 用户名或密码错误、帐号已禁用等
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "500":
           description: 服务内部错误
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
       summary: 用户密码登录
       tags:
       - user
@@ -4485,7 +4485,7 @@ paths:
           description: 退出成功
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   type: string
@@ -4493,7 +4493,7 @@ paths:
         "500":
           description: Session 清除失败
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
       security:
       - SessionCookie: []
       summary: 用户退出登录
@@ -4518,7 +4518,7 @@ paths:
           description: 修改成功，返回更新后的用户信息
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   $ref: '#/definitions/oauth.BasicUserInfo'
@@ -4526,11 +4526,11 @@ paths:
         "400":
           description: 邮箱已被占用或参数错误
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "401":
           description: 未登录
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
       summary: 修改当前登录用户的个人资料
       tags:
       - user
@@ -4553,7 +4553,7 @@ paths:
           description: 注册并登录成功，返回用户信息
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   $ref: '#/definitions/oauth.BasicUserInfo'
@@ -4561,11 +4561,11 @@ paths:
         "400":
           description: 参数错误、用户名已存在或注册已关闭
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "500":
           description: 服务内部错误
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
       summary: 用户注册
       tags:
       - user
@@ -4579,7 +4579,7 @@ paths:
           description: 用户信息
           schema:
             allOf:
-            - $ref: '#/definitions/util.ResponseAny'
+            - $ref: '#/definitions/response.Any'
             - properties:
                 data:
                   $ref: '#/definitions/oauth.BasicUserInfo'
@@ -4587,7 +4587,7 @@ paths:
         "401":
           description: 未登录
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
       security:
       - SessionCookie: []
       summary: 获取当前登录用户信息
@@ -4611,11 +4611,11 @@ paths:
         "200":
           description: 发送成功
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "400":
           description: 参数错误
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
       summary: 发送邮箱验证码
       tags:
       - user
@@ -4642,19 +4642,19 @@ paths:
         "400":
           description: 文件 ID 格式错误
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "401":
           description: 未登录
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "404":
           description: 文件未找到
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
         "500":
           description: 服务内部错误
           schema:
-            $ref: '#/definitions/util.ResponseAny'
+            $ref: '#/definitions/response.Any'
       summary: 获取已上传文件
       tags:
       - upload

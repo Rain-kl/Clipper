@@ -28,7 +28,7 @@ type redeemRequest struct {
 // @Produce json
 // @Param request body challengeRequest false "可选范围限制参数"
 // @Success 200 {object} cap.ChallengeResponse "成功返回 PoW 难题"
-// @Failure 500 {object} cap.RedeemResponse "内部服务错误"
+// @Failure 500 {object} capService.RedeemResponse "内部服务错误"
 // @Router /api/cap/challenge [post]
 func Challenge(c *gin.Context) {
 	var req challengeRequest
@@ -58,9 +58,9 @@ func Challenge(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param request body redeemRequest true "难题 Token 与解答 solutions 数组"
-// @Success 200 {object} cap.RedeemResponse "核销成功，返回 X-Cap-Token"
-// @Failure 400 {object} cap.RedeemResponse "参数错误或核销失败"
-// @Failure 500 {object} cap.RedeemResponse "内部服务错误"
+// @Success 200 {object} capService.RedeemResponse "核销成功，返回 X-Cap-Token"
+// @Failure 400 {object} capService.RedeemResponse "参数错误或核销失败"
+// @Failure 500 {object} capService.RedeemResponse "内部服务错误"
 // @Router /api/cap/redeem [post]
 func Redeem(c *gin.Context) {
 	var req redeemRequest

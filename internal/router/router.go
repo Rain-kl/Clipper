@@ -33,7 +33,6 @@ import (
 	"github.com/Rain-kl/Wavelet/internal/apps/upload"
 	"github.com/Rain-kl/Wavelet/internal/apps/user"
 	"github.com/Rain-kl/Wavelet/internal/model"
-	"github.com/Rain-kl/Wavelet/internal/util"
 	capUtil "github.com/Rain-kl/Wavelet/internal/service/cap"
 
 	// Swagger 文档生成
@@ -98,7 +97,7 @@ func Serve() {
 		}
 	}
 
-	sessionStore.Options(util.GetSessionOptions(config.Config.App.SessionAge))
+	sessionStore.Options(oauth.GetSessionOptions(config.Config.App.SessionAge))
 
 	r.Use(sessions.Sessions(config.Config.App.SessionCookieName, sessionStore))
 
