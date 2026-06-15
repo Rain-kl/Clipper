@@ -16,13 +16,11 @@ import (
 	"time"
 
 	admin_push "github.com/Rain-kl/Wavelet/internal/apps/admin/push"
-	publicconfig "github.com/Rain-kl/Wavelet/internal/apps/config"
 	"github.com/Rain-kl/Wavelet/internal/apps/risk_control"
-	"github.com/Rain-kl/Wavelet/internal/apps/upload"
+	router_root "github.com/Rain-kl/Wavelet/internal/router/root"
 	v1 "github.com/Rain-kl/Wavelet/internal/router/v1"
 
 	// Swagger 文档生成
-	_ "github.com/Rain-kl/Wavelet/docs"
 	_ "github.com/Rain-kl/Wavelet/internal/apps/admin/push/custom_events"
 	"github.com/Rain-kl/Wavelet/internal/apps/oauth"
 	"github.com/Rain-kl/Wavelet/internal/config"
@@ -30,8 +28,6 @@ import (
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/redis"
 	"github.com/gin-gonic/gin"
-	swaggerFiles "github.com/swaggo/files"
-	ginSwagger "github.com/swaggo/gin-swagger"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 )
 
@@ -123,40 +119,15 @@ func Serve() {
 }
 
 func registerRoutes(r *gin.Engine) {
-	// Serve files by ID
-	r.GET("/f/:id", upload.ServeFileByID)
-
-	// Dynamic robots.txt serving
-	r.GET("/robots.txt", publicconfig.GetRobotsTXT)
+	// Register custom root routes, Swagger, and frontend serving
+	router_root.RegisterRootRoutes(r)
 
 	apiGroup := r.Group(config.Config.App.APIPrefix)
 	{
-		if !config.Config.App.IsProduction() {
-			// Swagger
-			apiGroup.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
-		}
-
 		// API V1
 		apiV1Router := apiGroup.Group("/v1")
 		{
-			// Public (captcha, health, config)
-			v1.RegisterPublicRoutes(apiV1Router, apiGroup)
-
-			// OAuth, User, Upload
-			v1.RegisterUserRoutes(apiV1Router)
-
-			// Admin
-			v1.RegisterAdminRoutes(apiV1Router)
-
-			// Register custom business routes
-			v1.RegisterCustomRoutes(apiV1Router)
+			v1.RegisterV1Routes(apiV1Router, apiGroup)
 		}
 	}
-
-	// 注册前端静态路由（当启用 embed_frontend 编译标签时）
-	registerFrontend(r)
-}
-
-var registerFrontend = func(_ *gin.Engine) {
-	// No-op when not embedding frontend
 }

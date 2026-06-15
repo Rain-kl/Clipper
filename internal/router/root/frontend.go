@@ -3,7 +3,7 @@
 // Copyright 2026 Arctel.net
 // SPDX-License-Identifier: Apache-2.0
 
-package router
+package root
 
 import (
 	"embed"
@@ -45,7 +45,7 @@ func serveFileDirect(c *gin.Context, subFS fs.FS, filePath string) bool {
 }
 
 func init() {
-	registerFrontend = func(r *gin.Engine) {
+	RegisterFrontend = func(r *gin.Engine) {
 		subFS, err := fs.Sub(frontendFS, "dist")
 		if err != nil {
 			panic(err)

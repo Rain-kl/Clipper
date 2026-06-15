@@ -17,8 +17,9 @@ description: "Wavelet 项目专用：当新增或修改自定义业务 API、新
 
 | 目录/包名 | 职责定位 | 框架依赖限制 | 常见包含内容 |
 | :--- | :--- | :--- | :--- |
-| **`internal/router/`** | 核心路由入口 | 依赖 Gin 框架 | `router.go` (全局路由配置与服务启动) |
-| **`internal/router/v1/`** | 路由分发层 | 依赖 Gin 框架 | `admin.go`, `user.go`, `public.go`, `custom.go` (各分类路由注册入口) |
+| **`internal/router/`** | 核心路由入口 | 无/仅用于启动服务 | `router.go` (全局路由配置与服务启动) |
+| **`internal/router/root/`** | 根路径路由注册包 | 依赖 Gin 框架 | `root.go` (统一入口), `frontend.go` (前端服务), `default.go` (默认根路由，包含 Swagger、文件服务及 robots.txt), `custom.go` (根路径自定义路由) |
+| **`internal/router/v1/`** | 路由分发层 | 依赖 Gin 框架 | `v1.go` (v1 路由统一入口), `admin.go`, `user.go`, `public.go`, `custom.go` (各分类路由注册实现) |
 | **`internal/apps/custom/`** | 功能模块层 (Feature Module) | 依赖 Gin 框架 (仅限路由/Handler 部分) | 高度内聚的业务功能块。接收 HTTP 请求、解析请求体、校验基础参数、提取 Session。业务服务逻辑直接实现在当前目录下的 `service.go` 或 `logics.go` 中，不依赖 Gin/HTTP 框架。 |
 | **`internal/model/`** | 数据模型层 | 依赖 GORM / SQL 基础 | GORM 实体定义、表结构、主键生成、单表极简 SQL 查询方法。 |
 | **`internal/db/`** | 数据存储层 | 依赖 SQL 驱动 / GORM 连接 | PostgreSQL, SQLite 等数据库连接管理与 Goose 数据库迁移文件。 |
@@ -33,8 +34,14 @@ description: "Wavelet 项目专用：当新增或修改自定义业务 API、新
 internal/
 ├── router/
 │   ├── router.go               # 核心路由入口，委派路由给各分类
+│   ├── root/                   # 根路径路由注册包
+│   │   ├── root.go             # 统一路由注册入口
+│   │   ├── frontend.go         # 前端静态服务注册（支持 embed_frontend 编译标签）
+│   │   ├── default.go          # 默认根路由注册（/f/:id, /robots.txt, Swagger 等）
+│   │   └── custom.go           # [修改/创建] 仅用于注册挂载到根路径的自定义路由
 │   └── v1/
-│       └── custom.go           # [修改/创建] 仅用于注册定制路由，将路由委托给 apps/custom
+│       ├── v1.go               # [新建] v1 路由统一入口，集中注册 v1 下的所有路径
+│       └── custom.go           # [修改/创建] 仅用于注册 v1 下的定制路由，将路由委托给 apps/custom
 └── apps/
     └── custom/
         ├── routers.go          # [新建] HTTP Handlers (Gin)，负责参数绑定、校验与响应
@@ -76,7 +83,25 @@ func RegisterCustomRoutes(apiV1Router *gin.RouterGroup) {
 	}
 }
 ```
-并在 [router.go](file:///Users/ryan/DEV/Go/Wavelet/internal/router/router.go) 中的 `/v1` 路由组内通过 `v1.RegisterCustomRoutes(apiV1Router)` 进行调用。
+并在 [v1.go](file:///Users/ryan/DEV/Go/Wavelet/internal/router/v1/v1.go) 中调用 `RegisterCustomRoutes(apiV1Router)`。
+最后在 [router.go](file:///Users/ryan/DEV/Go/Wavelet/internal/router/router.go) 中的 `/v1` 路由组内通过 `v1.RegisterV1Routes(apiV1Router, apiGroup)` 统一加载。
+
+### 步骤 4.2：若需要注册根路径下的自定义路由 (Root Custom Routes)
+若自定义接口需要挂载到根路径（例如 `/my-custom-endpoint`），则不应该挂载在 `/v1` 下，而是应当在 [custom.go](file:///Users/ryan/DEV/Go/Wavelet/internal/router/root/custom.go) 中进行注册：
+```go
+package root
+
+import (
+	"github.com/Rain-kl/Wavelet/internal/apps/custom"
+	"github.com/gin-gonic/gin"
+)
+
+// RegisterCustomRootRoutes registers custom business routes that belong to the root path.
+func RegisterCustomRootRoutes(r *gin.Engine) {
+	r.GET("/my-custom-endpoint", custom.DoRootActionHandler)
+}
+```
+并在 [root.go](file:///Users/ryan/DEV/Go/Wavelet/internal/router/root/root.go) 内被统一调用（由核心路由 `router.go` 间接调用）。
 
 ---
 

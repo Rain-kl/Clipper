@@ -12,136 +12,206 @@ import (
 	admin_logs "github.com/Rain-kl/Wavelet/internal/apps/admin/logs"
 	admin_push "github.com/Rain-kl/Wavelet/internal/apps/admin/push"
 	admin_status "github.com/Rain-kl/Wavelet/internal/apps/admin/status"
+	"github.com/Rain-kl/Wavelet/internal/apps/admin/system_config"
 	admin_task "github.com/Rain-kl/Wavelet/internal/apps/admin/task"
 	admin_template "github.com/Rain-kl/Wavelet/internal/apps/admin/template"
 	admin_updater "github.com/Rain-kl/Wavelet/internal/apps/admin/updater"
 	admin_user "github.com/Rain-kl/Wavelet/internal/apps/admin/user"
-	"github.com/Rain-kl/Wavelet/internal/apps/admin/system_config"
 	"github.com/Rain-kl/Wavelet/internal/apps/oauth"
 	"github.com/Rain-kl/Wavelet/internal/apps/upload"
 	"github.com/gin-gonic/gin"
 )
 
-// RegisterAdminRoutes registers all admin-related routes.
+// RegisterAdminRoutes registers all admin-related routes with sub-group categorizations.
 func RegisterAdminRoutes(apiV1Router *gin.RouterGroup) {
 	adminRouter := apiV1Router.Group("/admin")
 	adminRouter.Use(oauth.LoginRequired(), admin.LoginAdminRequired())
 	{
-		// System status
-		adminRouter.GET("/status", admin_status.GetSystemStatus)
+		// 1. Diagnostics & Infrastructure Management
+		registerAdminDiagnosticRoutes(adminRouter)
 
-		// Database info & export
-		adminRouter.GET("/db-info", admin_status.GetDatabaseInfo)
-		adminRouter.GET("/db-export", admin_status.ExportDatabase)
+		// 2. Identity & Access Management (IAM)
+		registerAdminIAMRoutes(adminRouter)
 
-		// Database management
-		adminRouter.GET("/db-manage/overview", admin_db_manage.GetDBOverview)
-		adminRouter.GET("/db-manage/tables", admin_db_manage.ListDBTables)
-		adminRouter.GET("/db-manage/table-data", admin_db_manage.GetDBTableData)
-		adminRouter.POST("/db-manage/query", admin_db_manage.ExecuteSQL)
+		// 3. System Configuration & Templates Settings
+		registerAdminConfigRoutes(adminRouter)
 
-		// Cache management
-		adminRouter.GET("/cache/status", admin_cache.GetCacheStatus)
-		adminRouter.POST("/cache/config", admin_cache.UpdateCacheConfig)
-		adminRouter.POST("/cache/clear", admin_cache.ClearCache)
+		// 4. Storage & Asset Management
+		registerAdminStorageRoutes(adminRouter)
 
-		// Application update
-		adminRouter.GET("/update", admin_updater.GetUpdateStatus)
-		adminRouter.POST("/update/apply", admin_updater.ApplyUpdate)
-
-		// System logs
-		adminRouter.GET("/logs", admin_logs.GetLogs)
-		adminRouter.GET("/logs/access", admin_logs.GetAccessLogs)
-		adminRouter.GET("/logs/analytics", admin_logs.GetLogsAnalytics)
-		adminRouter.GET("/logs/ws", admin_logs.HandleLogWebSocket)
-
-		// Task dispatch
+		// 5. Task Orchestration & Automation
 		registerAdminTaskRoutes(adminRouter)
 
-		// Users
-		adminRouter.GET("/users", admin_user.ListUsers)
-		adminRouter.POST("/users", admin_user.CreateUser)
-		adminRouter.GET("/users/:id", admin_user.GetUser)
-		adminRouter.PUT("/users/:id/status", admin_user.UpdateUserStatus)
-		adminRouter.DELETE("/users/:id", admin_user.DeleteUser)
-
-		// Uploads
-		registerAdminUploadRoutes(adminRouter)
-
-		// System Config
-		adminRouter.POST("/system-configs", system_config.CreateSystemConfig)
-		adminRouter.GET("/system-configs", system_config.ListSystemConfigs)
-		adminRouter.POST("/system-configs/smtp/test", system_config.TestSMTP)
-
-		systemConfigRouter := adminRouter.Group("/system-configs/:key")
-		{
-			systemConfigRouter.GET("", system_config.GetSystemConfig)
-			systemConfigRouter.PUT("", system_config.UpdateSystemConfig)
-		}
-
-		// Templates
-		adminRouter.GET("/templates", admin_template.ListTemplates)
-		adminRouter.POST("/templates", admin_template.CreateTemplate)
-
-		templateRouter := adminRouter.Group("/templates/:key")
-		{
-			templateRouter.GET("", admin_template.GetTemplate)
-			templateRouter.PUT("", admin_template.UpdateTemplate)
-			templateRouter.DELETE("", admin_template.DeleteTemplate)
-		}
-
-		// Auth Sources
-		adminRouter.GET("/auth-sources", admin_auth_source.ListAuthSources)
-		adminRouter.POST("/auth-sources", admin_auth_source.CreateAuthSource)
-		adminRouter.PUT("/auth-sources/:id", admin_auth_source.UpdateAuthSource)
-		adminRouter.PUT("/auth-sources/:id/toggle", admin_auth_source.ToggleAuthSource)
-		adminRouter.DELETE("/auth-sources/:id", admin_auth_source.DeleteAuthSource)
-
-		// Push Notifications
-		adminRouter.GET("/push/events", admin_push.ListEvents)
-		adminRouter.GET("/push/events/builtin", admin_push.ListBuiltInEvents)
-		adminRouter.POST("/push/events", admin_push.CreateEvent)
-		adminRouter.PUT("/push/events/:id", admin_push.UpdateEvent)
-		adminRouter.DELETE("/push/events/:id", admin_push.DeleteEvent)
-		adminRouter.POST("/push/events/:id/toggle", admin_push.ToggleEvent)
-		adminRouter.GET("/push/histories", admin_push.ListHistories)
-		adminRouter.POST("/push/test", admin_push.TestPush)
-
-		// Message Channels CRUD
-		adminRouter.GET("/push/channels/definitions", admin_push.ListChannelDefinitions)
-		adminRouter.GET("/push/channels", admin_push.ListChannels)
-		adminRouter.POST("/push/channels", admin_push.CreateChannel)
-		adminRouter.PUT("/push/channels/:id", admin_push.UpdateChannel)
-		adminRouter.DELETE("/push/channels/:id", admin_push.DeleteChannel)
-		adminRouter.POST("/push/channels/test", admin_push.TestChannel)
+		// 6. Messaging & Push Notifications
+		registerAdminPushRoutes(adminRouter)
 	}
 }
 
-func registerAdminTaskRoutes(adminRouter *gin.RouterGroup) {
-	// Task dispatch
-	adminRouter.GET("/tasks/types", admin_task.ListTaskTypes)
-	adminRouter.POST("/tasks/dispatch", admin_task.DispatchTask)
+// registerAdminDiagnosticRoutes registers infrastructure, system status, caching, database, and logs diagnostics.
+func registerAdminDiagnosticRoutes(adminRouter *gin.RouterGroup) {
+	// System status
+	adminRouter.GET("/status", admin_status.GetSystemStatus)
 
-	// Task executions
-	adminRouter.GET("/tasks/executions", admin_task.ListTaskExecutions)
-	adminRouter.GET("/tasks/executions/:id", admin_task.GetTaskExecution)
-	adminRouter.POST("/tasks/executions/:id/retry", admin_task.RetryTask)
+	// Database basic info & backup export
+	adminRouter.GET("/db-info", admin_status.GetDatabaseInfo)
+	adminRouter.GET("/db-export", admin_status.ExportDatabase)
 
-	// Task schedules
-	adminRouter.GET("/tasks/schedules", admin_task.ListSchedules)
-	adminRouter.POST("/tasks/schedules", admin_task.CreateSchedule)
-	adminRouter.PUT("/tasks/schedules/:id", admin_task.UpdateSchedule)
-	adminRouter.DELETE("/tasks/schedules/:id", admin_task.DeleteSchedule)
+	// Database management & interactive browser
+	dbManage := adminRouter.Group("/db-manage")
+	{
+		dbManage.GET("/overview", admin_db_manage.GetDBOverview)
+		dbManage.GET("/tables", admin_db_manage.ListDBTables)
+		dbManage.GET("/table-data", admin_db_manage.GetDBTableData)
+		dbManage.POST("/query", admin_db_manage.ExecuteSQL)
+	}
+
+	// Cache management (TTL, LRU eviction and clear operations)
+	cache := adminRouter.Group("/cache")
+	{
+		cache.GET("/status", admin_cache.GetCacheStatus)
+		cache.POST("/config", admin_cache.UpdateCacheConfig)
+		cache.POST("/clear", admin_cache.ClearCache)
+	}
+
+	// Application updater
+	update := adminRouter.Group("/update")
+	{
+		update.GET("", admin_updater.GetUpdateStatus)
+		update.POST("/apply", admin_updater.ApplyUpdate)
+	}
+
+	// System & access logs analytics
+	logs := adminRouter.Group("/logs")
+	{
+		logs.GET("", admin_logs.GetLogs)
+		logs.GET("/access", admin_logs.GetAccessLogs)
+		logs.GET("/analytics", admin_logs.GetLogsAnalytics)
+		logs.GET("/ws", admin_logs.HandleLogWebSocket)
+	}
 }
 
-func registerAdminUploadRoutes(adminRouter *gin.RouterGroup) {
-	adminUploadsRouter := adminRouter.Group("/uploads")
+// registerAdminIAMRoutes registers Identity & Access Management endpoints (Users & Auth Sources).
+func registerAdminIAMRoutes(adminRouter *gin.RouterGroup) {
+	// Users management
+	users := adminRouter.Group("/users")
 	{
-		adminUploadsRouter.GET("", upload.ListFiles)
-		adminUploadsRouter.GET("/stats", upload.GetFileStats)
-		adminUploadsRouter.DELETE("/:id", upload.DeleteFile)
-		adminUploadsRouter.GET("/download/:id", upload.DownloadFile)
-		adminUploadsRouter.POST("/download/batch", upload.BatchDownloadFiles)
-		adminUploadsRouter.GET("/types", upload.GetDistinctUploadTypes)
+		users.GET("", admin_user.ListUsers)
+		users.POST("", admin_user.CreateUser)
+		users.GET("/:id", admin_user.GetUser)
+		users.PUT("/:id/status", admin_user.UpdateUserStatus)
+		users.DELETE("/:id", admin_user.DeleteUser)
+	}
+
+	// Authentication Sources (LDAP, OAuth sources, etc.)
+	authSources := adminRouter.Group("/auth-sources")
+	{
+		authSources.GET("", admin_auth_source.ListAuthSources)
+		authSources.POST("", admin_auth_source.CreateAuthSource)
+		authSources.PUT("/:id", admin_auth_source.UpdateAuthSource)
+		authSources.PUT("/:id/toggle", admin_auth_source.ToggleAuthSource)
+		authSources.DELETE("/:id", admin_auth_source.DeleteAuthSource)
+	}
+}
+
+// registerAdminConfigRoutes registers system configurations and template settings.
+func registerAdminConfigRoutes(adminRouter *gin.RouterGroup) {
+	// System configs
+	configs := adminRouter.Group("/system-configs")
+	{
+		configs.GET("", system_config.ListSystemConfigs)
+		configs.POST("", system_config.CreateSystemConfig)
+		configs.POST("/smtp/test", system_config.TestSMTP)
+
+		keyGroup := configs.Group("/:key")
+		{
+			keyGroup.GET("", system_config.GetSystemConfig)
+			keyGroup.PUT("", system_config.UpdateSystemConfig)
+		}
+	}
+
+	// Email/Notification Templates
+	templates := adminRouter.Group("/templates")
+	{
+		templates.GET("", admin_template.ListTemplates)
+		templates.POST("", admin_template.CreateTemplate)
+
+		keyGroup := templates.Group("/:key")
+		{
+			keyGroup.GET("", admin_template.GetTemplate)
+			keyGroup.PUT("", admin_template.UpdateTemplate)
+			keyGroup.DELETE("", admin_template.DeleteTemplate)
+		}
+	}
+}
+
+// registerAdminStorageRoutes registers file and asset storage administration.
+func registerAdminStorageRoutes(adminRouter *gin.RouterGroup) {
+	uploads := adminRouter.Group("/uploads")
+	{
+		uploads.GET("", upload.ListFiles)
+		uploads.GET("/stats", upload.GetFileStats)
+		uploads.DELETE("/:id", upload.DeleteFile)
+		uploads.GET("/download/:id", upload.DownloadFile)
+		uploads.POST("/download/batch", upload.BatchDownloadFiles)
+		uploads.GET("/types", upload.GetDistinctUploadTypes)
+	}
+}
+
+// registerAdminTaskRoutes registers task orchestrations, execution logs and schedules.
+func registerAdminTaskRoutes(adminRouter *gin.RouterGroup) {
+	tasks := adminRouter.Group("/tasks")
+	{
+		// Task dispatch & metadata
+		tasks.GET("/types", admin_task.ListTaskTypes)
+		tasks.POST("/dispatch", admin_task.DispatchTask)
+
+		// Task execution logs & manual retry
+		executions := tasks.Group("/executions")
+		{
+			executions.GET("", admin_task.ListTaskExecutions)
+			executions.GET("/:id", admin_task.GetTaskExecution)
+			executions.POST("/:id/retry", admin_task.RetryTask)
+		}
+
+		// Cron scheduler settings
+		schedules := tasks.Group("/schedules")
+		{
+			schedules.GET("", admin_task.ListSchedules)
+			schedules.POST("", admin_task.CreateSchedule)
+			schedules.PUT("/:id", admin_task.UpdateSchedule)
+			schedules.DELETE("/:id", admin_task.DeleteSchedule)
+		}
+	}
+}
+
+// registerAdminPushRoutes registers messaging channels and push notification events.
+func registerAdminPushRoutes(adminRouter *gin.RouterGroup) {
+	push := adminRouter.Group("/push")
+	{
+		// Push Events
+		events := push.Group("/events")
+		{
+			events.GET("", admin_push.ListEvents)
+			events.GET("/builtin", admin_push.ListBuiltInEvents)
+			events.POST("", admin_push.CreateEvent)
+			events.PUT("/:id", admin_push.UpdateEvent)
+			events.DELETE("/:id", admin_push.DeleteEvent)
+			events.POST("/:id/toggle", admin_push.ToggleEvent)
+		}
+
+		// Delivery histories and diagnostics test
+		push.GET("/histories", admin_push.ListHistories)
+		push.POST("/test", admin_push.TestPush)
+
+		// Message Channels CRUD
+		channels := push.Group("/channels")
+		{
+			channels.GET("/definitions", admin_push.ListChannelDefinitions)
+			channels.GET("", admin_push.ListChannels)
+			channels.POST("", admin_push.CreateChannel)
+			channels.PUT("/:id", admin_push.UpdateChannel)
+			channels.DELETE("/:id", admin_push.DeleteChannel)
+			channels.POST("/test", admin_push.TestChannel)
+		}
 	}
 }
