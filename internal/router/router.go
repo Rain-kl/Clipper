@@ -33,7 +33,6 @@ import (
 	"github.com/Rain-kl/Wavelet/internal/apps/upload"
 	"github.com/Rain-kl/Wavelet/internal/apps/user"
 	"github.com/Rain-kl/Wavelet/internal/model"
-	capUtil "github.com/Rain-kl/Wavelet/internal/service/cap"
 
 	// Swagger 文档生成
 	_ "github.com/Rain-kl/Wavelet/docs"
@@ -208,21 +207,21 @@ func registerOAuthRoutes(apiV1Router *gin.RouterGroup) {
 func registerUserRoutes(apiV1Router *gin.RouterGroup) {
 	userRouter := apiV1Router.Group("/user")
 	{
-		userRouter.POST("/login", capApp.VerifyMiddleware(capUtil.GetDefaultManager(), "login", func() bool {
+		userRouter.POST("/login", capApp.VerifyMiddleware(capApp.GetDefaultManager(), "login", func() bool {
 			enabled, err := model.GetBoolByKey(context.Background(), model.ConfigKeyCapLoginEnabled)
 			if err != nil {
 				return false
 			}
 			return enabled
 		}), user.Login)
-		userRouter.POST("/register", capApp.VerifyMiddleware(capUtil.GetDefaultManager(), "register", func() bool {
+		userRouter.POST("/register", capApp.VerifyMiddleware(capApp.GetDefaultManager(), "register", func() bool {
 			enabled, err := model.GetBoolByKey(context.Background(), model.ConfigKeyCapLoginEnabled)
 			if err != nil {
 				return false
 			}
 			return enabled
 		}), user.Register)
-		userRouter.POST("/send-email-code", capApp.VerifyMiddleware(capUtil.GetDefaultManager(), "send_email_code", func() bool {
+		userRouter.POST("/send-email-code", capApp.VerifyMiddleware(capApp.GetDefaultManager(), "send_email_code", func() bool {
 			enabled, err := model.GetBoolByKey(context.Background(), model.ConfigKeyCapLoginEnabled)
 			if err != nil {
 				return false

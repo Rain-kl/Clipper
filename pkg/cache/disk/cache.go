@@ -1,8 +1,8 @@
 // Copyright 2026 Arctel.net
 // SPDX-License-Identifier: Apache-2.0
 
-// Package diskcache implements a platform-level disk-backed cache with size limit, TTL, and LRU eviction.
-package diskcache
+// Package disk implements a platform-level disk-backed cache with size limit, TTL, and LRU eviction.
+package disk
 
 import (
 	"container/list"
@@ -44,8 +44,8 @@ type Status struct {
 	BasePath   string `json:"base_path"`
 }
 
-// DiskCache implements the disk-backed cache with size limits, TTL, and LRU eviction.
-type DiskCache struct {
+// Cache implements the disk-backed cache with size limits, TTL, and LRU eviction.
+type Cache struct {
 	mu         sync.RWMutex
 	d          *diskv.Diskv
 	basePath   string
@@ -65,15 +65,15 @@ type cacheItem struct {
 	expiredAt time.Time
 }
 
-// New creates a new DiskCache instance.
-func New(basePath string) *DiskCache {
+// New creates a new Cache instance.
+func New(basePath string) *Cache {
 	d := diskv.New(diskv.Options{
 		BasePath:     basePath,
 		Transform:    func(_ string) []string { return []string{} }, // flat structure for easy walk
 		CacheSizeMax: 1024 * 1024,                                   // 1MB in-memory cache size for diskv itself
 	})
 
-	c := &DiskCache{
+	c := &Cache{
 		d:          d,
 		basePath:   basePath,
 		maxSize:    defaultMaxSizeMB * 1024 * 1024,  // 100MB default
@@ -91,7 +91,7 @@ func New(basePath string) *DiskCache {
 // Set stores a key-value pair in the cache.
 // Use DefaultExpiration for the configured default TTL, NoExpiration for no
 // TTL, or a positive duration for a business-specific TTL.
-func (c *DiskCache) Set(key string, value []byte, ttl time.Duration) error {
+func (c *Cache) Set(key string, value []byte, ttl time.Duration) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -146,7 +146,7 @@ func (c *DiskCache) Set(key string, value []byte, ttl time.Duration) error {
 }
 
 // Get retrieves a key's value from the cache.
-func (c *DiskCache) Get(key string) ([]byte, error) {
+func (c *Cache) Get(key string) ([]byte, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -185,13 +185,13 @@ func (c *DiskCache) Get(key string) ([]byte, error) {
 }
 
 // Delete removes a key-value pair from the cache.
-func (c *DiskCache) Delete(key string) error {
+func (c *Cache) Delete(key string) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	return c.deleteUnlocked(key)
 }
 
-func (c *DiskCache) deleteUnlocked(key string) error {
+func (c *Cache) deleteUnlocked(key string) error {
 	if elem, ok := c.items[key]; ok {
 		item := elem.Value.(*cacheItem)
 		c.currentSize -= item.size
@@ -202,7 +202,7 @@ func (c *DiskCache) deleteUnlocked(key string) error {
 }
 
 // Clear flushes all cached elements.
-func (c *DiskCache) Clear() error {
+func (c *Cache) Clear() error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -214,7 +214,7 @@ func (c *DiskCache) Clear() error {
 }
 
 // Status returns the cache status.
-func (c *DiskCache) Status() Status {
+func (c *Cache) Status() Status {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
@@ -229,7 +229,7 @@ func (c *DiskCache) Status() Status {
 }
 
 // UpdatePolicy dynamically updates policies.
-func (c *DiskCache) UpdatePolicy(maxSizeMB int64, ttlMinutes int64, lruEnabled bool) {
+func (c *Cache) UpdatePolicy(maxSizeMB int64, ttlMinutes int64, lruEnabled bool) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -240,7 +240,7 @@ func (c *DiskCache) UpdatePolicy(maxSizeMB int64, ttlMinutes int64, lruEnabled b
 }
 
 // evict evicts oldest items if current size exceeds maxSize and LRU is enabled.
-func (c *DiskCache) evict() {
+func (c *Cache) evict() {
 	if !c.lruEnabled {
 		return
 	}
@@ -256,7 +256,7 @@ func (c *DiskCache) evict() {
 }
 
 // loadTracker scans the cache directory on startup to rebuild memory state.
-func (c *DiskCache) loadTracker() error {
+func (c *Cache) loadTracker() error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -325,7 +325,7 @@ func (c *DiskCache) loadTracker() error {
 }
 
 // StartCleanupWorker periodically cleans up expired cache items.
-func (c *DiskCache) StartCleanupWorker(interval time.Duration) {
+func (c *Cache) StartCleanupWorker(interval time.Duration) {
 	ticker := time.NewTicker(interval)
 	for range ticker.C {
 		c.cleanExpired()
@@ -333,7 +333,7 @@ func (c *DiskCache) StartCleanupWorker(interval time.Duration) {
 }
 
 // cleanExpired scans memory for expired items and removes them.
-func (c *DiskCache) cleanExpired() {
+func (c *Cache) cleanExpired() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 

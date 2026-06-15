@@ -117,7 +117,7 @@ definitions:
         description: '"select" 或 "exec"'
         type: string
     type: object
-  github_com_Rain-kl_Wavelet_internal_diskcache.Status:
+  diskcache.Status:
     properties:
       base_path:
         type: string
@@ -132,7 +132,7 @@ definitions:
       ttl_minutes:
         type: integer
     type: object
-  github_com_Rain-kl_Wavelet_internal_service_cap.RedeemResponse:
+  github_com_Rain-kl_Wavelet_internal_apps_cap.RedeemResponse:
     properties:
       error:
         type: string
@@ -1431,7 +1431,7 @@ paths:
         "500":
           description: 内部服务错误
           schema:
-            $ref: '#/definitions/github_com_Rain-kl_Wavelet_internal_service_cap.RedeemResponse'
+            $ref: '#/definitions/github_com_Rain-kl_Wavelet_internal_apps_cap.RedeemResponse'
       summary: 生成人机验证难题
       tags:
       - cap
@@ -1453,15 +1453,15 @@ paths:
         "200":
           description: 核销成功，返回 X-Cap-Token
           schema:
-            $ref: '#/definitions/github_com_Rain-kl_Wavelet_internal_service_cap.RedeemResponse'
+            $ref: '#/definitions/github_com_Rain-kl_Wavelet_internal_apps_cap.RedeemResponse'
         "400":
           description: 参数错误或核销失败
           schema:
-            $ref: '#/definitions/github_com_Rain-kl_Wavelet_internal_service_cap.RedeemResponse'
+            $ref: '#/definitions/github_com_Rain-kl_Wavelet_internal_apps_cap.RedeemResponse'
         "500":
           description: 内部服务错误
           schema:
-            $ref: '#/definitions/github_com_Rain-kl_Wavelet_internal_service_cap.RedeemResponse'
+            $ref: '#/definitions/github_com_Rain-kl_Wavelet_internal_apps_cap.RedeemResponse'
       summary: 校验人机验证解答
       tags:
       - cap
@@ -1773,7 +1773,7 @@ paths:
             - $ref: '#/definitions/response.Any'
             - properties:
                 data:
-                  $ref: '#/definitions/github_com_Rain-kl_Wavelet_internal_diskcache.Status'
+                  $ref: '#/definitions/diskcache.Status'
               type: object
         "401":
           description: 未登录

@@ -12,7 +12,7 @@ import (
 
 	"github.com/Rain-kl/Wavelet/internal/db"
 	"github.com/Rain-kl/Wavelet/internal/model"
-	pkgcache "github.com/Rain-kl/Wavelet/pkg/diskcache"
+	pkgcache "github.com/Rain-kl/Wavelet/pkg/cache/disk"
 )
 
 // Status represents the runtime cache statistics.
@@ -35,7 +35,7 @@ var ErrCacheMiss = pkgcache.ErrCacheMiss
 
 // DiskCache is a wrapper around the generic pkg/diskcache that integrates with the DB for configs.
 type DiskCache struct {
-	*pkgcache.DiskCache
+	*pkgcache.Cache
 }
 
 var (

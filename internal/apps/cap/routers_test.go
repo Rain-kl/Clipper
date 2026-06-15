@@ -13,8 +13,7 @@ import ("bytes"
 	"github.com/Rain-kl/Wavelet/internal/db"
 	"github.com/Rain-kl/Wavelet/internal/model"
 	"github.com/Rain-kl/Wavelet/internal/testhelper"
-	capUtil "github.com/Rain-kl/Wavelet/internal/service/cap"
-	pkgcap "github.com/Rain-kl/Wavelet/pkg/cap"
+		pkgcap "github.com/Rain-kl/Wavelet/pkg/cap"
 	"github.com/gin-gonic/gin"
 
 	"github.com/Rain-kl/Wavelet/internal/common/response")
@@ -34,7 +33,7 @@ func TestCapEndpointsAndMiddleware(t *testing.T) {
 	}
 
 	// Login endpoint with CAPTCHA middleware
-	r.POST("/api/v1/user/login", VerifyMiddleware(capUtil.GetDefaultManager(), "login", func() bool {
+	r.POST("/api/v1/user/login", VerifyMiddleware(GetDefaultManager(), "login", func() bool {
 		enabled, err := model.GetBoolByKey(context.Background(), model.ConfigKeyCapLoginEnabled)
 		if err != nil {
 			return false
@@ -106,7 +105,7 @@ func TestCapEndpointsAndMiddleware(t *testing.T) {
 		t.Fatalf("expected 200 OK for redeem, got %d. Body: %s", w.Code, w.Body.String())
 	}
 
-	var redeemResp capUtil.RedeemResponse
+	var redeemResp RedeemResponse
 	if err := json.Unmarshal(w.Body.Bytes(), &redeemResp); err != nil {
 		t.Fatalf("failed to unmarshal redeem response: %v", err)
 	}

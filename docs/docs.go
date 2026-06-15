@@ -55,7 +55,7 @@ const docTemplate = `{
                     "500": {
                         "description": "内部服务错误",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Rain-kl_Wavelet_internal_service_cap.RedeemResponse"
+                            "$ref": "#/definitions/github_com_Rain-kl_Wavelet_internal_apps_cap.RedeemResponse"
                         }
                     }
                 }
@@ -89,19 +89,19 @@ const docTemplate = `{
                     "200": {
                         "description": "核销成功，返回 X-Cap-Token",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Rain-kl_Wavelet_internal_service_cap.RedeemResponse"
+                            "$ref": "#/definitions/github_com_Rain-kl_Wavelet_internal_apps_cap.RedeemResponse"
                         }
                     },
                     "400": {
                         "description": "参数错误或核销失败",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Rain-kl_Wavelet_internal_service_cap.RedeemResponse"
+                            "$ref": "#/definitions/github_com_Rain-kl_Wavelet_internal_apps_cap.RedeemResponse"
                         }
                     },
                     "500": {
                         "description": "内部服务错误",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Rain-kl_Wavelet_internal_service_cap.RedeemResponse"
+                            "$ref": "#/definitions/github_com_Rain-kl_Wavelet_internal_apps_cap.RedeemResponse"
                         }
                     }
                 }
@@ -620,7 +620,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/github_com_Rain-kl_Wavelet_internal_diskcache.Status"
+                                            "$ref": "#/definitions/diskcache.Status"
                                         }
                                     }
                                 }
@@ -5648,7 +5648,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_Rain-kl_Wavelet_internal_diskcache.Status": {
+        "diskcache.Status": {
             "type": "object",
             "properties": {
                 "base_path": {
@@ -5671,7 +5671,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_Rain-kl_Wavelet_internal_service_cap.RedeemResponse": {
+        "github_com_Rain-kl_Wavelet_internal_apps_cap.RedeemResponse": {
             "type": "object",
             "properties": {
                 "error": {

@@ -17,7 +17,6 @@ import ("bytes"
 	"github.com/Rain-kl/Wavelet/internal/apps/upload"
 	"github.com/Rain-kl/Wavelet/internal/apps/user"
 	"github.com/Rain-kl/Wavelet/internal/model"
-	"github.com/Rain-kl/Wavelet/internal/service"
 	"github.com/Rain-kl/Wavelet/internal/task"
 	"github.com/Rain-kl/Wavelet/internal/testhelper"
 	"github.com/Rain-kl/Wavelet/internal/util"
@@ -92,7 +91,7 @@ func TestListTaskTypes(t *testing.T) {
 	foundCleanup := false
 	foundWarmImageCache := false
 	for _, m := range taskMetas {
-		if m.Type == service.TaskTypeSystemCleanup {
+		if m.Type == upload.TaskTypeSystemCleanup {
 			foundCleanup = true
 		}
 		if m.Type == upload.TaskTypeWarmImageCache {
@@ -100,7 +99,7 @@ func TestListTaskTypes(t *testing.T) {
 		}
 	}
 	if !foundCleanup {
-		t.Errorf("expected task type %s to be listed", service.TaskTypeSystemCleanup)
+		t.Errorf("expected task type %s to be listed", upload.TaskTypeSystemCleanup)
 	}
 	if !foundWarmImageCache {
 		t.Errorf("expected task type %s to be listed", upload.TaskTypeWarmImageCache)
@@ -116,7 +115,7 @@ func TestDispatchTask(t *testing.T) {
 
 	t.Run("dispatch valid task successfully", func(t *testing.T) {
 		payload := DispatchTaskRequest{
-			TaskType: service.TaskTypeSystemCleanup,
+			TaskType: upload.TaskTypeSystemCleanup,
 		}
 		body, _ := json.Marshal(payload)
 		req, _ := http.NewRequest("POST", "/api/v1/admin/tasks/dispatch", bytes.NewBuffer(body))
