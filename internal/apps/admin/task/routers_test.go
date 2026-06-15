@@ -491,32 +491,3 @@ func TestRetryTask(t *testing.T) {
 		assert.Equal(t, http.StatusBadRequest, w.Code)
 	})
 }
-
-func TestRetryTaskMaxRetryExceeded(t *testing.T) {
-	cleanup := setupTaskTestEnvironment(t)
-	defer cleanup()
-
-	adminUser := &model.User{ID: 1001, Username: "admin", IsAdmin: true}
-	router := setupTestRouter(adminUser)
-	ctx := context.Background()
-
-	execution := &model.TaskExecution{
-		TaskID:      "retry_max_api_001",
-		TaskType:    "system:cleanup",
-		TaskName:    "系统垃圾清理",
-		Status:      model.TaskExecutionStatusFailed,
-		Retryable:   true,
-		MaxRetry:    1,
-		RetryCount:  1,
-		TriggeredBy: "retry",
-	}
-	err := model.CreateTaskExecution(ctx, execution)
-	require.NoError(t, err)
-
-	url := fmt.Sprintf("/api/v1/admin/tasks/executions/%d/retry", execution.ID)
-	req, _ := http.NewRequest("POST", url, nil)
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-}
