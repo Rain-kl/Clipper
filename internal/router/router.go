@@ -387,3 +387,7 @@ func registerAdminUploadRoutes(adminRouter *gin.RouterGroup) {
 		adminUploadsRouter.GET("/types", upload.GetDistinctUploadTypes)
 	}
 }
+
+var registerFrontend = func(_ *gin.Engine) {
+	// No-op when not embedding frontend
+}
