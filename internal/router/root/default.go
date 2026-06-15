@@ -6,6 +6,7 @@ package root
 import (
 	_ "github.com/Rain-kl/Wavelet/docs" // Swagger documentation generation setup
 	publicconfig "github.com/Rain-kl/Wavelet/internal/apps/config"
+	"github.com/Rain-kl/Wavelet/internal/apps/health"
 	"github.com/Rain-kl/Wavelet/internal/apps/upload"
 	"github.com/Rain-kl/Wavelet/internal/config"
 	"github.com/gin-gonic/gin"
@@ -25,4 +26,7 @@ func RegisterDefaultRootRoutes(r *gin.Engine) {
 	if !config.Config.App.IsProduction() {
 		r.GET(config.Config.App.APIPrefix+"/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	}
+
+	// 4. Health check
+	r.GET(config.Config.App.APIPrefix+"/health", health.Health)
 }

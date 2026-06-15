@@ -8,6 +8,7 @@ import (
 	"context"
 
 	capApp "github.com/Rain-kl/Wavelet/internal/apps/cap"
+	publicconfig "github.com/Rain-kl/Wavelet/internal/apps/config"
 	"github.com/Rain-kl/Wavelet/internal/apps/oauth"
 	"github.com/Rain-kl/Wavelet/internal/apps/upload"
 	"github.com/Rain-kl/Wavelet/internal/apps/user"
@@ -15,16 +16,37 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// RegisterUserRoutes registers all user-related, oauth and upload routes.
-func RegisterUserRoutes(apiV1Router *gin.RouterGroup) {
-	// OAuth
+// RegisterUserRoutes registers all user-related, oauth, upload, and public routes.
+func RegisterUserRoutes(apiV1Router *gin.RouterGroup, apiGroup *gin.RouterGroup) {
+	// 1. CAPTCHA
+	registerCaptchaRoutes(apiGroup)
+
+	// 2. Config (public)
+	registerConfigRoutes(apiV1Router)
+
+	// 3. OAuth
 	registerOAuthRoutes(apiV1Router)
 
-	// User
+	// 4. User
 	registerUserRoutes(apiV1Router)
 
-	// Upload
+	// 5. Upload
 	registerUploadRoutes(apiV1Router)
+}
+
+func registerCaptchaRoutes(apiGroup *gin.RouterGroup) {
+	capGroup := apiGroup.Group("/cap")
+	{
+		capGroup.POST("/challenge", capApp.Challenge)
+		capGroup.POST("/redeem", capApp.Redeem)
+	}
+}
+
+func registerConfigRoutes(apiV1Router *gin.RouterGroup) {
+	configRouter := apiV1Router.Group("/config")
+	{
+		configRouter.GET("/public", publicconfig.GetPublicConfig)
+	}
 }
 
 func registerOAuthRoutes(apiV1Router *gin.RouterGroup) {
