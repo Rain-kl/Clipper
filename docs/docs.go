@@ -1458,7 +1458,7 @@ const docTemplate = `{
                         "SessionCookie": []
                     }
                 ],
-                "description": "绑定系统内置事件、推送渠道、接收目标并创建通知事件配置，需要管理员权限",
+                "description": "绑定系统内置事件或异步任务、推送渠道、接收目标并创建通知事件配置，需要管理员权限",
                 "consumes": [
                     "application/json"
                 ],
@@ -6012,6 +6012,10 @@ const docTemplate = `{
                         "type": "string"
                     }
                 },
+                "task_type": {
+                    "description": "关联的异步任务类型",
+                    "type": "string"
+                },
                 "template": {
                     "description": "消息模板 JSON",
                     "type": "string"
@@ -6513,9 +6517,6 @@ const docTemplate = `{
         },
         "push.CreateEventRequest": {
             "type": "object",
-            "required": [
-                "event_key"
-            ],
             "properties": {
                 "channels": {
                     "type": "array",
@@ -6534,6 +6535,10 @@ const docTemplate = `{
                     "items": {
                         "type": "string"
                     }
+                },
+                "task_type": {
+                    "description": "关联的异步任务类型",
+                    "type": "string"
                 },
                 "template": {
                     "type": "string"

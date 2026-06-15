@@ -17,6 +17,7 @@ type PushEvent struct {
 	ID        uint64    `json:"id" gorm:"primaryKey;autoIncrement"`
 	EventKey  string    `json:"event_key" gorm:"uniqueIndex;size:80;not null"` // 如 admin_login
 	Name      string    `json:"name" gorm:"size:100;not null"`                 // 如 管理员登录
+	TaskType  string    `json:"task_type" gorm:"size:100;index;not null;default:''"` // 关联的异步任务类型
 	Channels  []string  `json:"channels" gorm:"type:text;serializer:json;not null"` // 推送渠道列表，如 ["lark"]
 	Targets   []string  `json:"targets" gorm:"type:text;serializer:json;not null"`  // 推送目标用户/邮箱列表
 	Template  string    `json:"template" gorm:"type:text;not null"`           // 消息模板 JSON
