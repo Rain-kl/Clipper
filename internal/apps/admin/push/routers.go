@@ -231,6 +231,9 @@ func CreateEvent(c *gin.Context) {
 		return
 	}
 
+	// 缓存一致性：清除旧事件缓存
+	model.DeleteActivePushEventCache(ctx, event.EventKey)
+
 	c.JSON(http.StatusOK, response.OK(event))
 }
 
@@ -266,6 +269,9 @@ func DeleteEvent(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, response.Err(err.Error()))
 		return
 	}
+
+	// 缓存一致性：清除事件缓存
+	model.DeleteActivePushEventCache(ctx, event.EventKey)
 
 	c.JSON(http.StatusOK, response.OKNil())
 }
@@ -320,6 +326,9 @@ func UpdateEvent(c *gin.Context) {
 		return
 	}
 
+	// 缓存一致性：清除事件缓存
+	model.DeleteActivePushEventCache(c.Request.Context(), event.EventKey)
+
 	c.JSON(http.StatusOK, response.OKNil())
 }
 
@@ -359,6 +368,9 @@ func ToggleEvent(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, response.Err(err.Error()))
 		return
 	}
+
+	// 缓存一致性：清除事件缓存
+	model.DeleteActivePushEventCache(c.Request.Context(), event.EventKey)
 
 	c.JSON(http.StatusOK, response.OK(event.Enabled))
 }
