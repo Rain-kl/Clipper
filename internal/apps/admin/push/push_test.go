@@ -148,10 +148,6 @@ func TestEventTrigger(t *testing.T) {
 	dbConn, _, cleanup := setupPushTest(t)
 	defer cleanup()
 
-	// Register mock pusher
-	mPusher := &mockPusher{}
-	pkgpush.Register("mock_channel", mPusher)
-
 	// SyncEvents
 	err := SyncEvents(context.Background())
 	require.NoError(t, err)
@@ -173,14 +169,17 @@ func TestEventTrigger(t *testing.T) {
 	})
 
 	t.Run("trigger enabled event enqueues task", func(t *testing.T) {
-		// Set push_config system configuration
-		cfgJson := `[{"channel": "mock_channel", "url": "http://mock"}]`
-		sysConfig := &model.SystemConfig{
-			Key:   model.ConfigKeyPushConfig,
-			Value: cfgJson,
+		// Create an enabled custom channel in GORM
+		customChan := &model.PushChannel{
+			Name:    "mock_channel",
+			Type:    "custom",
+			URL:     "https://webhook.site/trigger",
+			Other:   `{"text": "$content"}`,
+			Enabled: true,
 		}
-		err = dbConn.Create(sysConfig).Error
+		err = dbConn.Create(customChan).Error
 		require.NoError(t, err)
+		defer dbConn.Delete(customChan)
 
 		// Enable the push event in DB using struct to trigger JSON serializer
 		var event model.PushEvent
@@ -216,7 +215,8 @@ func TestEventTrigger(t *testing.T) {
 		err = json.Unmarshal([]byte(execution.Payload), &payload)
 		require.NoError(t, err)
 		assert.Equal(t, "admin_login", payload.EventKey)
-		assert.Equal(t, "mock_channel", payload.Config.Channel)
+		assert.Equal(t, "custom", payload.Config.Channel)
+		assert.Equal(t, "https://webhook.site/trigger", payload.Config.URL)
 		assert.Equal(t, "admin_user", payload.Target)
 		assert.Equal(t, "管理员登录提醒", payload.Body.Title)
 		assert.Contains(t, payload.Body.Content, "super_admin")
@@ -224,15 +224,17 @@ func TestEventTrigger(t *testing.T) {
 	})
 
 	t.Run("trigger without user injects virtual system user", func(t *testing.T) {
-		// Set push_config system configuration
-		dbConn.Where("key = ?", model.ConfigKeyPushConfig).Delete(&model.SystemConfig{})
-		cfgJson := `[{"channel": "mock_channel", "url": "http://mock"}]`
-		sysConfig := &model.SystemConfig{
-			Key:   model.ConfigKeyPushConfig,
-			Value: cfgJson,
+		// Create an enabled custom channel in GORM
+		customChan := &model.PushChannel{
+			Name:    "mock_channel",
+			Type:    "custom",
+			URL:     "https://webhook.site/trigger",
+			Other:   `{"text": "$content"}`,
+			Enabled: true,
 		}
-		err = dbConn.Create(sysConfig).Error
+		err = dbConn.Create(customChan).Error
 		require.NoError(t, err)
+		defer dbConn.Delete(customChan)
 
 		// Enable the push event in DB
 		var event model.PushEvent
