@@ -363,11 +363,20 @@ func TestPushRouters(t *testing.T) {
 		var event model.PushEvent
 		dbConn.First(&event)
 
+		// 1. 未配置任何渠道时开启，应该被拒绝
 		req, _ := http.NewRequest("POST", "/api/v1/admin/push/events/"+strconv.FormatUint(event.ID, 10)+"/toggle", nil)
 		w := httptest.NewRecorder()
 		r.ServeHTTP(w, req)
+		assert.Equal(t, http.StatusBadRequest, w.Code)
 
-		assert.Equal(t, http.StatusOK, w.Code)
+		// 2. 为该事件关联渠道后，再切换开启，应当成功
+		event.Channels = []string{"email"}
+		dbConn.Save(&event)
+
+		req2, _ := http.NewRequest("POST", "/api/v1/admin/push/events/"+strconv.FormatUint(event.ID, 10)+"/toggle", nil)
+		w2 := httptest.NewRecorder()
+		r.ServeHTTP(w2, req2)
+		assert.Equal(t, http.StatusOK, w2.Code)
 
 		var updated model.PushEvent
 		dbConn.First(&updated)

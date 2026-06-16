@@ -351,6 +351,10 @@ func ToggleEvent(c *gin.Context) {
 	}
 
 	event.Enabled = !event.Enabled
+	if event.Enabled && len(event.Channels) == 0 {
+		c.JSON(http.StatusBadRequest, response.Err("cannot enable event without any push channels configured"))
+		return
+	}
 	if err := db.DB(c.Request.Context()).Model(&event).Update("enabled", event.Enabled).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, response.Err(err.Error()))
 		return
