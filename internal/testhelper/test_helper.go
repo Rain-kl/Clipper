@@ -75,6 +75,7 @@ func SetupTestEnvironment(t *testing.T) (*gorm.DB, *miniredis.Miniredis, func())
 
 	// Cleanup function
 	cleanup := func() {
+		runExtraCleanups()
 		model.ResetSystemConfigRAMCacheForTest()
 		_ = redisClient.Close()
 		mr.Close()

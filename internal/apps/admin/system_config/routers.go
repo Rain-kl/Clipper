@@ -15,6 +15,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 
+	"github.com/Rain-kl/Wavelet/internal/apps/cap"
 	"github.com/Rain-kl/Wavelet/internal/apps/upload"
 	"github.com/Rain-kl/Wavelet/internal/common/response"
 	"github.com/Rain-kl/Wavelet/internal/db"
@@ -93,9 +94,7 @@ func CreateSystemConfig(c *gin.Context) {
 		return
 	}
 
-	if err := model.InvalidateSystemConfigCache(c.Request.Context(), req.Key); err != nil {
-		logger.WarnF(c.Request.Context(), "清理系统配置缓存失败: %v", err)
-	}
+	invalidateSystemConfigCaches(c.Request.Context(), req.Key)
 
 	if err := model.InvalidateVisibleSystemConfigsCache(c.Request.Context()); err != nil {
 		logger.WarnF(c.Request.Context(), "清理公共配置列表缓存失败: %v", err)
@@ -282,10 +281,17 @@ func resolveStorageMigrationTasksOnDirectDriverUpdate(
 	}
 }
 
-func invalidateCachesAfterConfigUpdate(ctx context.Context, key string) {
+func invalidateSystemConfigCaches(ctx context.Context, key string) {
 	if err := model.InvalidateSystemConfigCache(ctx, key); err != nil {
 		logger.WarnF(ctx, "清理系统配置缓存失败: %v", err)
 	}
+	if cap.IsRuntimeConfigKey(key) {
+		cap.InvalidateRuntimeSettings()
+	}
+}
+
+func invalidateCachesAfterConfigUpdate(ctx context.Context, key string) {
+	invalidateSystemConfigCaches(ctx, key)
 
 	if key == model.ConfigKeyStorageConfig {
 		upload.ResetAccessCaches()

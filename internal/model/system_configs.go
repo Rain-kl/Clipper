@@ -115,6 +115,47 @@ func (sc *SystemConfig) GetByKey(ctx context.Context, key string) error {
 	return nil
 }
 
+// ListSystemConfigsByKeys loads multiple config keys in one database round trip.
+// Keys already present in the process-local RAM cache are returned without querying PostgreSQL.
+func ListSystemConfigsByKeys(ctx context.Context, keys []string) (map[string]SystemConfig, error) {
+	if len(keys) == 0 {
+		return map[string]SystemConfig{}, nil
+	}
+
+	ensureSystemConfigCacheListener()
+
+	result := make(map[string]SystemConfig, len(keys))
+	missing := make([]string, 0, len(keys))
+	for _, key := range keys {
+		if cached, ok := systemConfigRAMCache.GetIfPresent(key); ok {
+			result[key] = cloneSystemConfig(cached)
+			continue
+		}
+		missing = append(missing, key)
+	}
+
+	if len(missing) == 0 {
+		return result, nil
+	}
+
+	database := db.DB(ctx)
+	if database == nil {
+		return nil, errors.New(errDatabaseNotInitialized)
+	}
+
+	var configs []SystemConfig
+	if err := database.Where("key IN ?", missing).Find(&configs).Error; err != nil {
+		return nil, err
+	}
+
+	for i := range configs {
+		populateSystemConfigCache(ctx, configs[i])
+		result[configs[i].Key] = cloneSystemConfig(configs[i])
+	}
+
+	return result, nil
+}
+
 // InvalidateVisibleSystemConfigsCache clears the cached public config list.
 func InvalidateVisibleSystemConfigsCache(ctx context.Context) error {
 	if db.Redis == nil {

@@ -11,6 +11,8 @@
 | P0 后端 #1–#4 | WebP 锁、文件路径缓存、增量统计、复合索引 | ✅ |
 | P0 前端 #6–#7 | 认证并行化、日志虚拟化 | ✅ |
 | P1 #9 | 公共配置 Redis 列表缓存 | ✅ |
+| P1 参数中心 | 系统配置 Otter RAM 缓存 + 统一失效 + 多节点 pub/sub | ✅ |
+| P1 CAPTCHA | 运行时配置快照 + 批量加载 + pub/sub 失效 | ✅ |
 
 ---
 
@@ -46,13 +48,33 @@ flowchart LR
     J -->|是| L[返回]
   end
 
-  C -.->|串行阻塞| D
+  C -.->|已解除阻塞| D
+```
+
+**参数中心读路径**（`SystemConfig.GetByKey`）：
+
+```mermaid
+flowchart LR
+  R[业务调用 GetByKey] --> A{RAM 命中?}
+  A -->|是| Z[返回]
+  A -->|否| B{Redis HGET 命中?}
+  B -->|是| C[写入 RAM]
+  C --> Z
+  B -->|否| D[查 PostgreSQL]
+  D --> E[回写 Redis + RAM]
+  E --> Z
+
+  W[管理员 Create/Update] --> F[写 DB]
+  F --> G["InvalidateSystemConfigCache(key)"]
+  G --> H[清本机 RAM + Redis field]
+  G --> I[pub/sub 通知其他节点清 RAM]
 ```
 
 当前最大的结构性问题（2026-06-17 更新）：
 
 1. **前端**：全客户端渲染仍为主模式；~~全局认证瀑布流~~ ✅ 已改为 layout 即时渲染 + 子页面 `RequireAuth` 自行处理未登录态。Admin 大 bundle、无 `dynamic()` 分割仍待优化。
 2. **后端**：文件服务路径（`/f/{id}`）仍是最高频热点；~~磁盘缓存全局互斥锁~~ ✅ 已改为 `RWMutex` + `singleflight`，但 WebP miss 仍在请求线程内同步编码，部署预热与异步回退原图尚未落地。
+3. **参数中心**：~~`GetByKey` 每次直打 Redis~~ ✅ 已加 Otter v2 进程内缓存（`pkg/cache/ram`），读路径为 RAM → Redis → DB；管理员写配置后统一失效 RAM + Redis，并通过 pub/sub 同步多节点本地缓存。
 
 ---
 
@@ -300,25 +322,26 @@ if (loading || !user) {
 | # | 问题 | 位置 | 影响 |
 |---|------|------|------|
 | 1 | ~~公共配置接口无 Redis 缓存~~ ✅ | `internal/model/system_configs.go` — `ListVisibleSystemConfigs` | ~~每次前端启动/登录直查 PostgreSQL~~ → Redis 列表缓存 + Create/Update 时失效 |
-| 2 | CAPTCHA 每次 5 次独立 `GetByKey` | `internal/apps/cap/manager.go` | 登录高峰 Redis 压力 |
-| 3 | OIDC 每次 `oidc.NewProvider` 无缓存 | `internal/apps/oauth/sources.go:164` | 登录发起/回调多一次外部 HTTP |
-| 4 | CORS 每次跨域查 `server_address` 配置 | `internal/router/middlewares.go:75` | 预检请求放大 |
-| 5 | 推送通知无界 goroutine + 逐 target DB 查询 | `internal/apps/admin/push/events.go:102` | 通知风暴时 goroutine/DB 双压 |
-| 6 | 上传清理：每文件一个事务 | `internal/apps/upload/cleanup.go` | 大量 pending 文件时 commit 风暴 |
-| 7 | ClickHouse 风控：每请求 `json.Marshal` 全部 headers | `internal/apps/risk_control/middleware.go:58` | 高 QPS 时 CPU 开销（写入本身已异步批处理） |
-| 8 | 存储迁移日志大量写 Redis | `internal/apps/upload/storage_migration_task.go` | 迁移期间 Redis CPU/内存压力 |
-| 9 | 存储迁移后二次 SHA 全量读取验证 | `storage_migration_task.go` | 迁移期间对象 I/O 翻倍 |
-| 10 | Admin 状态页 5s 轮询 | `frontend/components/common/admin/status.tsx` | Tab 常驻时持续打后端 |
-| 11 | 路由切换 500ms fade 动画 | `frontend/app/(main)/layout.tsx:53-60` | 即使数据已缓存，感知仍慢 |
-| 12 | 无 `next/dynamic` 代码分割 | 全项目 | Admin 首包 300–450KB+ |
-| 13 | 19/24 个 `page.tsx` 为 `"use client"` | 各路由 | 无法 RSC 预取，bundle 偏大 |
-| 14 | Admin 部分页面用 `useEffect` 而非 React Query | `access-logs.tsx`, `task-executions.tsx` 等 | 无缓存去重，重复请求 |
-| 15 | 登录页 OIDC sources 等待 public config | `frontend/components/auth/login-form.tsx` | 多 1 次 RTT 瀑布 |
-| 16 | Users 表每行嵌套 3 个 `TooltipProvider` | `frontend/app/(main)/admin/users/page.tsx` | 50+ 行时不必要重渲染 |
-| 17 | 缩略图用原生 `<img>` 无 lazy loading | `file-list.tsx`, `file-manager.tsx` | 文件管理页初始解码压力大 |
-| 18 | `@/lib/services` barrel 导入 | ~40 个文件 | 单路由 bundle 膨胀 10–30KB |
-| 19 | SQLite 模式无连接池调优 | `internal/db/postgres.go` | 默认 SQLite 写锁瓶颈 |
-| 20 | Session Redis 仅用第一个地址 | `internal/router/router.go` | Sentinel/Cluster 场景不一致 |
+| 2 | ~~CAPTCHA 每次 5 次独立 `GetByKey`~~ ✅ | `internal/apps/cap/runtime_settings.go` | ~~登录高峰 5× 配置读取~~ → `CurrentSettings` 快照一次加载 6 个 key，`Generate`/`Redeem`/中间件零 `GetByKey` |
+| 3 | ~~系统配置单 key 无进程内缓存~~ ✅ | `system_config_cache.go`, `pkg/cache/ram` | ~~热路径重复 Redis HGET~~ → Otter RAM + 写后 `InvalidateSystemConfigCache` + pub/sub |
+| 4 | OIDC 每次 `oidc.NewProvider` 无缓存 | `internal/apps/oauth/sources.go:164` | 登录发起/回调多一次外部 HTTP |
+| 5 | CORS 每次跨域查 `server_address` 配置 `🔶` | `internal/router/middlewares.go:75` | 预检请求仍每次调用 `GetByKey`，但 `server_address` 已受益于 RAM 缓存 |
+| 6 | 推送通知无界 goroutine + 逐 target DB 查询 | `internal/apps/admin/push/events.go:102` | 通知风暴时 goroutine/DB 双压 |
+| 7 | 上传清理：每文件一个事务 | `internal/apps/upload/cleanup.go` | 大量 pending 文件时 commit 风暴 |
+| 8 | ClickHouse 风控：每请求 `json.Marshal` 全部 headers | `internal/apps/risk_control/middleware.go:58` | 高 QPS 时 CPU 开销（写入本身已异步批处理） |
+| 9 | 存储迁移日志大量写 Redis | `internal/apps/upload/storage_migration_task.go` | 迁移期间 Redis CPU/内存压力 |
+| 10 | 存储迁移后二次 SHA 全量读取验证 | `storage_migration_task.go` | 迁移期间对象 I/O 翻倍 |
+| 11 | Admin 状态页 5s 轮询 | `frontend/components/common/admin/status.tsx` | Tab 常驻时持续打后端 |
+| 12 | 路由切换 500ms fade 动画 | `frontend/app/(main)/layout.tsx:53-60` | 即使数据已缓存，感知仍慢 |
+| 13 | 无 `next/dynamic` 代码分割 | 全项目 | Admin 首包 300–450KB+ |
+| 14 | 19/24 个 `page.tsx` 为 `"use client"` | 各路由 | 无法 RSC 预取，bundle 偏大 |
+| 15 | Admin 部分页面用 `useEffect` 而非 React Query | `access-logs.tsx`, `task-executions.tsx` 等 | 无缓存去重，重复请求 |
+| 16 | 登录页 OIDC sources 等待 public config | `frontend/components/auth/login-form.tsx` | 多 1 次 RTT 瀑布 |
+| 17 | Users 表每行嵌套 3 个 `TooltipProvider` | `frontend/app/(main)/admin/users/page.tsx` | 50+ 行时不必要重渲染 |
+| 18 | 缩略图用原生 `<img>` 无 lazy loading | `file-list.tsx`, `file-manager.tsx` | 文件管理页初始解码压力大 |
+| 19 | `@/lib/services` barrel 导入 | ~40 个文件 | 单路由 bundle 膨胀 10–30KB |
+| 20 | SQLite 模式无连接池调优 | `internal/db/postgres.go` | 默认 SQLite 写锁瓶颈 |
+| 21 | Session Redis 仅用第一个地址 | `internal/router/router.go` | Sentinel/Cluster 场景不一致 |
 
 ---
 
@@ -342,12 +365,13 @@ if (loading || !user) {
 |---|--------|----------|------|
 | 8 | 认证并行化：layout 不阻塞 / Server 预取 session | TTI ↓ 200–800ms | 🔶 客户端并行化已完成，RSC 预取待做 |
 | 9 | `ListVisibleSystemConfigs` 加 Redis 缓存 | 前端冷启动加速 | ✅ |
-| 10 | CAPTCHA 配置快照（一次加载 5 个 key） | 验证码路径 Redis ops ↓ 80% | ⬜ |
-| 11 | OIDC Provider/JWKS 进程内缓存（TTL 1h） | 登录延迟 ↓ 100–500ms | ⬜ |
-| 12 | 批量下载限制（max 50）或异步任务 | 消除网关超时风险 | ⬜ |
-| 13 | Admin `useEffect` 数据获取迁移到 React Query | 去重、缓存、后台刷新 | ⬜ |
-| 14 | 登录页并行请求 public config + auth sources | 登录页 ↓ 100–300ms | ⬜ |
-| 15 | 状态轮询在 `document.hidden` 时暂停 | 降低后台 + 客户端负载 | ⬜ |
+| 10 | 系统配置 Otter RAM 缓存 + 统一失效 | 热路径 `GetByKey` 零 Redis RTT（命中后） | ✅ |
+| 11 | CAPTCHA 运行时配置快照 | 验证码路径配置读取 → O(1) 快照 | ✅ |
+| 12 | OIDC Provider/JWKS 进程内缓存（TTL 1h） | 登录延迟 ↓ 100–500ms | ⬜ |
+| 13 | 批量下载限制（max 50）或异步任务 | 消除网关超时风险 | ⬜ |
+| 14 | Admin `useEffect` 数据获取迁移到 React Query | 去重、缓存、后台刷新 | ⬜ |
+| 15 | 登录页并行请求 public config + auth sources | 登录页 ↓ 100–300ms | ⬜ |
+| 16 | 状态轮询在 `document.hidden` 时暂停 | 降低后台 + 客户端负载 | ⬜ |
 
 ### P2 — 中期架构演进
 
@@ -370,28 +394,30 @@ if (loading || !user) {
 
 | # | 设计 | 位置 |
 |---|------|------|
-| 1 | 系统配置单 key Redis Hash 缓存 | `internal/model/system_configs.go` — `GetByKey` |
-| 2 | Storage Backend 单例 + 5s TTL + pub/sub 失效 | `internal/storage/storage.go` — `Active()` |
-| 3 | 推送事件/渠道 24h Redis 缓存 + GORM hook 失效 | `internal/model/push_event.go`, `push_channel.go` |
-| 4 | 风控日志异步批写 ClickHouse（1 万缓冲 + 1000 条/1s + 429 背压） | `internal/apps/risk_control/` |
-| 5 | HTTP 连接池统一（`httppool` + OTel） | `pkg/httppool/` |
-| 6 | DB/Redis 连接池显式配置 | `config.yaml`, `internal/db/` |
-| 7 | 游标分批处理（`id > ? LIMIT n`） | `cleanup.go`, image warmup |
-| 8 | 存储迁移并发上限 `errgroup.SetLimit(10)` | `storage_migration_task.go` |
-| 9 | 邮件/推送走 Asynq，不在 HTTP 路径同步发送 | `user/logics.go`, `push/events.go` |
-| 10 | 文件服务 ETag/304 + 原图 `DataFromReader` 流式返回 | `file_server.go` |
-| 11 | 无 GORM `Preload` 滥用 | 全项目 |
-| 12 | 前端 API 请求去重（`pendingRequests` Map） | `frontend/lib/services/core/api-client.ts` |
-| 13 | React Query 全局 30s `staleTime` | `frontend/components/providers/query-provider.tsx` |
-| 14 | React Compiler 已启用 | `frontend/next.config.ts` |
-| 15 | 读副本支持（`dbresolver`） | `internal/db/postgres.go` |
-| 16 | 任务执行日志 Redis 缓冲 + 批量回写 | `internal/model/task_execution.go` |
-| 17 | 公共配置列表 Redis 缓存 + 写后失效 | `ListVisibleSystemConfigs`, `InvalidateVisibleSystemConfigsCache` |
-| 18 | 上传文件统计增量表 `w_upload_stats` | `stats_counter.go`, 上传/删除 hook |
-| 19 | 文件访问路径进程内缓存 + pub/sub | `internal/apps/upload/access_cache.go` |
-| 20 | 磁盘缓存读路径 `RWMutex` + WebP `singleflight` | `pkg/cache/disk/cache.go`, `file_server.go` |
-| 21 | 前端认证非阻塞 + 页面级鉴权 | `use-auth-redirect.ts`, `require-auth.tsx` |
-| 22 | Admin 实时日志虚拟滚动 | `frontend/components/common/admin/app-logs.tsx` |
+| 1 | 系统配置三层缓存 RAM → Redis → DB | `pkg/cache/ram`, `system_config_cache.go`, `GetByKey` |
+| 2 | 系统配置统一失效 + 多节点 pub/sub | `InvalidateSystemConfigCache`, `InvalidateAllSystemConfigCaches` |
+| 3 | Storage Backend 单例 + 5s TTL + pub/sub 失效 | `internal/storage/storage.go` — `Active()` |
+| 4 | 推送事件/渠道 24h Redis 缓存 + GORM hook 失效 | `internal/model/push_event.go`, `push_channel.go` |
+| 5 | 风控日志异步批写 ClickHouse（1 万缓冲 + 1000 条/1s + 429 背压） | `internal/apps/risk_control/` |
+| 6 | HTTP 连接池统一（`httppool` + OTel） | `pkg/httppool/` |
+| 7 | DB/Redis 连接池显式配置 | `config.yaml`, `internal/db/` |
+| 8 | 游标分批处理（`id > ? LIMIT n`） | `cleanup.go`, image warmup |
+| 9 | 存储迁移并发上限 `errgroup.SetLimit(10)` | `storage_migration_task.go` |
+| 10 | 邮件/推送走 Asynq，不在 HTTP 路径同步发送 | `user/logics.go`, `push/events.go` |
+| 11 | 文件服务 ETag/304 + 原图 `DataFromReader` 流式返回 | `file_server.go` |
+| 12 | 无 GORM `Preload` 滥用 | 全项目 |
+| 13 | 前端 API 请求去重（`pendingRequests` Map） | `frontend/lib/services/core/api-client.ts` |
+| 14 | React Query 全局 30s `staleTime` | `frontend/components/providers/query-provider.tsx` |
+| 15 | React Compiler 已启用 | `frontend/next.config.ts` |
+| 16 | 读副本支持（`dbresolver`） | `internal/db/postgres.go` |
+| 17 | 任务执行日志 Redis 缓冲 + 批量回写 | `internal/model/task_execution.go` |
+| 18 | 公共配置列表 Redis 缓存 + 写后失效 | `ListVisibleSystemConfigs`, `InvalidateVisibleSystemConfigsCache` |
+| 19 | 上传文件统计增量表 `w_upload_stats` | `stats_counter.go`, 上传/删除 hook |
+| 20 | 文件访问路径进程内缓存 + pub/sub | `internal/apps/upload/access_cache.go` |
+| 21 | 磁盘缓存读路径 `RWMutex` + WebP `singleflight` | `pkg/cache/disk/cache.go`, `file_server.go` |
+| 22 | 前端认证非阻塞 + 页面级鉴权 | `use-auth-redirect.ts`, `require-auth.tsx` |
+| 23 | Admin 实时日志虚拟滚动 | `frontend/components/common/admin/app-logs.tsx` |
+| 24 | CAPTCHA 运行时配置快照 + 批量加载 | `runtime_settings.go`, `ListSystemConfigsByKeys` |
 
 ---
 
@@ -403,8 +429,9 @@ if (loading || !user) {
 | 文件量 10 万+ | 清理慢（统计/索引已优化） | P2 #19 清理批量化 |
 | 管理端日常使用 | 大 bundle（认证/日志已优化） | P0 #7 dynamic import |
 | 存储迁移进行中 | Redis 日志风暴 | P2 #17 |
-| 登录高峰 | CAPTCHA 5×Redis + OIDC discovery | P1 #10, #11 |
-| 多租户 / 跨域前端 | CORS 配置查询 | P1 CORS 缓存 |
+| 登录高峰 | OIDC discovery 无缓存 | P1 #12 OIDC |
+| 多租户 / 跨域前端 | CORS 仍每次调 `GetByKey`（`server_address` 已 RAM 缓存） | 可选 CORS 快照 |
+| 参数热更新 | 多节点 RAM 一致性 | ✅ `system:config_invalidation` pub/sub |
 | 批量文件操作 | ZIP 同步打包无上限 | P0 #5, P1 #12 |
 
 ---
@@ -436,7 +463,8 @@ P0 前端
 
 P1
 [x] ListVisibleSystemConfigs Redis 缓存                  ✅ 2026-06-17
-[ ] CAPTCHA 配置快照
+[x] 系统配置 Otter RAM 缓存 + 统一失效 + pub/sub          ✅ 2026-06-17
+[x] CAPTCHA 运行时配置快照                                ✅ 2026-06-17
 [ ] OIDC Provider 缓存
 [ ] Admin useEffect → React Query 统一
 [ ] 状态轮询 visibility 感知
@@ -454,8 +482,12 @@ P1
 | 迁移/白名单缓存 | `internal/apps/upload/access_cache.go` | ✅ 5s TTL + pub/sub |
 | 文件统计 | `internal/apps/upload/stats.go` | ✅ 读 `w_upload_stats` |
 | 公共配置列表 | `internal/model/system_configs.go` | ✅ Redis 列表缓存 |
+| RAM 缓存封装 | `pkg/cache/ram/cache.go` | ✅ Otter v2 薄封装 |
+| 系统配置缓存 | `internal/model/system_config_cache.go` | ✅ RAM + 失效 + pub/sub |
+| 参数失效 API | `InvalidateSystemConfigCache` | ✅ 清 RAM + Redis field |
+| CAPTCHA 快照 | `internal/apps/cap/runtime_settings.go` | ✅ `CurrentSettings` + pub/sub |
 | 批量下载 | `internal/apps/upload/routers.go` | 同步 ZIP |
-| 上传索引 | `internal/db/migrator/goose/*/202606090001_initial_schema.sql` | 缺失复合索引 |
+| 上传索引 | `internal/db/migrator/goose/*202606170001*.sql` | ✅ 复合索引已加 |
 | 认证 gate | `frontend/app/(main)/layout.tsx` | ✅ 即时渲染 + `useAuthRedirect` |
 | 页面鉴权 | `frontend/components/auth/require-auth.tsx` | ✅ 子页面按需拦截 |
 | 用户上下文 | `frontend/contexts/user-context.tsx` | ✅ 登录/注册页跳过 fetch |
