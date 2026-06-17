@@ -5,6 +5,7 @@ package model
 
 const (
 	errRegistrationDisabled                 = "注册已关闭"
+	errInvalidUserID                        = "用户 ID 生成失败"
 	errDatabaseNotInitialized               = "database not initialized"
 	errUsernameExists                       = "用户名已存在"
 	errEmailAlreadyBound                    = "该邮箱已被其他账号绑定"

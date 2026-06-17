@@ -228,8 +228,14 @@ func Register(c *gin.Context) {
 		return
 	}
 
+	nextID, err := idgen.NextUint64ID()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, response.Err(err.Error()))
+		return
+	}
+
 	user := model.User{
-		ID:          idgen.NextUint64ID(),
+		ID:          nextID,
 		Username:    req.Username,
 		Nickname:    req.Nickname,
 		Email:       req.Email,

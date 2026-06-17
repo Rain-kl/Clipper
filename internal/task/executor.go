@@ -115,7 +115,10 @@ func DispatchTask(ctx context.Context, taskType string, payload []byte, triggere
 	}
 
 	// 生成唯一的 TaskID
-	taskID := generateTaskID(taskType, triggeredBy)
+	taskID, err := generateTaskID(taskType, triggeredBy)
+	if err != nil {
+		return "", err
+	}
 
 	// 创建任务执行记录
 	execution := &model.TaskExecution{
@@ -453,9 +456,12 @@ func handleSuccessfulTask(ctx context.Context, execution *model.TaskExecution, t
 }
 
 // generateTaskID 生成任务 ID
-func generateTaskID(taskType string, triggeredBy string) string {
-	uniqueID := idgen.NextUint64ID()
-	return fmt.Sprintf("%s_%s_%d", triggeredBy, taskType, uniqueID)
+func generateTaskID(taskType string, triggeredBy string) (string, error) {
+	uniqueID, err := idgen.NextUint64ID()
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%s_%s_%d", triggeredBy, taskType, uniqueID), nil
 }
 
 // generateRetryTaskID 生成重试任务 ID
