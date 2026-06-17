@@ -81,10 +81,18 @@ func (SystemConfig) TableName() string {
 	return "w_system_configs"
 }
 
-// GetByKey 通过 key 查询配置（带 Redis 缓存）
+// GetByKey 通过 key 查询配置（带 RAM + Redis 缓存）
 func (sc *SystemConfig) GetByKey(ctx context.Context, key string) error {
+	ensureSystemConfigCacheListener()
+
+	if cached, ok := systemConfigRAMCache.GetIfPresent(key); ok {
+		*sc = cloneSystemConfig(cached)
+		return nil
+	}
+
 	if db.Redis != nil {
 		if err := db.HGetJSON(ctx, SystemConfigRedisHashKey, key, sc); err == nil {
+			systemConfigRAMCache.Set(key, cloneSystemConfig(*sc))
 			return nil
 		} else if !errors.Is(err, redis.Nil) {
 			// Redis 服务错误，返回错误
@@ -102,10 +110,7 @@ func (sc *SystemConfig) GetByKey(ctx context.Context, key string) error {
 		return err
 	}
 
-	// 更新 Redis Hash 缓存
-	if db.Redis != nil {
-		_ = db.HSetJSON(ctx, SystemConfigRedisHashKey, key, sc)
-	}
+	populateSystemConfigCache(ctx, *sc)
 
 	return nil
 }

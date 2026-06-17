@@ -129,9 +129,5 @@ func saveOrUpdateConfig(ctx context.Context, key string, value string) error {
 		}
 	}
 
-	// Sync config value in Redis cache
-	if db.Redis != nil {
-		_ = db.HSetJSON(ctx, model.SystemConfigRedisHashKey, key, &sc)
-	}
-	return nil
+	return model.InvalidateSystemConfigCache(ctx, key)
 }

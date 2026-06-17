@@ -87,14 +87,14 @@ func CreateSystemConfig(c *gin.Context) {
 			return err
 		}
 
-		if err := db.HSetJSON(c.Request.Context(), model.SystemConfigRedisHashKey, req.Key, &config); err != nil {
-			return err
-		}
-
 		return nil
 	}); err != nil {
 		c.JSON(http.StatusInternalServerError, response.Err(err.Error()))
 		return
+	}
+
+	if err := model.InvalidateSystemConfigCache(c.Request.Context(), req.Key); err != nil {
+		logger.WarnF(c.Request.Context(), "清理系统配置缓存失败: %v", err)
 	}
 
 	if err := model.InvalidateVisibleSystemConfigsCache(c.Request.Context()); err != nil {
@@ -233,10 +233,6 @@ func UpdateSystemConfig(c *gin.Context) {
 			return err
 		}
 
-		if err := db.HSetJSON(c.Request.Context(), model.SystemConfigRedisHashKey, key, &config); err != nil {
-			return err
-		}
-
 		resolveStorageMigrationTasksOnDirectDriverUpdate(
 			c.Request.Context(),
 			tx,
@@ -287,6 +283,10 @@ func resolveStorageMigrationTasksOnDirectDriverUpdate(
 }
 
 func invalidateCachesAfterConfigUpdate(ctx context.Context, key string) {
+	if err := model.InvalidateSystemConfigCache(ctx, key); err != nil {
+		logger.WarnF(ctx, "清理系统配置缓存失败: %v", err)
+	}
+
 	if key == model.ConfigKeyStorageConfig {
 		upload.ResetAccessCaches()
 		upload.PublishAccessCacheInvalidation(ctx)
