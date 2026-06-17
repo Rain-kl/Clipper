@@ -11,6 +11,7 @@ import ("context"
 	"net/http"
 	"time"
 
+	"github.com/Rain-kl/Wavelet/internal/apps/upload"
 	"github.com/Rain-kl/Wavelet/internal/db"
 	"github.com/Rain-kl/Wavelet/internal/model"
 	"github.com/Rain-kl/Wavelet/internal/storage"
@@ -255,8 +256,14 @@ func UpdateSystemConfig(c *gin.Context) {
 	}
 
 	if key == model.ConfigKeyStorageConfig {
+		upload.ResetAccessCaches()
+		upload.PublishAccessCacheInvalidation(c.Request.Context())
 		storage.ResetCache()
 		storage.PublishCacheInvalidation(c.Request.Context())
+	}
+	if key == model.ConfigKeyFileAccessWhitelist {
+		upload.ResetAccessCaches()
+		upload.PublishAccessCacheInvalidation(c.Request.Context())
 	}
 
 	c.JSON(http.StatusOK, response.OKNil())

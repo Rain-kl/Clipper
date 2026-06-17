@@ -14,5 +14,7 @@ const (
 	imageQualityMedium = "medium"
 	imageQualityHigh   = "high"
 	imageQualityOrigin = "origin"
-	storageDriverLocal = string(storage.DriverLocal)
+	storageDriverLocal       = string(storage.DriverLocal)
+	defaultPublicUploadType  = "avatar"
+	fileStatsTrendDays       = 7
 )

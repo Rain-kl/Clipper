@@ -42,6 +42,7 @@ func SetupTestEnvironment(t *testing.T) (*gorm.DB, *miniredis.Miniredis, func())
 		&model.ExternalAccount{},
 		&model.SystemConfig{},
 		&model.Upload{},
+		&model.UploadStat{},
 		&model.TaskExecution{},
 		&model.Template{},
 		&model.AccessToken{},

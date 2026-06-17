@@ -120,7 +120,7 @@ func UploadFile(c *gin.Context) {
 	accessModeStr := c.PostForm("access_mode")
 	var accessMode int
 	if accessModeStr == "" {
-		if uploadType == "avatar" {
+		if uploadType == defaultPublicUploadType {
 			accessMode = 1
 		} else {
 			accessMode = 0
@@ -388,6 +388,7 @@ func tryInstantUpload(ctx context.Context, c *gin.Context, currUser *model.User,
 		c.JSON(http.StatusOK, response.Err(ErrSaveUploadRecordFailed))
 		return true, err
 	}
+	recordUploadStatsAdd(ctx, &newUpload)
 
 	logger.InfoF(ctx, "文件触发秒传成功! ID: %d, Path: %s", id, existing.FilePath)
 	c.JSON(http.StatusOK, response.OK(newUpload))
@@ -458,5 +459,6 @@ func saveUploadRecord(ctx context.Context, upload *model.Upload, storageDriver, 
 		}
 		return ErrSaveUploadRecordFailed
 	}
+	recordUploadStatsAdd(ctx, upload)
 	return ""
 }
