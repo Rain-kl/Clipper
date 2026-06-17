@@ -4,23 +4,25 @@
 
 package system_config
 
-import ("context"
+import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"time"
 
+	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
+
 	"github.com/Rain-kl/Wavelet/internal/apps/upload"
+	"github.com/Rain-kl/Wavelet/internal/common/response"
 	"github.com/Rain-kl/Wavelet/internal/db"
 	"github.com/Rain-kl/Wavelet/internal/model"
 	"github.com/Rain-kl/Wavelet/internal/storage"
 	"github.com/Rain-kl/Wavelet/pkg/logger"
 	mail "github.com/Rain-kl/Wavelet/pkg/mail"
-	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
-
-	"github.com/Rain-kl/Wavelet/internal/common/response")
+)
 
 const maskedConfigValue = "******"
 
@@ -93,6 +95,10 @@ func CreateSystemConfig(c *gin.Context) {
 	}); err != nil {
 		c.JSON(http.StatusInternalServerError, response.Err(err.Error()))
 		return
+	}
+
+	if err := model.InvalidateVisibleSystemConfigsCache(c.Request.Context()); err != nil {
+		logger.WarnF(c.Request.Context(), "清理公共配置列表缓存失败: %v", err)
 	}
 
 	c.JSON(http.StatusOK, response.OKNil())
@@ -231,23 +237,13 @@ func UpdateSystemConfig(c *gin.Context) {
 			return err
 		}
 
-		if key == model.ConfigKeyStorageConfig && originalDriver != "" {
-			var newCfg storage.Config
-			if err := json.Unmarshal([]byte(req.Value), &newCfg); err == nil {
-				if newCfg.Driver == originalDriver {
-					// Mark failed storage:migrate task execution as succeeded
-					if err := tx.Model(&model.TaskExecution{}).
-						Where("task_type = ? AND status = ?", "storage:migrate", model.TaskExecutionStatusFailed).
-						Updates(map[string]any{
-							"status":      model.TaskExecutionStatusSucceeded,
-							"result":      "存储配置直接更新，故障迁移任务自动标记为已解决",
-							"finished_at": time.Now(),
-						}).Error; err != nil {
-						logger.ErrorF(c.Request.Context(), "自动更新迁移任务状态失败: %v", err)
-					}
-				}
-			}
-		}
+		resolveStorageMigrationTasksOnDirectDriverUpdate(
+			c.Request.Context(),
+			tx,
+			key,
+			originalDriver,
+			req.Value,
+		)
 
 		return nil
 	}); err != nil {
@@ -255,18 +251,56 @@ func UpdateSystemConfig(c *gin.Context) {
 		return
 	}
 
+	invalidateCachesAfterConfigUpdate(c.Request.Context(), key)
+
+	c.JSON(http.StatusOK, response.OKNil())
+}
+
+func resolveStorageMigrationTasksOnDirectDriverUpdate(
+	ctx context.Context,
+	tx *gorm.DB,
+	key string,
+	originalDriver storage.Driver,
+	newValue string,
+) {
+	if key != model.ConfigKeyStorageConfig || originalDriver == "" {
+		return
+	}
+
+	var newCfg storage.Config
+	if err := json.Unmarshal([]byte(newValue), &newCfg); err != nil {
+		return
+	}
+	if newCfg.Driver != originalDriver {
+		return
+	}
+
+	if err := tx.Model(&model.TaskExecution{}).
+		Where("task_type = ? AND status = ?", "storage:migrate", model.TaskExecutionStatusFailed).
+		Updates(map[string]any{
+			"status":      model.TaskExecutionStatusSucceeded,
+			"result":      "存储配置直接更新，故障迁移任务自动标记为已解决",
+			"finished_at": time.Now(),
+		}).Error; err != nil {
+		logger.ErrorF(ctx, "自动更新迁移任务状态失败: %v", err)
+	}
+}
+
+func invalidateCachesAfterConfigUpdate(ctx context.Context, key string) {
 	if key == model.ConfigKeyStorageConfig {
 		upload.ResetAccessCaches()
-		upload.PublishAccessCacheInvalidation(c.Request.Context())
+		upload.PublishAccessCacheInvalidation(ctx)
 		storage.ResetCache()
-		storage.PublishCacheInvalidation(c.Request.Context())
+		storage.PublishCacheInvalidation(ctx)
 	}
 	if key == model.ConfigKeyFileAccessWhitelist {
 		upload.ResetAccessCaches()
-		upload.PublishAccessCacheInvalidation(c.Request.Context())
+		upload.PublishAccessCacheInvalidation(ctx)
 	}
 
-	c.JSON(http.StatusOK, response.OKNil())
+	if err := model.InvalidateVisibleSystemConfigsCache(ctx); err != nil {
+		logger.WarnF(ctx, "清理公共配置列表缓存失败: %v", err)
+	}
 }
 
 // TestSMTPRequest 测试 SMTP 配置请求

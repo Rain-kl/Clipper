@@ -54,6 +54,8 @@ const (
 const (
 	// SystemConfigRedisHashKey Redis Hash key，存储所有系统配置
 	SystemConfigRedisHashKey = "system:system_configs"
+	// SystemConfigVisibleListRedisKey Redis key，缓存所有 visibility=1 的公共配置列表
+	SystemConfigVisibleListRedisKey = "system:visible_configs"
 )
 
 const (
@@ -108,8 +110,25 @@ func (sc *SystemConfig) GetByKey(ctx context.Context, key string) error {
 	return nil
 }
 
-// ListVisibleSystemConfigs 查询所有可通过公共配置接口暴露的配置
+// InvalidateVisibleSystemConfigsCache clears the cached public config list.
+func InvalidateVisibleSystemConfigsCache(ctx context.Context) error {
+	if db.Redis == nil {
+		return nil
+	}
+	return db.Redis.Del(ctx, db.PrefixedKey(SystemConfigVisibleListRedisKey)).Err()
+}
+
+// ListVisibleSystemConfigs 查询所有可通过公共配置接口暴露的配置（带 Redis 列表缓存）
 func ListVisibleSystemConfigs(ctx context.Context) ([]SystemConfig, error) {
+	if db.Redis != nil {
+		var cached []SystemConfig
+		if err := db.GetJSON(ctx, SystemConfigVisibleListRedisKey, &cached); err == nil {
+			return cached, nil
+		} else if !errors.Is(err, redis.Nil) {
+			return nil, err
+		}
+	}
+
 	database := db.DB(ctx)
 	if database == nil {
 		return nil, errors.New(errDatabaseNotInitialized)
@@ -118,6 +137,10 @@ func ListVisibleSystemConfigs(ctx context.Context) ([]SystemConfig, error) {
 	var configs []SystemConfig
 	if err := database.Where("visibility = ?", ConfigVisibilityVisible).Find(&configs).Error; err != nil {
 		return nil, err
+	}
+
+	if db.Redis != nil {
+		_ = db.SetJSON(ctx, SystemConfigVisibleListRedisKey, configs, 0)
 	}
 
 	return configs, nil

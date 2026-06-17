@@ -16,7 +16,8 @@ limitations under the License.
 
 "use client"
 
-import {useCallback, useEffect, useRef, useState} from "react"
+import {memo, useCallback, useEffect, useRef, useState} from "react"
+import {useVirtualizer} from "@tanstack/react-virtual"
 import {toast} from "sonner"
 import {ArrowDown, ChevronUp, Loader2, Pause, Play} from "lucide-react"
 
@@ -33,6 +34,25 @@ interface LogEntry {
 
 // Distance (px) from bottom to treat as "at bottom"
 const BOTTOM_THRESHOLD = 40
+const LOG_LINE_ESTIMATE_PX = 20
+const LOG_VIRTUAL_OVERSCAN = 24
+
+const LogLine = memo(function LogLine({data}: {data: string}) {
+  const level = parseLogLevel(data)
+  const color = level === "error"
+    ? "text-red-400"
+    : level === "warn"
+      ? "text-yellow-400"
+      : level === "debug"
+        ? "text-gray-500"
+        : "text-gray-300"
+
+  return (
+    <div className={`${color} whitespace-pre-wrap break-all hover:bg-white/5`}>
+      {data}
+    </div>
+  )
+})
 
 function getApiBaseUrl(): string {
   if (typeof window !== "undefined") {
@@ -86,6 +106,14 @@ export function AppLogs() {
 
   useEffect(() => { pausedRef.current = paused }, [paused])
   useEffect(() => { autoScrollRef.current = autoScroll }, [autoScroll])
+
+  const rowVirtualizer = useVirtualizer({
+    count: logs.length,
+    getScrollElement: () => containerRef.current,
+    estimateSize: () => LOG_LINE_ESTIMATE_PX,
+    overscan: LOG_VIRTUAL_OVERSCAN,
+    measureElement: (element) => element.getBoundingClientRect().height,
+  })
 
   // ---- Scroll detection ------------------------------------------------
   const handleScroll = useCallback(() => {
@@ -154,15 +182,14 @@ export function AppLogs() {
       if (isInitial) {
         setLogs(data.lines || [])
       } else {
+        const el = containerRef.current
+        const previousScrollHeight = el?.scrollHeight ?? 0
         setLogs(prev => [...(data.lines || []), ...prev])
 
         requestAnimationFrame(() => {
-          const el = containerRef.current
           if (!el) return
-          const newCount = (data.lines || []).length
-          const lineH = 20
           isUserScrolling.current = false
-          el.scrollTop = el.scrollTop + newCount * lineH
+          el.scrollTop = el.scrollHeight - previousScrollHeight
         })
       }
       setHasMore(data.has_more)
@@ -289,31 +316,31 @@ export function AppLogs() {
           </div>
         )}
 
-        {/* Log lines */}
-        <div className="px-3 py-2">
-          {logs.length === 0 ? (
-            <div className="text-center text-gray-500 py-8">暂无日志</div>
-          ) : (
-            logs.map((entry) => {
-              const level = parseLogLevel(entry.data)
-              const color = level === "error"
-                ? "text-red-400"
-                : level === "warn"
-                  ? "text-yellow-400"
-                  : level === "debug"
-                    ? "text-gray-500"
-                    : "text-gray-300"
+        {logs.length === 0 ? (
+          <div className="px-3 py-8 text-center text-gray-500">暂无日志</div>
+        ) : (
+          <div
+            className="relative px-3 py-2"
+            style={{height: `${rowVirtualizer.getTotalSize()}px`}}
+          >
+            {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+              const entry = logs[virtualRow.index]
+              if (!entry) return null
+
               return (
                 <div
                   key={entry.index}
-                  className={`${color} whitespace-pre-wrap break-all hover:bg-white/5`}
+                  ref={rowVirtualizer.measureElement}
+                  data-index={virtualRow.index}
+                  className="absolute top-0 left-0 w-full"
+                  style={{transform: `translateY(${virtualRow.start}px)`}}
                 >
-                  {entry.data}
+                  <LogLine data={entry.data} />
                 </div>
               )
-            })
-          )}
-        </div>
+            })}
+          </div>
+        )}
       </div>
 
       {/* Floating "back to latest" button */}

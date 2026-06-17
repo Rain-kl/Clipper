@@ -103,9 +103,18 @@ export function UserProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  /** 组件挂载时获取用户信息 */
+  /** 组件挂载时获取用户信息（登录/注册页跳过，避免无意义请求） */
   useEffect(() => {
     isMountedRef.current = true
+
+    const path = window.location.pathname
+    if (path === "/login" || path === "/register") {
+      setState({user: null, loading: false, error: null})
+      return () => {
+        isMountedRef.current = false
+      }
+    }
+
     fetchUser()
 
     return () => {

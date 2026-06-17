@@ -4,6 +4,14 @@
 > 范围：Go 后端 + Next.js 前端  
 > 目标：识别可能在生产环境真实出现的性能问题，并给出高 ROI 优化路线
 
+**状态图例**：`✅ 已完成` · `🔶 部分完成` · `⬜ 待做`
+
+| 修复批次 | 范围 | 状态 |
+|----------|------|------|
+| P0 后端 #1–#4 | WebP 锁、文件路径缓存、增量统计、复合索引 | ✅ |
+| P0 前端 #6–#7 | 认证并行化、日志虚拟化 | ✅ |
+| P1 #9 | 公共配置 Redis 列表缓存 | ✅ |
+
 ---
 
 ## 目录
@@ -41,16 +49,16 @@ flowchart LR
   C -.->|串行阻塞| D
 ```
 
-当前最大的结构性问题：
+当前最大的结构性问题（2026-06-17 更新）：
 
-1. **前端**：全客户端渲染 + 全局认证瀑布流，所有业务数据请求被 `getUserInfo` 串行阻塞。
-2. **后端**：文件服务路径（`/f/{id}`）是最高频热点，WebP 缓存未命中时在请求线程内做重 CPU/IO 工作，且磁盘缓存使用全局互斥锁。
+1. **前端**：全客户端渲染仍为主模式；~~全局认证瀑布流~~ ✅ 已改为 layout 即时渲染 + 子页面 `RequireAuth` 自行处理未登录态。Admin 大 bundle、无 `dynamic()` 分割仍待优化。
+2. **后端**：文件服务路径（`/f/{id}`）仍是最高频热点；~~磁盘缓存全局互斥锁~~ ✅ 已改为 `RWMutex` + `singleflight`，但 WebP miss 仍在请求线程内同步编码，部署预热与异步回退原图尚未落地。
 
 ---
 
 ## Critical — 高概率生产问题
 
-### 1. 图片 WebP 服务：请求路径阻塞 + 全局锁串行化
+### 1. 图片 WebP 服务：请求路径阻塞 + 全局锁串行化 `🔶 部分完成`
 
 **涉及文件**：
 
@@ -91,14 +99,14 @@ func (c *Cache) Get(key string) ([]byte, error) {
 
 **建议**：
 
-- [ ] 磁盘缓存改用 `RWMutex`，读路径不互斥
-- [ ] 对同一 cache key 使用 `singleflight` 合并并发 miss
+- [x] ✅ 磁盘缓存改用 `RWMutex`，读路径不互斥 — `pkg/cache/disk/cache.go`
+- [x] ✅ 对同一 cache key 使用 `singleflight` 合并并发 miss — `internal/apps/upload/file_server.go`
 - [ ] 部署后强制执行 `upload:warm_image_cache` 异步预热任务
 - [ ] 考虑 miss 时先返回原图，后台异步生成 WebP
 
 ---
 
-### 2. 文件访问路径：每次请求多次 DB/Redis 查询
+### 2. 文件访问路径：每次请求多次 DB/Redis 查询 `✅ 已完成`
 
 **涉及文件**：
 
@@ -142,13 +150,13 @@ func isFilePublic(ctx context.Context, uploadType string) bool {
 
 **建议**：
 
-- [ ] 为 `StorageReadOnly` / `latestStorageMigrationExecution` 增加 5s TTL 进程内缓存
-- [ ] 配置变更或迁移状态变化时通过 Redis pub/sub 失效
-- [ ] `file_access_whitelist` 增加进程内缓存，复用 `GetByKey` 的失效机制
+- [x] ✅ 为 `StorageReadOnly` / `latestStorageMigrationExecution` 增加 5s TTL 进程内缓存 — `internal/apps/upload/access_cache.go`
+- [x] ✅ 配置变更或迁移状态变化时通过 Redis pub/sub 失效 — `access_cache.go` + `system_config/routers.go`
+- [x] ✅ `file_access_whitelist` 增加进程内缓存，复用 `GetByKey` 的失效机制 — `access_cache.go`
 
 ---
 
-### 3. Admin 文件统计：无界全表扫描
+### 3. Admin 文件统计：无界全表扫描 `✅ 已完成`
 
 **涉及文件**：`internal/apps/upload/stats.go`
 
@@ -171,12 +179,12 @@ err = db.DB(ctx).Model(&model.Upload{}).
 
 **建议**：
 
-- [ ] 改为 SQL `GROUP BY` + `CASE WHEN` 聚合
-- [ ] 或维护增量统计表，上传/删除时更新计数
+- [ ] 改为 SQL `GROUP BY` + `CASE WHEN` 聚合（未采用）
+- [x] ✅ 维护增量统计表，上传/删除时更新计数 — `w_upload_stats` + `stats_counter.go` + `GetFileStats` 读统计表
 
 ---
 
-### 4. `w_uploads` 索引缺口
+### 4. `w_uploads` 索引缺口 `✅ 已完成`
 
 **涉及文件**：`internal/db/migrator/goose/postgres/202606090001_initial_schema.sql`
 
@@ -199,7 +207,7 @@ err = db.DB(ctx).Model(&model.Upload{}).
 
 **建议**：
 
-- [ ] 通过 goose migration 新增上述复合索引（PostgreSQL + SQLite 双方言）
+- [x] ✅ 通过 goose migration 新增上述复合索引（PostgreSQL + SQLite 双方言）— `202606170001_add_upload_composite_indexes.sql`
 
 ---
 
@@ -227,7 +235,7 @@ err = db.DB(ctx).Model(&model.Upload{}).
 
 ---
 
-### 6. 前端全局认证瀑布流
+### 6. 前端全局认证瀑布流 `✅ 已完成`
 
 **涉及文件**：
 
@@ -257,13 +265,13 @@ if (loading || !user) {
 
 **建议**：
 
-- [ ] Layout 不阻塞渲染，子页面自行处理未登录状态
+- [x] ✅ Layout 不阻塞渲染，子页面自行处理未登录状态 — `layout.tsx` + `RequireAuth` / `RequireAdminAuth`
 - [ ] 或 Server Component 通过 cookie 预取 session，消除客户端首屏等待
-- [ ] `/login`、`/register` 跳过 `getUserInfo`
+- [x] ✅ `/login`、`/register` 跳过 `getUserInfo` — `user-context.tsx`
 
 ---
 
-### 7. 实时日志面板：2000 行 DOM 无虚拟化
+### 7. 实时日志面板：2000 行 DOM 无虚拟化 `✅ 已完成`
 
 **涉及文件**：`frontend/components/common/admin/app-logs.tsx`
 
@@ -282,8 +290,8 @@ if (loading || !user) {
 
 **建议**：
 
-- [ ] 使用 `useVirtualizer` 只渲染可视区域行
-- [ ] 行组件 `React.memo` 避免无效重渲染
+- [x] ✅ 使用 `useVirtualizer` 只渲染可视区域行 — `app-logs.tsx`
+- [x] ✅ 行组件 `React.memo` 避免无效重渲染 — `LogLine`
 
 ---
 
@@ -291,7 +299,7 @@ if (loading || !user) {
 
 | # | 问题 | 位置 | 影响 |
 |---|------|------|------|
-| 1 | 公共配置接口无 Redis 缓存 | `internal/model/system_configs.go` — `ListVisibleSystemConfigs` | 每次前端启动/登录直查 PostgreSQL |
+| 1 | ~~公共配置接口无 Redis 缓存~~ ✅ | `internal/model/system_configs.go` — `ListVisibleSystemConfigs` | ~~每次前端启动/登录直查 PostgreSQL~~ → Redis 列表缓存 + Create/Update 时失效 |
 | 2 | CAPTCHA 每次 5 次独立 `GetByKey` | `internal/apps/cap/manager.go` | 登录高峰 Redis 压力 |
 | 3 | OIDC 每次 `oidc.NewProvider` 无缓存 | `internal/apps/oauth/sources.go:164` | 登录发起/回调多一次外部 HTTP |
 | 4 | CORS 每次跨域查 `server_address` 配置 | `internal/router/middlewares.go:75` | 预检请求放大 |
@@ -318,28 +326,28 @@ if (loading || !user) {
 
 ### P0 — 立即做（1–2 周，收益最大）
 
-| # | 优化项 | 涉及模块 | 预期收益 | 复杂度 |
-|---|--------|----------|----------|--------|
-| 1 | WebP：`singleflight` + `RWMutex` + 强制预热 | `file_server.go`, `pkg/cache/disk/` | 图片 P99 ↓ 80%+，并发吞吐 ↑ 5–10x | 中 |
-| 2 | 缓存 `StorageReadOnly` / 迁移状态 | `storage_ops.go` | 每文件请求减少 1–3 次 DB | 低 |
-| 3 | 内存缓存 `file_access_whitelist` | `file_server.go` | 每公开文件请求减少 1 次 Redis | 低 |
-| 4 | `GetFileStats` 改为 SQL 聚合 | `stats.go` | Admin 统计从 O(n) → O(1) | 低 |
-| 5 | 新增 `w_uploads` 复合索引 | goose migration | 清理/迁移/秒传全面加速 | 低 |
-| 6 | 前端日志虚拟化 | `app-logs.tsx` | Admin 日志 Tab 流畅度质变 | 低 |
-| 7 | Admin 重模块 `dynamic()` 懒加载 | `database/page.tsx`, `logs/page.tsx`, `settings/page.tsx` 等 | 首包 JS ↓ 150–300KB | 低 |
+| # | 优化项 | 涉及模块 | 预期收益 | 复杂度 | 状态 |
+|---|--------|----------|----------|--------|------|
+| 1 | WebP：`singleflight` + `RWMutex` + 强制预热 | `file_server.go`, `pkg/cache/disk/` | 图片 P99 ↓ 80%+，并发吞吐 ↑ 5–10x | 中 | 🔶 锁与去重已完成，预热待做 |
+| 2 | 缓存 `StorageReadOnly` / 迁移状态 | `access_cache.go` | 每文件请求减少 1–3 次 DB | 低 | ✅ |
+| 3 | 内存缓存 `file_access_whitelist` | `access_cache.go` | 每公开文件请求减少 1 次 Redis | 低 | ✅ |
+| 4 | `GetFileStats` 增量统计表 | `stats.go`, `w_upload_stats` | Admin 统计从 O(n) → O(1) | 低 | ✅ |
+| 5 | 新增 `w_uploads` 复合索引 | goose migration | 清理/迁移/秒传全面加速 | 低 | ✅ |
+| 6 | 前端日志虚拟化 | `app-logs.tsx` | Admin 日志 Tab 流畅度质变 | 低 | ✅ |
+| 7 | Admin 重模块 `dynamic()` 懒加载 | `database/page.tsx`, `logs/page.tsx`, `settings/page.tsx` 等 | 首包 JS ↓ 150–300KB | 低 | ⬜ |
 
 ### P1 — 短期（2–4 周）
 
-| # | 优化项 | 预期收益 |
-|---|--------|----------|
-| 8 | 认证并行化：layout 不阻塞 / Server 预取 session | TTI ↓ 200–800ms |
-| 9 | `ListVisibleSystemConfigs` 加 Redis 缓存 | 前端冷启动加速 |
-| 10 | CAPTCHA 配置快照（一次加载 5 个 key） | 验证码路径 Redis ops ↓ 80% |
-| 11 | OIDC Provider/JWKS 进程内缓存（TTL 1h） | 登录延迟 ↓ 100–500ms |
-| 12 | 批量下载限制（max 50）或异步任务 | 消除网关超时风险 |
-| 13 | Admin `useEffect` 数据获取迁移到 React Query | 去重、缓存、后台刷新 |
-| 14 | 登录页并行请求 public config + auth sources | 登录页 ↓ 100–300ms |
-| 15 | 状态轮询在 `document.hidden` 时暂停 | 降低后台 + 客户端负载 |
+| # | 优化项 | 预期收益 | 状态 |
+|---|--------|----------|------|
+| 8 | 认证并行化：layout 不阻塞 / Server 预取 session | TTI ↓ 200–800ms | 🔶 客户端并行化已完成，RSC 预取待做 |
+| 9 | `ListVisibleSystemConfigs` 加 Redis 缓存 | 前端冷启动加速 | ✅ |
+| 10 | CAPTCHA 配置快照（一次加载 5 个 key） | 验证码路径 Redis ops ↓ 80% | ⬜ |
+| 11 | OIDC Provider/JWKS 进程内缓存（TTL 1h） | 登录延迟 ↓ 100–500ms | ⬜ |
+| 12 | 批量下载限制（max 50）或异步任务 | 消除网关超时风险 | ⬜ |
+| 13 | Admin `useEffect` 数据获取迁移到 React Query | 去重、缓存、后台刷新 | ⬜ |
+| 14 | 登录页并行请求 public config + auth sources | 登录页 ↓ 100–300ms | ⬜ |
+| 15 | 状态轮询在 `document.hidden` 时暂停 | 降低后台 + 客户端负载 | ⬜ |
 
 ### P2 — 中期架构演进
 
@@ -378,6 +386,12 @@ if (loading || !user) {
 | 14 | React Compiler 已启用 | `frontend/next.config.ts` |
 | 15 | 读副本支持（`dbresolver`） | `internal/db/postgres.go` |
 | 16 | 任务执行日志 Redis 缓冲 + 批量回写 | `internal/model/task_execution.go` |
+| 17 | 公共配置列表 Redis 缓存 + 写后失效 | `ListVisibleSystemConfigs`, `InvalidateVisibleSystemConfigsCache` |
+| 18 | 上传文件统计增量表 `w_upload_stats` | `stats_counter.go`, 上传/删除 hook |
+| 19 | 文件访问路径进程内缓存 + pub/sub | `internal/apps/upload/access_cache.go` |
+| 20 | 磁盘缓存读路径 `RWMutex` + WebP `singleflight` | `pkg/cache/disk/cache.go`, `file_server.go` |
+| 21 | 前端认证非阻塞 + 页面级鉴权 | `use-auth-redirect.ts`, `require-auth.tsx` |
+| 22 | Admin 实时日志虚拟滚动 | `frontend/components/common/admin/app-logs.tsx` |
 
 ---
 
@@ -385,12 +399,12 @@ if (loading || !user) {
 
 | 场景 | 最可能爆的点 | 对应优先级 |
 |------|-------------|-----------|
-| 图片站 / 公开相册 | WebP miss + 磁盘锁 + 白名单 Redis | P0 #1, #2, #3 |
-| 文件量 10 万+ | 统计全表扫描 + 索引缺失 + 清理慢 | P0 #4, #5 |
-| 管理端日常使用 | 认证瀑布 + 大 bundle + 日志 DOM | P0 #6, #7 |
-| 存储迁移进行中 | 迁移状态重复查 + Redis 日志风暴 | P1 #2, P2 #17 |
+| 图片站 / 公开相册 | WebP miss（锁/白名单已优化） | P0 #1 预热待做 |
+| 文件量 10 万+ | 清理慢（统计/索引已优化） | P2 #19 清理批量化 |
+| 管理端日常使用 | 大 bundle（认证/日志已优化） | P0 #7 dynamic import |
+| 存储迁移进行中 | Redis 日志风暴 | P2 #17 |
 | 登录高峰 | CAPTCHA 5×Redis + OIDC discovery | P1 #10, #11 |
-| 多租户 / 跨域前端 | CORS 配置查询 + 公共配置无缓存 | P1 #9 |
+| 多租户 / 跨域前端 | CORS 配置查询 | P1 CORS 缓存 |
 | 批量文件操作 | ZIP 同步打包无上限 | P0 #5, P1 #12 |
 
 ---
@@ -399,32 +413,34 @@ if (loading || !user) {
 
 如果只选 **3 件事** 先做（预计用户感知延迟降低 50–70%）：
 
-1. **WebP 路径解耦** — `singleflight` + `RWMutex` + 部署后预热
-2. **文件路径查询缓存** — 迁移状态 + 白名单进程内缓存
-3. **前端认证与首屏并行化** — 消除全局 auth gate + Admin 代码分割
+1. ~~**WebP 路径解耦**~~ ✅ `singleflight` + `RWMutex` 已落地；**下一步**：部署后预热 + miss 异步回退原图
+2. ~~**文件路径查询缓存**~~ ✅ 迁移状态 + 白名单进程内缓存已落地
+3. ~~**前端认证与首屏并行化**~~ ✅ 全局 auth gate 已移除；**下一步**：Admin `dynamic()` 代码分割
 
 ### 实施检查清单
 
 ```
 P0 后端
-[ ] disk cache RWMutex + singleflight
-[ ] StorageReadOnly 5s 缓存 + pub/sub 失效
-[ ] file_access_whitelist 进程内缓存
-[ ] GetFileStats SQL 聚合改写
-[ ] w_uploads 复合索引 migration
+[x] disk cache RWMutex + singleflight                    ✅ 2026-06-17
+[x] StorageReadOnly 5s 缓存 + pub/sub 失效               ✅ 2026-06-17
+[x] file_access_whitelist 进程内缓存                       ✅ 2026-06-17
+[x] GetFileStats 增量统计表 (w_upload_stats)               ✅ 2026-06-17
+[x] w_uploads 复合索引 migration                         ✅ 2026-06-17
 [ ] 批量下载数量上限
+[ ] WebP 部署预热 + miss 异步回退原图
 
 P0 前端
-[ ] app-logs.tsx 虚拟滚动
+[x] app-logs.tsx 虚拟滚动                                ✅ 2026-06-17
 [ ] SQLConsole / Recharts / Settings Tabs dynamic import
-[ ] 认证 gate 并行化
+[x] 认证 gate 并行化                                     ✅ 2026-06-17
 
 P1
-[ ] ListVisibleSystemConfigs Redis 缓存
+[x] ListVisibleSystemConfigs Redis 缓存                  ✅ 2026-06-17
 [ ] CAPTCHA 配置快照
 [ ] OIDC Provider 缓存
 [ ] Admin useEffect → React Query 统一
 [ ] 状态轮询 visibility 感知
+[ ] Server Component session 预取
 ```
 
 ---
@@ -434,12 +450,14 @@ P1
 | 路径 | 文件 | 说明 |
 |------|------|------|
 | 图片服务 | `internal/apps/upload/file_server.go` | `/f/{id}` 热点 |
-| 磁盘缓存 | `pkg/cache/disk/cache.go` | 全局 Mutex |
-| 迁移状态 | `internal/apps/upload/storage_ops.go` | 无缓存 DB 查询 |
-| 文件统计 | `internal/apps/upload/stats.go` | 全表扫描 |
+| 磁盘缓存 | `pkg/cache/disk/cache.go` | ✅ RWMutex 读路径 |
+| 迁移/白名单缓存 | `internal/apps/upload/access_cache.go` | ✅ 5s TTL + pub/sub |
+| 文件统计 | `internal/apps/upload/stats.go` | ✅ 读 `w_upload_stats` |
+| 公共配置列表 | `internal/model/system_configs.go` | ✅ Redis 列表缓存 |
 | 批量下载 | `internal/apps/upload/routers.go` | 同步 ZIP |
 | 上传索引 | `internal/db/migrator/goose/*/202606090001_initial_schema.sql` | 缺失复合索引 |
-| 认证 gate | `frontend/app/(main)/layout.tsx` | 阻塞渲染 |
-| 用户上下文 | `frontend/contexts/user-context.tsx` | 挂载时 fetch |
-| 实时日志 | `frontend/components/common/admin/app-logs.tsx` | 无虚拟化 |
+| 认证 gate | `frontend/app/(main)/layout.tsx` | ✅ 即时渲染 + `useAuthRedirect` |
+| 页面鉴权 | `frontend/components/auth/require-auth.tsx` | ✅ 子页面按需拦截 |
+| 用户上下文 | `frontend/contexts/user-context.tsx` | ✅ 登录/注册页跳过 fetch |
+| 实时日志 | `frontend/components/common/admin/app-logs.tsx` | ✅ `useVirtualizer` |
 | API 去重 | `frontend/lib/services/core/api-client.ts` | 已有，可复用模式 |
