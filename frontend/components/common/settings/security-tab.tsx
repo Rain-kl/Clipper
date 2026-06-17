@@ -24,7 +24,7 @@ import {Input} from "@/components/ui/input"
 import {Label} from "@/components/ui/label"
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select"
 import {AuthSourceModal} from "@/components/common/settings/auth-source-modal"
-import {AdminService} from "@/lib/services"
+import {AdminService} from "@/lib/services/admin"
 import type {AuthSource, SystemConfig} from "@/lib/services/admin"
 import {toast} from "sonner"
 

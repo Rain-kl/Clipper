@@ -21,7 +21,7 @@ import {
 
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "@/components/ui/card"
 import {Switch} from "@/components/ui/switch"
-import {AdminService} from "@/lib/services"
+import {AdminService} from "@/lib/services/admin"
 import type {SystemConfig} from "@/lib/services/admin"
 import {toast} from "sonner"
 

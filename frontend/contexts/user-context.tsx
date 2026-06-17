@@ -2,7 +2,7 @@
 
 import {createContext, ReactNode, useCallback, useContext, useEffect, useRef, useState} from 'react'
 
-import services from '@/lib/services'
+import {AuthService} from '@/lib/services/auth'
 import {User} from '@/lib/services/auth/types'
 
 
@@ -54,7 +54,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const fetchUser = useCallback(async () => {
     try {
       setState(prev => ({ ...prev, loading: true, error: null }))
-      const user = await services.auth.getUserInfo()
+      const user = await AuthService.getUserInfo()
 
       if (!isMountedRef.current) return
 
@@ -83,7 +83,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
   /** 用户登出 */
   const logout = useCallback(async () => {
     try {
-      await services.auth.logout()
+      await AuthService.logout()
 
       if (!isMountedRef.current) return
 

@@ -1,4 +1,4 @@
-import { isCancelError } from '@/lib/services'
+import { isCancelError } from '@/lib/services/core'
 import { toast } from 'sonner'
 
 /**

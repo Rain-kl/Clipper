@@ -21,7 +21,7 @@ import {useVirtualizer} from "@tanstack/react-virtual"
 import {toast} from "sonner"
 import {ArrowDown, ChevronUp, Loader2, Pause, Play} from "lucide-react"
 
-import {AdminService} from "@/lib/services"
+import {AdminService} from "@/lib/services/admin"
 import {ErrorInline} from "@/components/layout/error"
 import {LoadingStateWithBorder} from "@/components/layout/loading"
 import {Badge} from "@/components/ui/badge"

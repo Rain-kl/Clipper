@@ -13,6 +13,7 @@
 | P1 #9 | 公共配置 Redis 列表缓存 | ✅ |
 | P1 参数中心 | 系统配置 Otter RAM 缓存 + 统一失效 + 多节点 pub/sub | ✅ |
 | P1 CAPTCHA | 运行时配置快照 + 批量加载 + pub/sub 失效 | ✅ |
+| P0 前端 #12–#19 | dynamic 分割、React Query、登录并行、Tooltip、lazy、barrel 收窄 | ✅ |
 
 ---
 
@@ -72,7 +73,7 @@ flowchart LR
 
 当前最大的结构性问题（2026-06-17 更新）：
 
-1. **前端**：全客户端渲染仍为主模式；~~全局认证瀑布流~~ ✅ 已改为 layout 即时渲染 + 子页面 `RequireAuth` 自行处理未登录态。Admin 大 bundle、无 `dynamic()` 分割仍待优化。
+1. **前端**：~~全局认证瀑布流~~ ✅ 已改为 layout 即时渲染 + 子页面 `RequireAuth` 自行处理未登录态；~~Admin 重模块无 `dynamic()` 分割~~ ✅ database/logs/settings 已懒加载子模块。其余路由 `page.tsx` 仍为 `"use client"`（静态导出下 RSC 收益有限，待逐步薄壳化）。
 2. **后端**：文件服务路径（`/f/{id}`）仍是最高频热点；~~磁盘缓存全局互斥锁~~ ✅ 已改为 `RWMutex` + `singleflight`，但 WebP miss 仍在请求线程内同步编码，部署预热与异步回退原图尚未落地。
 3. **参数中心**：~~`GetByKey` 每次直打 Redis~~ ✅ 已加 Otter v2 进程内缓存（`pkg/cache/ram`），读路径为 RAM → Redis → DB；管理员写配置后统一失效 RAM + Redis，并通过 pub/sub 同步多节点本地缓存。
 
@@ -333,13 +334,13 @@ if (loading || !user) {
 | 10 | 存储迁移后二次 SHA 全量读取验证 | `storage_migration_task.go` | 迁移期间对象 I/O 翻倍 |
 | 11 | Admin 状态页 5s 轮询 | `frontend/components/common/admin/status.tsx` | Tab 常驻时持续打后端 |
 | 12 | 路由切换 500ms fade 动画 | `frontend/app/(main)/layout.tsx:53-60` | 即使数据已缓存，感知仍慢 |
-| 13 | 无 `next/dynamic` 代码分割 | 全项目 | Admin 首包 300–450KB+ |
-| 14 | 19/24 个 `page.tsx` 为 `"use client"` | 各路由 | 无法 RSC 预取，bundle 偏大 |
-| 15 | Admin 部分页面用 `useEffect` 而非 React Query | `access-logs.tsx`, `task-executions.tsx` 等 | 无缓存去重，重复请求 |
-| 16 | 登录页 OIDC sources 等待 public config | `frontend/components/auth/login-form.tsx` | 多 1 次 RTT 瀑布 |
-| 17 | Users 表每行嵌套 3 个 `TooltipProvider` | `frontend/app/(main)/admin/users/page.tsx` | 50+ 行时不必要重渲染 |
-| 18 | 缩略图用原生 `<img>` 无 lazy loading | `file-list.tsx`, `file-manager.tsx` | 文件管理页初始解码压力大 |
-| 19 | `@/lib/services` barrel 导入 | ~40 个文件 | 单路由 bundle 膨胀 10–30KB |
+| 13 | ~~无 `next/dynamic` 代码分割~~ ✅ | `database/`, `logs/`, `settings/` page-client | Admin 重模块拆分为独立 chunk |
+| 14 | 19/24 个 `page.tsx` 为 `"use client"` `🔶` | 各路由 | database/logs/settings 已薄壳化；其余待迁移 |
+| 15 | ~~Admin 部分页面用 `useEffect` 而非 React Query~~ ✅ | `access-logs.tsx`, `task-executions.tsx` | 列表/详情走 React Query 缓存去重 |
+| 16 | ~~登录页 OIDC sources 等待 public config~~ ✅ | `login-form.tsx` | public config 与 auth sources 并行请求 |
+| 17 | ~~Users 表每行嵌套 3 个 `TooltipProvider`~~ ✅ | `admin/users/page.tsx` | 表格外层单一 Provider |
+| 18 | ~~缩略图用原生 `<img>` 无 lazy loading~~ ✅ | `file-list.tsx`, `file-manager.tsx` | `loading="lazy"` + `decoding="async"` |
+| 19 | ~~`@/lib/services` barrel 导入~~ ✅ | 全前端消费侧 | 改为 `@/lib/services/<module>` 直接导入 |
 | 20 | SQLite 模式无连接池调优 | `internal/db/postgres.go` | 默认 SQLite 写锁瓶颈 |
 | 21 | Session Redis 仅用第一个地址 | `internal/router/router.go` | Sentinel/Cluster 场景不一致 |
 
@@ -357,7 +358,7 @@ if (loading || !user) {
 | 4 | `GetFileStats` 增量统计表 | `stats.go`, `w_upload_stats` | Admin 统计从 O(n) → O(1) | 低 | ✅ |
 | 5 | 新增 `w_uploads` 复合索引 | goose migration | 清理/迁移/秒传全面加速 | 低 | ✅ |
 | 6 | 前端日志虚拟化 | `app-logs.tsx` | Admin 日志 Tab 流畅度质变 | 低 | ✅ |
-| 7 | Admin 重模块 `dynamic()` 懒加载 | `database/page.tsx`, `logs/page.tsx`, `settings/page.tsx` 等 | 首包 JS ↓ 150–300KB | 低 | ⬜ |
+| 7 | Admin 重模块 `dynamic()` 懒加载 | `database/page-client.tsx`, `logs/page-client.tsx`, `settings/page-client.tsx` | 首包 JS ↓ 150–300KB | 低 | ✅ |
 
 ### P1 — 短期（2–4 周）
 
@@ -369,8 +370,8 @@ if (loading || !user) {
 | 11 | CAPTCHA 运行时配置快照 | 验证码路径配置读取 → O(1) 快照 | ✅ |
 | 12 | OIDC Provider/JWKS 进程内缓存（TTL 1h） | 登录延迟 ↓ 100–500ms | ⬜ |
 | 13 | 批量下载限制（max 50）或异步任务 | 消除网关超时风险 | ⬜ |
-| 14 | Admin `useEffect` 数据获取迁移到 React Query | 去重、缓存、后台刷新 | ⬜ |
-| 15 | 登录页并行请求 public config + auth sources | 登录页 ↓ 100–300ms | ⬜ |
+| 14 | Admin `useEffect` 数据获取迁移到 React Query | 去重、缓存、后台刷新 | 🔶 access-logs / task-executions 已完成 |
+| 15 | 登录页并行请求 public config + auth sources | 登录页 ↓ 100–300ms | ✅ |
 | 16 | 状态轮询在 `document.hidden` 时暂停 | 降低后台 + 客户端负载 | ⬜ |
 
 ### P2 — 中期架构演进
@@ -382,9 +383,9 @@ if (loading || !user) {
 | 18 | 推送通知 target 批量解析（`WHERE id IN ?`） | 通知风暴 DB 查询 ↓ N 倍 |
 | 19 | 上传清理改为批量 UPDATE + 异步存储删除 | 减少 DB commit 频率 |
 | 20 | 路由动画 0.5s → 0.15s 或纯 CSS | 导航感知速度 ↑ |
-| 21 | 服务导入收窄（直接 import 具体 Service） | 每路由 bundle ↓ 10–30KB |
+| 21 | ~~服务导入收窄（直接 import 具体 Service）~~ ✅ | 每路由 bundle ↓ 10–30KB |
 | 22 | Admin 路由级 `loading.tsx` + Suspense | 渐进式渲染体验 |
-| 23 | 缩略图 `loading="lazy"` + 固定尺寸 | 文件管理页初始 paint 加速 |
+| 23 | ~~缩略图 `loading="lazy"` + 固定尺寸~~ ✅ | 文件管理页初始 paint 加速 |
 
 ---
 
@@ -427,7 +428,7 @@ if (loading || !user) {
 |------|-------------|-----------|
 | 图片站 / 公开相册 | WebP miss（锁/白名单已优化） | P0 #1 预热待做 |
 | 文件量 10 万+ | 清理慢（统计/索引已优化） | P2 #19 清理批量化 |
-| 管理端日常使用 | 大 bundle（认证/日志已优化） | P0 #7 dynamic import |
+| 管理端日常使用 | ~~大 bundle~~（dynamic 分割 + barrel 收窄已落地） | P2 #22 路由 loading.tsx |
 | 存储迁移进行中 | Redis 日志风暴 | P2 #17 |
 | 登录高峰 | OIDC discovery 无缓存 | P1 #12 OIDC |
 | 多租户 / 跨域前端 | CORS 仍每次调 `GetByKey`（`server_address` 已 RAM 缓存） | 可选 CORS 快照 |
@@ -442,7 +443,7 @@ if (loading || !user) {
 
 1. ~~**WebP 路径解耦**~~ ✅ `singleflight` + `RWMutex` 已落地；**下一步**：部署后预热 + miss 异步回退原图
 2. ~~**文件路径查询缓存**~~ ✅ 迁移状态 + 白名单进程内缓存已落地
-3. ~~**前端认证与首屏并行化**~~ ✅ 全局 auth gate 已移除；**下一步**：Admin `dynamic()` 代码分割
+3. ~~**前端认证与首屏并行化**~~ ✅ 全局 auth gate 已移除；~~Admin `dynamic()` 代码分割~~ ✅ 已落地；**下一步**：其余 Admin 路由薄壳化 + `loading.tsx`
 
 ### 实施检查清单
 
@@ -458,15 +459,20 @@ P0 后端
 
 P0 前端
 [x] app-logs.tsx 虚拟滚动                                ✅ 2026-06-17
-[ ] SQLConsole / Recharts / Settings Tabs dynamic import
+[x] SQLConsole / Settings Tabs / Logs Tabs dynamic import ✅ 2026-06-17
 [x] 认证 gate 并行化                                     ✅ 2026-06-17
+[x] 登录页 public config + auth sources 并行              ✅ 2026-06-17
+[x] access-logs / task-executions → React Query          ✅ 2026-06-17
+[x] Users TooltipProvider 合并                           ✅ 2026-06-17
+[x] 缩略图 loading="lazy"                                ✅ 2026-06-17
+[x] @/lib/services barrel 导入收窄                       ✅ 2026-06-17
 
 P1
 [x] ListVisibleSystemConfigs Redis 缓存                  ✅ 2026-06-17
 [x] 系统配置 Otter RAM 缓存 + 统一失效 + pub/sub          ✅ 2026-06-17
 [x] CAPTCHA 运行时配置快照                                ✅ 2026-06-17
 [ ] OIDC Provider 缓存
-[ ] Admin useEffect → React Query 统一
+[ ] Admin useEffect → React Query 统一（database overview 等待）
 [ ] 状态轮询 visibility 感知
 [ ] Server Component session 预取
 ```
