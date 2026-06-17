@@ -140,11 +140,7 @@ func UploadFile(c *gin.Context) {
 		return
 	}
 
-	id, err := idgen.NextUint64ID()
-	if err != nil {
-		c.JSON(http.StatusOK, response.Err(ErrSaveUploadRecordFailed))
-		return
-	}
+	id := idgen.NextUint64ID()
 	subPath := fmt.Sprintf("uploads/%s/%d.%s", time.Now().Format("2006/01/02"), id, ext)
 
 	// 8. 写入当前活动存储驱动。
@@ -376,11 +372,7 @@ func tryInstantUpload(ctx context.Context, c *gin.Context, currUser *model.User,
 		return true, nil
 	}
 
-	id, err := idgen.NextUint64ID()
-	if err != nil {
-		c.JSON(http.StatusOK, response.Err(ErrSaveUploadRecordFailed))
-		return true, err
-	}
+	id := idgen.NextUint64ID()
 	newUpload := model.Upload{
 		ID:            id,
 		UserID:        currUser.ID,

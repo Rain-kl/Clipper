@@ -60,11 +60,7 @@ func (TaskExecution) TableName() string {
 
 // CreateTaskExecution 创建任务执行记录
 func CreateTaskExecution(ctx context.Context, execution *TaskExecution) error {
-	id, err := idgen.NextUint64ID()
-	if err != nil {
-		return err
-	}
-	execution.ID = id
+	execution.ID = idgen.NextUint64ID()
 	return db.DB(ctx).Create(execution).Error
 }
 

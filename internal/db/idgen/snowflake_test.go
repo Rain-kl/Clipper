@@ -7,11 +7,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestNextUint64ID(t *testing.T) {
-	id, err := NextUint64ID()
-	require.NoError(t, err)
+	id := NextUint64ID()
 	assert.NotZero(t, id)
 }

@@ -386,14 +386,8 @@ func CreateUser(c *gin.Context) {
 		return
 	}
 
-	nextID, err := idgen.NextUint64ID()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, response.Err(createUserFailed))
-		return
-	}
-
 	newUser := model.User{
-		ID:          nextID,
+		ID:          idgen.NextUint64ID(),
 		Username:    req.Username,
 		Nickname:    req.Nickname,
 		Email:       req.Email,

@@ -387,10 +387,8 @@ func TestRetryTaskNonExistent(t *testing.T) {
 }
 
 func TestGenerateTaskID(t *testing.T) {
-	id1, err := generateTaskID("test_type", "manual")
-	require.NoError(t, err)
-	id2, err := generateTaskID("test_type", "manual")
-	require.NoError(t, err)
+	id1 := generateTaskID("test_type", "manual")
+	id2 := generateTaskID("test_type", "manual")
 
 	// 两个 ID 应不同（包含 Snowflake ID）
 	assert.NotEqual(t, id1, id2)

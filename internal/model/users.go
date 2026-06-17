@@ -134,11 +134,7 @@ func (u *User) assignIDIfMissing() error {
 	if u.ID != 0 {
 		return nil
 	}
-	id, err := idgen.NextUint64ID()
-	if err != nil {
-		return errors.New(errInvalidUserID)
-	}
-	u.ID = id
+	u.ID = idgen.NextUint64ID()
 	return nil
 }
 

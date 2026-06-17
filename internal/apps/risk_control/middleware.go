@@ -15,7 +15,6 @@ import (
 	"github.com/Rain-kl/Wavelet/internal/db/idgen"
 	"github.com/Rain-kl/Wavelet/internal/model"
 	"github.com/Rain-kl/Wavelet/internal/util"
-	"github.com/Rain-kl/Wavelet/pkg/logger"
 	"github.com/gin-gonic/gin"
 )
 
@@ -70,14 +69,8 @@ func RiskControlMiddleware() gin.HandlerFunc {
 			status = maxHTTPStatus
 		}
 
-		logID, err := idgen.NextUint64ID()
-		if err != nil {
-			logger.ErrorF(c.Request.Context(), "[RiskControl] access log ID generation failed: %v", err)
-			return
-		}
-
 		logItem := &UserAccessLog{
-			ID:        logID,
+			ID:        idgen.NextUint64ID(),
 			UserID:    userObj.ID, // 直接从 Context 获取已登录用户ID，避免数据库查询
 			Path:      c.Request.URL.Path,
 			Method:    c.Request.Method,
