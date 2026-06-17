@@ -1379,7 +1379,8 @@ definitions:
       gender:
         type: string
       id:
-        type: integer
+        example: "0"
+        type: string
       is_active:
         type: boolean
       is_admin:
