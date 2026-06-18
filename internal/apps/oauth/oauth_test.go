@@ -177,6 +177,10 @@ func init() {
 	}
 }
 
+func normalizeIssuerURL(issuer string) string {
+	return strings.TrimRight(strings.TrimSpace(issuer), "/")
+}
+
 func seedTestAuthSource(t *testing.T, dbConn *gorm.DB) {
 	t.Helper()
 	if err := dbConn.Create(&model.AuthSource{
@@ -194,6 +198,7 @@ func seedTestAuthSource(t *testing.T, dbConn *gorm.DB) {
 }
 
 func oidcDiscoveryResponse() *http.Response {
+	issuer := normalizeIssuerURL(testIssuerURL)
 	body := fmt.Sprintf(`{
 		"issuer": %q,
 		"authorization_endpoint": %q,
@@ -202,7 +207,7 @@ func oidcDiscoveryResponse() *http.Response {
 		"response_types_supported": ["code"],
 		"subject_types_supported": ["public"],
 		"id_token_signing_alg_values_supported": ["RS256"]
-	}`, testIssuerURL, testAuthURL, testTokenURL, testJWKSURL)
+	}`, issuer, issuer+"/oauth2/authorize", issuer+"/oauth2/token", issuer+"/oauth2/keys")
 	return &http.Response{
 		StatusCode: http.StatusOK,
 		Body:       io.NopCloser(strings.NewReader(body)),
@@ -255,7 +260,7 @@ func generateMockIDToken(issuer, sub, aud, nonce, username, email, name string) 
 // -----------------------------------------------------------------------------
 // Test Helpers
 func newMockOIDCClient(issuer, clientID string, expectedState *string, sub, username, email, name string) *http.Client {
-	cleanIssuer := strings.TrimRight(issuer, "/")
+	cleanIssuer := normalizeIssuerURL(issuer)
 	return &http.Client{
 		Transport: &mockRoundTripper{
 			roundTripFunc: func(req *http.Request) (*http.Response, error) {
@@ -289,7 +294,7 @@ func newMockOIDCClient(issuer, clientID string, expectedState *string, sub, user
 					if expectedState != nil {
 						stateVal = *expectedState
 					}
-					idToken := generateMockIDToken(issuer, sub, clientID, stateVal, username, email, name)
+					idToken := generateMockIDToken(cleanIssuer, sub, clientID, stateVal, username, email, name)
 					body := fmt.Sprintf(`{"access_token":"mock_access_token","token_type":"Bearer","expires_in":3600,"id_token":"%s"}`, idToken)
 					return &http.Response{
 						StatusCode: http.StatusOK,
@@ -304,6 +309,8 @@ func newMockOIDCClient(issuer, clientID string, expectedState *string, sub, user
 }
 
 func setupTestDB(t *testing.T) *gorm.DB {
+	repository.ResetSystemConfigRAMCacheForTest()
+
 	dbConn, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
 	if err != nil {
 		t.Fatalf("failed to open sqlite in memory: %v", err)
@@ -339,7 +346,14 @@ func mockContextMiddleware(mockClient *http.Client) gin.HandlerFunc {
 	}
 }
 
+func resetOIDCProviderCacheForTest() {
+	InvalidateOIDCProviderCache(normalizeIssuerURL(testIssuerURL))
+	InvalidateOIDCProviderCache("https://github.com")
+}
+
 func setupTestRouter(dbConn *gorm.DB, mockRedis *mockRedisClient, mockClient *http.Client) *gin.Engine {
+	resetOIDCProviderCacheForTest()
+
 	r := testhelper.NewTestGinEngine(gin.Recovery())
 
 	// Inject context mock middleware
@@ -455,6 +469,7 @@ func TestGetLoginSources(t *testing.T) {
 
 	// Test disabling OIDC
 	dbConn.Model(&model.SystemConfig{}).Where("key = ?", model.ConfigKeyOIDCLoginEnabled).Update("value", "false")
+	repository.ResetSystemConfigRAMCacheForTest()
 	mockRedis.store = make(map[string]string)
 
 	w2 := performRequest(router, http.MethodGet, "/api/v1/oauth/sources", nil, nil, nil)
@@ -1095,6 +1110,7 @@ func TestOIDCPolicyEnforcement(t *testing.T) {
 		Key:   model.ConfigKeyOIDCLoginEnabled,
 		Value: "false",
 	})
+	repository.ResetSystemConfigRAMCacheForTest()
 	mockRedis.Del(context.Background(), db.PrefixedKey(repository.SystemConfigRedisHashKey)+":"+model.ConfigKeyOIDCLoginEnabled)
 	wLoginDisabled := performRequest(router, http.MethodGet, "/api/v1/oauth/login?source="+testSourceName, nil, nil, nil)
 	if wLoginDisabled.Code != http.StatusBadRequest {
@@ -1103,6 +1119,7 @@ func TestOIDCPolicyEnforcement(t *testing.T) {
 
 	// Re-enable globally, but deactivate source
 	dbConn.Model(&model.SystemConfig{}).Where("key = ?", model.ConfigKeyOIDCLoginEnabled).Update("value", "true")
+	repository.ResetSystemConfigRAMCacheForTest()
 	mockRedis.Del(context.Background(), db.PrefixedKey(repository.SystemConfigRedisHashKey)+":"+model.ConfigKeyOIDCLoginEnabled)
 	dbConn.Model(&model.AuthSource{}).Where("name = ?", testSourceName).Update("is_active", false)
 
@@ -1114,6 +1131,7 @@ func TestOIDCPolicyEnforcement(t *testing.T) {
 	// --- 2. Test Authorize enforcement ---
 	// Deactivate globally again
 	dbConn.Model(&model.SystemConfig{}).Where("key = ?", model.ConfigKeyOIDCLoginEnabled).Update("value", "false")
+	repository.ResetSystemConfigRAMCacheForTest()
 	mockRedis.Del(context.Background(), db.PrefixedKey(repository.SystemConfigRedisHashKey)+":"+model.ConfigKeyOIDCLoginEnabled)
 	dbConn.Model(&model.AuthSource{}).Where("name = ?", testSourceName).Update("is_active", true)
 
@@ -1125,6 +1143,7 @@ func TestOIDCPolicyEnforcement(t *testing.T) {
 	// --- 3. Test Callback enforcement ---
 	// Set up a valid state beforehand (when enabled)
 	dbConn.Model(&model.SystemConfig{}).Where("key = ?", model.ConfigKeyOIDCLoginEnabled).Update("value", "true")
+	repository.ResetSystemConfigRAMCacheForTest()
 	mockRedis.Del(context.Background(), db.PrefixedKey(repository.SystemConfigRedisHashKey)+":"+model.ConfigKeyOIDCLoginEnabled)
 	dbConn.Model(&model.AuthSource{}).Where("name = ?", testSourceName).Update("is_active", true)
 
@@ -1150,6 +1169,7 @@ func TestOIDCPolicyEnforcement(t *testing.T) {
 
 	// Now disable OIDC globally and attempt callback
 	dbConn.Model(&model.SystemConfig{}).Where("key = ?", model.ConfigKeyOIDCLoginEnabled).Update("value", "false")
+	repository.ResetSystemConfigRAMCacheForTest()
 	mockRedis.Del(context.Background(), db.PrefixedKey(repository.SystemConfigRedisHashKey)+":"+model.ConfigKeyOIDCLoginEnabled)
 	reqBody := fmt.Sprintf(`{"state":"%s","code":"test_auth_code"}`, state)
 	wCallbackDisabled := performRequest(router, http.MethodPost, "/api/v1/oauth/callback", []byte(reqBody), map[string]string{
@@ -1161,6 +1181,7 @@ func TestOIDCPolicyEnforcement(t *testing.T) {
 
 	// Enable globally but deactivate source and attempt callback
 	dbConn.Model(&model.SystemConfig{}).Where("key = ?", model.ConfigKeyOIDCLoginEnabled).Update("value", "true")
+	repository.ResetSystemConfigRAMCacheForTest()
 	mockRedis.Del(context.Background(), db.PrefixedKey(repository.SystemConfigRedisHashKey)+":"+model.ConfigKeyOIDCLoginEnabled)
 	dbConn.Model(&model.AuthSource{}).Where("name = ?", testSourceName).Update("is_active", false)
 

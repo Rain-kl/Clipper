@@ -24,8 +24,7 @@ func TestCapEndpointsAndMiddleware(t *testing.T) {
 	sqliteDB, _, cleanup := testhelper.SetupTestEnvironment(t)
 	defer cleanup()
 
-	gin.SetMode(gin.TestMode)
-	r := gin.New()
+	r := testhelper.NewTestGinEngine()
 
 	// Mount CAPTCHA API endpoints
 	capGroup := r.Group("/api/cap")

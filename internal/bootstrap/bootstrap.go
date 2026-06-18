@@ -86,3 +86,8 @@ func Init(ctx context.Context, opts Options) {
 		}
 	})
 }
+
+// ResetInitRuntimeOnceForTest clears initRuntimeOnce so Init can run again in unit tests.
+func ResetInitRuntimeOnceForTest() {
+	initRuntimeOnce = sync.Once{}
+}
