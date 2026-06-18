@@ -26,16 +26,12 @@ import (
 	"github.com/Rain-kl/Wavelet/internal/apps/oauth"
 	"github.com/Rain-kl/Wavelet/internal/apps/upload/filesrv"
 	"github.com/Rain-kl/Wavelet/internal/apps/upload/shared"
-	uploadstats "github.com/Rain-kl/Wavelet/internal/apps/upload/stats"
 	uploadstorage "github.com/Rain-kl/Wavelet/internal/apps/upload/storage"
 	"github.com/Rain-kl/Wavelet/internal/apps/upload/util"
 	"github.com/Rain-kl/Wavelet/internal/common"
 	"github.com/Rain-kl/Wavelet/internal/common/response"
-	"github.com/Rain-kl/Wavelet/internal/db"
 	"github.com/Rain-kl/Wavelet/internal/db/idgen"
 	"github.com/Rain-kl/Wavelet/internal/model"
-	"github.com/Rain-kl/Wavelet/internal/storage"
-	apputil "github.com/Rain-kl/Wavelet/internal/util"
 	"github.com/Rain-kl/Wavelet/pkg/logger"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -68,7 +64,7 @@ func UploadFile(c *gin.Context) {
 
 	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, shared.MaxUploadSize)
 
-	currUser, _ := apputil.GetFromContext[*model.User](c, oauth.UserObjKey)
+	currUser, _ := oauth.GetFromContext[*model.User](c, oauth.UserObjKey)
 	ctx := c.Request.Context()
 
 	header, err := c.FormFile("file")
@@ -95,7 +91,7 @@ func UploadFile(c *gin.Context) {
 		ext = "bin"
 	}
 
-	if errMsg := validateUploadExtension(ctx, ext); errMsg != "" {
+	if errMsg := validateUploadAllowedExtension(ctx, ext); errMsg != "" {
 		response.AbortBadRequest(c, errMsg)
 		return
 	}
@@ -142,9 +138,9 @@ func UploadFile(c *gin.Context) {
 	id := idgen.NextUint64ID()
 	subPath := fmt.Sprintf("uploads/%s/%d.%s", time.Now().Format("2006/01/02"), id, ext)
 
-	storageDriver, subPath, errMsg := storeUploadFile(ctx, subPath, size, mimeType, &buf, &meta)
-	if errMsg != "" {
-		response.AbortBadRequest(c, errMsg)
+	storageDriver, subPath, err := storeUploadObject(ctx, subPath, size, mimeType, &buf, &meta)
+	if err != nil {
+		response.AbortBadRequest(c, err.Error())
 		return
 	}
 
@@ -164,8 +160,8 @@ func UploadFile(c *gin.Context) {
 		Metadata:      meta,
 	}
 
-	if err := saveUploadRecord(ctx, &newUpload, storageDriver, subPath); err != "" {
-		response.AbortBadRequest(c, err)
+	if err := saveNewUploadRecord(ctx, &newUpload, storageDriver, subPath); err != nil {
+		response.AbortBadRequest(c, shared.ErrSaveUploadRecordFailed)
 		return
 	}
 
@@ -253,8 +249,8 @@ func BatchDownloadFiles(c *gin.Context) {
 		ids = append(ids, id)
 	}
 
-	var uploads []model.Upload
-	if err := db.DB(ctx).Where("id IN ? AND status IN (?, ?)", ids, model.UploadStatusPending, model.UploadStatusUsed).Find(&uploads).Error; err != nil {
+	uploads, err := listUploadsForBatchDownload(ctx, ids)
+	if err != nil {
 		response.AbortBadRequest(c, shared.ErrRetrieveUploadRecordsFailed)
 		return
 	}
@@ -325,27 +321,8 @@ func resolveUploadAccessMode(c *gin.Context, uploadType string) (int, string) {
 	return accessMode, ""
 }
 
-func validateUploadExtension(ctx context.Context, ext string) string {
-	var sc model.SystemConfig
-	if err := sc.GetByKey(ctx, model.ConfigKeyUploadAllowedExtensions); err == nil && sc.Value != "" {
-		allowedExts := strings.Split(strings.ToLower(sc.Value), ",")
-		allowed := false
-		for _, allowedExt := range allowedExts {
-			if strings.TrimSpace(allowedExt) == ext {
-				allowed = true
-				break
-			}
-		}
-		if !allowed {
-			return shared.ErrUnsupportedFormat
-		}
-	}
-	return ""
-}
-
 func tryInstantUpload(ctx context.Context, c *gin.Context, currUser *model.User, fileHash string, size int64, mimeType, ext, origName string, accessMode int) (bool, error) {
-	var existing model.Upload
-	err := db.DB(ctx).Where("hash = ? AND file_size = ? AND status IN (?, ?)", fileHash, size, model.UploadStatusPending, model.UploadStatusUsed).First(&existing).Error
+	existing, err := findReusableUpload(ctx, fileHash, size)
 	if err != nil {
 		return false, err
 	}
@@ -354,50 +331,22 @@ func tryInstantUpload(ctx context.Context, c *gin.Context, currUser *model.User,
 		return true, nil
 	}
 
-	id := idgen.NextUint64ID()
-	newUpload := model.Upload{
-		ID:            id,
-		UserID:        currUser.ID,
-		FileName:      origName,
-		FilePath:      existing.FilePath,
-		FileSize:      size,
-		MimeType:      mimeType,
-		Extension:     ext,
-		Hash:          fileHash,
-		StorageDriver: existing.StorageDriver,
-		Type:          c.DefaultPostForm("type", "generic"),
-		Status:        model.UploadStatusUsed,
-		AccessMode:    accessMode,
-		Metadata:      existing.Metadata,
-	}
-
-	if err := db.DB(ctx).Create(&newUpload).Error; err != nil {
+	newUpload, err := createInstantUpload(ctx, existing, instantUploadInput{
+		UserID:     currUser.ID,
+		FileHash:   fileHash,
+		Size:       size,
+		MimeType:   mimeType,
+		Extension:  ext,
+		OrigName:   origName,
+		UploadType: c.DefaultPostForm("type", "generic"),
+		AccessMode: accessMode,
+	})
+	if err != nil {
 		response.AbortBadRequest(c, shared.ErrSaveUploadRecordFailed)
 		return true, err
 	}
-	uploadstats.RecordUploadStatsAdd(ctx, &newUpload)
-
-	logger.InfoF(ctx, "文件触发秒传成功! ID: %d, Path: %s", id, existing.FilePath)
 	c.JSON(http.StatusOK, response.OK(newUpload))
 	return true, nil
-}
-
-func storeUploadFile(ctx context.Context, subPath string, size int64, mimeType string, buf *bytes.Buffer, meta *model.UploadMetadata) (string, string, string) {
-	if uploadstorage.ReadOnly(ctx) {
-		return "", "", shared.ErrStorageReadOnly
-	}
-	driver, backend, err := storage.Active(ctx)
-	if err != nil {
-		logger.ErrorF(ctx, "初始化活动存储失败: %v", err)
-		return "", "", shared.ErrSaveFileFailed
-	}
-	result, err := backend.Put(ctx, subPath, bytes.NewReader(buf.Bytes()), size, mimeType)
-	if err != nil {
-		logger.ErrorF(ctx, "写入 %s 存储失败: %v", driver, err)
-		return "", "", shared.ErrSaveFileFailed
-	}
-	meta.Bucket = result.Bucket
-	return string(driver), result.Key, ""
 }
 
 func parseUploadMetadata(c *gin.Context, mimeType string) (model.UploadMetadata, string) {
@@ -422,16 +371,3 @@ func detectMimeType(buf *bytes.Buffer, header *multipart.FileHeader, size int64)
 	return mimeType
 }
 
-func saveUploadRecord(ctx context.Context, upload *model.Upload, storageDriver, filePath string) string {
-	if err := db.DB(ctx).Create(upload).Error; err != nil {
-		backend, backendErr := storage.ForDriver(ctx, storage.Driver(storageDriver))
-		if backendErr == nil {
-			if deleteErr := backend.Delete(ctx, filePath); deleteErr != nil {
-				logger.WarnF(ctx, "清理未写入数据库的上传对象失败: %v", deleteErr)
-			}
-		}
-		return shared.ErrSaveUploadRecordFailed
-	}
-	uploadstats.RecordUploadStatsAdd(ctx, upload)
-	return ""
-}

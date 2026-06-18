@@ -25,7 +25,7 @@ import (
 	"github.com/Rain-kl/Wavelet/internal/db"
 	"github.com/Rain-kl/Wavelet/internal/diskcache"
 	"github.com/Rain-kl/Wavelet/internal/model"
-	apputil "github.com/Rain-kl/Wavelet/internal/util"
+	
 	"github.com/Rain-kl/Wavelet/pkg/logger"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/sync/singleflight"
@@ -282,7 +282,7 @@ func getOriginalFileBytes(ctx context.Context, upload *model.Upload) ([]byte, er
 func checkPrivateFileOwner(c *gin.Context, ownerID uint64) error {
 	var currUser *model.User
 	var err error
-	if u, ok := apputil.GetFromContext[*model.User](c, oauth.UserObjKey); ok && u != nil {
+	if u, ok := oauth.GetFromContext[*model.User](c, oauth.UserObjKey); ok && u != nil {
 		currUser = u
 	} else {
 		currUser, err = oauth.GetUserFromRequest(c)
@@ -306,7 +306,7 @@ func CheckFileAccessPermission(c *gin.Context, upload *model.Upload) error {
 	}
 
 	if !cache.IsFilePublic(c.Request.Context(), upload.Type) {
-		if _, ok := apputil.GetFromContext[*model.User](c, oauth.UserObjKey); !ok {
+		if _, ok := oauth.GetFromContext[*model.User](c, oauth.UserObjKey); !ok {
 			if _, err := oauth.GetUserFromRequest(c); err != nil {
 				return err
 			}

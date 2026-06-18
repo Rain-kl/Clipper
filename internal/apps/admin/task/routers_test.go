@@ -20,7 +20,6 @@ import ("bytes"
 	"github.com/Rain-kl/Wavelet/internal/model"
 	"github.com/Rain-kl/Wavelet/internal/task"
 	"github.com/Rain-kl/Wavelet/internal/testhelper"
-	"github.com/Rain-kl/Wavelet/internal/util"
 	"github.com/gin-gonic/gin"
 	"github.com/hibiken/asynq"
 	"github.com/stretchr/testify/assert"
@@ -51,7 +50,7 @@ func setupTestRouter(authUser *model.User) *gin.Engine {
 	// Mock authentication middleware
 	adminGroup.Use(func(c *gin.Context) {
 		if authUser != nil {
-			util.SetToContext(c, oauth.UserObjKey, authUser)
+			oauth.SetToContext(c, oauth.UserObjKey, authUser)
 		}
 		c.Next()
 	})

@@ -9,12 +9,13 @@ import (
 	"strings"
 
 	"github.com/Rain-kl/Wavelet/internal/model"
+	"github.com/Rain-kl/Wavelet/internal/repository"
 	"github.com/coreos/go-oidc/v3/oidc"
 	"golang.org/x/oauth2"
 )
 
 func isOIDCLoginEnabled(ctx context.Context) bool {
-	enabled, err := model.GetBoolByKey(ctx, model.ConfigKeyOIDCLoginEnabled)
+	enabled, err := repository.GetBoolByKey(ctx, model.ConfigKeyOIDCLoginEnabled)
 	if err != nil {
 		return true
 	}
@@ -37,7 +38,7 @@ func resolveAuthSource(ctx context.Context, sourceName string) (*model.AuthSourc
 }
 
 func activeLoginSources(ctx context.Context) []AuthSourceView {
-	enabled, err := model.GetBoolByKey(ctx, model.ConfigKeyOIDCLoginEnabled)
+	enabled, err := repository.GetBoolByKey(ctx, model.ConfigKeyOIDCLoginEnabled)
 	if err == nil && !enabled {
 		return nil
 	}
@@ -62,8 +63,8 @@ func activeLoginSources(ctx context.Context) []AuthSourceView {
 }
 
 func getFrontendLoginRedirectURL(ctx context.Context) (string, error) {
-	var sc model.SystemConfig
-	if err := sc.GetByKey(ctx, model.ConfigKeyServerAddress); err != nil || strings.TrimSpace(sc.Value) == "" {
+	sc, err := repository.GetSystemConfigByKey(ctx, model.ConfigKeyServerAddress)
+	if err != nil || strings.TrimSpace(sc.Value) == "" {
 		return "", errors.New(errServerAddressMissing)
 	}
 	return strings.TrimRight(sc.Value, "/") + "/login", nil

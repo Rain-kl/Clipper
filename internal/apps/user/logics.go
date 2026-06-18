@@ -14,6 +14,7 @@ import (
 
 	"github.com/Rain-kl/Wavelet/internal/db"
 	"github.com/Rain-kl/Wavelet/internal/model"
+	"github.com/Rain-kl/Wavelet/internal/repository"
 	"github.com/Rain-kl/Wavelet/internal/task"
 	pkgu "github.com/Rain-kl/Wavelet/pkg/util"
 )
@@ -47,8 +48,32 @@ type updateProfileInput struct {
 	Location  string
 }
 
+func isPasswordLoginEnabled(ctx context.Context) bool {
+	enabled, err := repository.GetBoolByKey(ctx, model.ConfigKeyPasswordLoginEnabled)
+	if err != nil {
+		return true
+	}
+	return enabled
+}
+
+func isPasswordRegisterEnabled(ctx context.Context) bool {
+	enabled, err := repository.GetBoolByKey(ctx, model.ConfigKeyPasswordRegisterEnabled)
+	if err != nil {
+		return true
+	}
+	return enabled
+}
+
+func isRegistrationEnabled(ctx context.Context) bool {
+	enabled, err := repository.GetBoolByKey(ctx, model.ConfigKeyRegistrationEnabled)
+	if err != nil {
+		return true
+	}
+	return enabled
+}
+
 func isEmailLoginVerificationEnabled(ctx context.Context) bool {
-	enabled, err := model.GetBoolByKey(ctx, model.ConfigKeyEmailLoginVerificationEnabled)
+	enabled, err := repository.GetBoolByKey(ctx, model.ConfigKeyEmailLoginVerificationEnabled)
 	if err != nil {
 		return false
 	}
@@ -56,7 +81,7 @@ func isEmailLoginVerificationEnabled(ctx context.Context) bool {
 }
 
 func isEmailRegisterVerificationEnabled(ctx context.Context) bool {
-	enabled, err := model.GetBoolByKey(ctx, model.ConfigKeyEmailRegisterVerificationEnabled)
+	enabled, err := repository.GetBoolByKey(ctx, model.ConfigKeyEmailRegisterVerificationEnabled)
 	if err != nil {
 		return false
 	}
@@ -64,26 +89,14 @@ func isEmailRegisterVerificationEnabled(ctx context.Context) bool {
 }
 
 func isSMTPConfigured(ctx context.Context) bool {
-	var host, port, username, password string
-
-	var scHost model.SystemConfig
-	if err := scHost.GetByKey(ctx, model.ConfigKeySMTPHost); err == nil {
-		host = scHost.Value
+	scHost, errHost := repository.GetSystemConfigByKey(ctx, model.ConfigKeySMTPHost)
+	scPort, errPort := repository.GetSystemConfigByKey(ctx, model.ConfigKeySMTPPort)
+	scUser, errUser := repository.GetSystemConfigByKey(ctx, model.ConfigKeySMTPUsername)
+	scPass, errPass := repository.GetSystemConfigByKey(ctx, model.ConfigKeySMTPPassword)
+	if errHost != nil || errPort != nil || errUser != nil || errPass != nil {
+		return false
 	}
-	var scPort model.SystemConfig
-	if err := scPort.GetByKey(ctx, model.ConfigKeySMTPPort); err == nil {
-		port = scPort.Value
-	}
-	var scUser model.SystemConfig
-	if err := scUser.GetByKey(ctx, model.ConfigKeySMTPUsername); err == nil {
-		username = scUser.Value
-	}
-	var scPass model.SystemConfig
-	if err := scPass.GetByKey(ctx, model.ConfigKeySMTPPassword); err == nil {
-		password = scPass.Value
-	}
-
-	return host != "" && port != "" && username != "" && password != ""
+	return scHost.Value != "" && scPort.Value != "" && scUser.Value != "" && scPass.Value != ""
 }
 
 func generateVerificationCode() (string, error) {
@@ -114,11 +127,11 @@ func sendEmailVerificationCode(ctx context.Context, email, scene, templateName s
 	codeKey := getEmailCodeKey(scene, email)
 	cooldownKey := getEmailCooldownKey(scene, email)
 
-	emailSubject, emailBody, err := model.RenderTemplate(
-		ctx,
-		templateName,
-		map[string]any{"Code": code},
-	)
+	tmpl, err := repository.GetTemplateByKey(ctx, templateName)
+	if err != nil {
+		return fmt.Errorf("模板 %s 不存在或不可用: %w", templateName, err)
+	}
+	emailSubject, emailBody, err := tmpl.Render(map[string]any{"Code": code})
 	if err != nil {
 		return fmt.Errorf(errRenderEmailTemplateFailed, err)
 	}

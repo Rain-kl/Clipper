@@ -5,17 +5,19 @@
 // Package user 提供用户认证与帐户管理功能
 package user
 
-import ("net/http"
+import (
+	"net/http"
 	"strconv"
 	"strings"
 
 	"github.com/Rain-kl/Wavelet/internal/apps/oauth"
 	"github.com/Rain-kl/Wavelet/internal/db"
 	"github.com/Rain-kl/Wavelet/internal/model"
-	"github.com/Rain-kl/Wavelet/internal/util"
+	"github.com/Rain-kl/Wavelet/internal/repository"
 	"github.com/gin-gonic/gin"
 
-	"github.com/Rain-kl/Wavelet/internal/common/response")
+	"github.com/Rain-kl/Wavelet/internal/common/response"
+)
 
 type createTokenRequest struct {
 	Name    string `json:"name"`
@@ -38,7 +40,7 @@ type tokenResponse struct {
 // @Router /api/v1/user/access-tokens [get]
 // ListAccessTokens 获取当前用户的 AccessToken 列表
 func ListAccessTokens(c *gin.Context) {
-	currUser, _ := util.GetFromContext[*model.User](c, oauth.UserObjKey)
+	currUser, _ := oauth.GetFromContext[*model.User](c, oauth.UserObjKey)
 	ctx := c.Request.Context()
 
 	var tokens []model.AccessToken
@@ -62,7 +64,7 @@ func ListAccessTokens(c *gin.Context) {
 // @Failure 400 {object} response.Any "参数错误或超限"
 // @Router /api/v1/user/access-tokens [post]
 func CreateAccessToken(c *gin.Context) {
-	currUser, _ := util.GetFromContext[*model.User](c, oauth.UserObjKey)
+	currUser, _ := oauth.GetFromContext[*model.User](c, oauth.UserObjKey)
 	ctx := c.Request.Context()
 
 	var req createTokenRequest
@@ -85,7 +87,7 @@ func CreateAccessToken(c *gin.Context) {
 
 	// 检查最大限制（基于 ConfigKeyMaxAPIKeysPerUser 配置，默认值为 5）
 	maxLimit := 5
-	if val, err := model.GetIntByKey(ctx, model.ConfigKeyMaxAPIKeysPerUser); err == nil {
+	if val, err := repository.GetIntByKey(ctx, model.ConfigKeyMaxAPIKeysPerUser); err == nil {
 		maxLimit = val
 	}
 
@@ -140,7 +142,7 @@ func CreateAccessToken(c *gin.Context) {
 // @Failure 400 {object} response.Any "参数错误"
 // @Router /api/v1/user/access-tokens/{id} [delete]
 func DeleteAccessToken(c *gin.Context) {
-	currUser, _ := util.GetFromContext[*model.User](c, oauth.UserObjKey)
+	currUser, _ := oauth.GetFromContext[*model.User](c, oauth.UserObjKey)
 	ctx := c.Request.Context()
 
 	idStr := c.Param("id")
@@ -175,7 +177,7 @@ func DeleteAccessToken(c *gin.Context) {
 // @Failure 400 {object} response.Any "参数错误"
 // @Router /api/v1/user/access-tokens/{id}/rotate [post]
 func RotateAccessToken(c *gin.Context) {
-	currUser, _ := util.GetFromContext[*model.User](c, oauth.UserObjKey)
+	currUser, _ := oauth.GetFromContext[*model.User](c, oauth.UserObjKey)
 	ctx := c.Request.Context()
 
 	idStr := c.Param("id")

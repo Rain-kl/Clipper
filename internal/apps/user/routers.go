@@ -3,23 +3,24 @@
 
 package user
 
-import ("context"
+import (
+	"context"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/Rain-kl/Wavelet/internal/apps/oauth"
 	"github.com/Rain-kl/Wavelet/internal/common"
+	"github.com/Rain-kl/Wavelet/internal/common/response"
 	"github.com/Rain-kl/Wavelet/internal/config"
 	"github.com/Rain-kl/Wavelet/internal/db"
 	"github.com/Rain-kl/Wavelet/internal/db/idgen"
 	"github.com/Rain-kl/Wavelet/internal/listener"
 	"github.com/Rain-kl/Wavelet/internal/model"
-	"github.com/Rain-kl/Wavelet/internal/util"
+	"github.com/Rain-kl/Wavelet/internal/repository"
 	"github.com/Rain-kl/Wavelet/pkg/logger"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
-	"github.com/Rain-kl/Wavelet/internal/common/response"
 )
 
 type loginRequest struct {
@@ -53,30 +54,6 @@ type updateProfileRequest struct {
 	Location  string `json:"location"`
 }
 
-func isPasswordLoginEnabled() bool {
-	enabled, err := model.GetBoolByKey(context.Background(), model.ConfigKeyPasswordLoginEnabled)
-	if err != nil {
-		return true
-	}
-	return enabled
-}
-
-func isPasswordRegisterEnabled() bool {
-	enabled, err := model.GetBoolByKey(context.Background(), model.ConfigKeyPasswordRegisterEnabled)
-	if err != nil {
-		return true
-	}
-	return enabled
-}
-
-func isRegistrationEnabled() bool {
-	enabled, err := model.GetBoolByKey(context.Background(), model.ConfigKeyRegistrationEnabled)
-	if err != nil {
-		return true
-	}
-	return enabled
-}
-
 func setLoginSession(ctx context.Context, c *gin.Context, user *model.User) error {
 	session := sessions.Default(c)
 	session.Set(oauth.UserIDKey, user.ID)
@@ -87,7 +64,7 @@ func setLoginSession(ctx context.Context, c *gin.Context, user *model.User) erro
 	maxAge := config.Config.App.SessionAge
 	isSessionCookie := false
 
-	ttlHours, err := model.GetIntByKey(ctx, model.ConfigKeyLoginSessionTTLHours)
+	ttlHours, err := repository.GetIntByKey(ctx, model.ConfigKeyLoginSessionTTLHours)
 	if err == nil {
 		switch {
 		case ttlHours == -1:
@@ -124,7 +101,8 @@ func setLoginSession(ctx context.Context, c *gin.Context, user *model.User) erro
 // @Failure 500 {object} response.Any "服务内部错误"
 // @Router /api/v1/user/login [post]
 func Login(c *gin.Context) {
-	if !isPasswordLoginEnabled() {
+	ctx := c.Request.Context()
+	if !isPasswordLoginEnabled(ctx) {
 		response.AbortBadRequest(c, errPasswordLoginDisabled)
 		return
 	}
@@ -140,7 +118,6 @@ func Login(c *gin.Context) {
 	}
 
 	var user model.User
-	ctx := c.Request.Context()
 	if err := db.DB(ctx).Where("username = ? OR email = ?", req.Username, req.Username).First(&user).Error; err != nil {
 		logger.WarnF(ctx, "[LoginAudit] failed login attempt (username not found) for input: %s, IP: %s", req.Username, c.ClientIP())
 		response.AbortBadRequest(c, errUsernameOrPasswordWrong)
@@ -211,7 +188,8 @@ func Login(c *gin.Context) {
 // @Failure 500 {object} response.Any "服务内部错误"
 // @Router /api/v1/user/register [post]
 func Register(c *gin.Context) {
-	if !isRegistrationEnabled() || !isPasswordRegisterEnabled() {
+	ctx := c.Request.Context()
+	if !isRegistrationEnabled(ctx) || !isPasswordRegisterEnabled(ctx) {
 		response.AbortBadRequest(c, errRegistrationDisabled)
 		return
 	}
@@ -241,8 +219,6 @@ func Register(c *gin.Context) {
 		response.AbortBadRequest(c, errPasswordTooShort)
 		return
 	}
-
-	ctx := c.Request.Context()
 
 	// 邮箱注册验证校验
 	if err := validateRegisterEmailVerification(ctx, req.Email, req.Code); err != nil {
@@ -344,7 +320,7 @@ func ChangePassword(c *gin.Context) {
 		return
 	}
 
-	userObj, _ := util.GetFromContext[*model.User](c, oauth.UserObjKey)
+	userObj, _ := oauth.GetFromContext[*model.User](c, oauth.UserObjKey)
 	if userObj == nil {
 		response.AbortUnauthorized(c, errLoginRequired)
 		return
@@ -443,7 +419,7 @@ func UpdateProfile(c *gin.Context) {
 		return
 	}
 
-	userObj, _ := util.GetFromContext[*model.User](c, oauth.UserObjKey)
+	userObj, _ := oauth.GetFromContext[*model.User](c, oauth.UserObjKey)
 	if userObj == nil {
 		response.AbortUnauthorized(c, errLoginRequired)
 		return

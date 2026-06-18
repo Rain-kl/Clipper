@@ -10,6 +10,7 @@ import (
 
 	"github.com/Rain-kl/Wavelet/internal/db"
 	"github.com/Rain-kl/Wavelet/internal/model"
+	"github.com/Rain-kl/Wavelet/internal/repository"
 	"github.com/Rain-kl/Wavelet/internal/testhelper"
 )
 
@@ -39,7 +40,7 @@ func TestProcessLoginEmailVerificationSMTPFallback(t *testing.T) {
 		Update("value", "").Error; err != nil {
 		t.Fatalf("clear SMTP host failed: %v", err)
 	}
-	if err := db.Redis.Del(context.Background(), db.PrefixedKey(model.SystemConfigRedisHashKey)).Err(); err != nil {
+	if err := db.Redis.Del(context.Background(), db.PrefixedKey(repository.SystemConfigRedisHashKey)).Err(); err != nil {
 		t.Fatalf("invalidate system config cache failed: %v", err)
 	}
 
@@ -104,7 +105,7 @@ func TestProcessLoginEmailVerificationEmptyEmailFallback(t *testing.T) {
 			t.Fatalf("set %s failed: %v", cfg.key, err)
 		}
 	}
-	if err := db.Redis.Del(context.Background(), db.PrefixedKey(model.SystemConfigRedisHashKey)).Err(); err != nil {
+	if err := db.Redis.Del(context.Background(), db.PrefixedKey(repository.SystemConfigRedisHashKey)).Err(); err != nil {
 		t.Fatalf("invalidate system config cache failed: %v", err)
 	}
 

@@ -3,7 +3,8 @@
 
 package user
 
-import ("bytes"
+import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"net/http"
@@ -16,12 +17,14 @@ import ("bytes"
 	"github.com/Rain-kl/Wavelet/internal/config"
 	"github.com/Rain-kl/Wavelet/internal/db"
 	"github.com/Rain-kl/Wavelet/internal/model"
+	"github.com/Rain-kl/Wavelet/internal/repository"
 	"github.com/Rain-kl/Wavelet/internal/testhelper"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
 
-	"github.com/Rain-kl/Wavelet/internal/common/response")
+	"github.com/Rain-kl/Wavelet/internal/common/response"
+)
 
 func setupUserTestRouter(t *testing.T) *gin.Engine {
 	t.Helper()
@@ -281,7 +284,7 @@ func TestLoginEmailVerificationFallbackWhenSMTPUnconfigured(t *testing.T) {
 	}
 
 	// 2.5 Invalidate the system config cache in Redis
-	if err := db.Redis.Del(context.Background(), db.PrefixedKey(model.SystemConfigRedisHashKey)).Err(); err != nil {
+	if err := db.Redis.Del(context.Background(), db.PrefixedKey(repository.SystemConfigRedisHashKey)).Err(); err != nil {
 		t.Fatalf("invalidate system config cache failed: %v", err)
 	}
 
@@ -387,7 +390,7 @@ func TestLoginEmailVerificationFallbackForEmptyEmail(t *testing.T) {
 	}
 
 	// Invalidate the system config cache in Redis
-	if err := db.Redis.Del(context.Background(), db.PrefixedKey(model.SystemConfigRedisHashKey)).Err(); err != nil {
+	if err := db.Redis.Del(context.Background(), db.PrefixedKey(repository.SystemConfigRedisHashKey)).Err(); err != nil {
 		t.Fatalf("invalidate system config cache failed: %v", err)
 	}
 

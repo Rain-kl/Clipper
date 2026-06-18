@@ -15,6 +15,7 @@ import (
 	uploadstorage "github.com/Rain-kl/Wavelet/internal/apps/upload/storage"
 	"github.com/Rain-kl/Wavelet/internal/db"
 	"github.com/Rain-kl/Wavelet/internal/model"
+	"github.com/Rain-kl/Wavelet/internal/repository"
 	"github.com/Rain-kl/Wavelet/internal/storage"
 )
 
@@ -112,8 +113,8 @@ func fetchFileAccessWhitelist(ctx context.Context) map[string]struct{} {
 }
 
 func parseFileAccessWhitelist(ctx context.Context) []string {
-	var sc model.SystemConfig
-	if err := sc.GetByKey(ctx, model.ConfigKeyFileAccessWhitelist); err != nil || sc.Value == "" {
+	sc, err := repository.GetSystemConfigByKey(ctx, model.ConfigKeyFileAccessWhitelist)
+	if err != nil || sc.Value == "" {
 		return []string{shared.DefaultPublicUploadType}
 	}
 

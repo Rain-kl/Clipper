@@ -16,7 +16,6 @@ import ("bytes"
 	"github.com/Rain-kl/Wavelet/internal/model"
 	"github.com/Rain-kl/Wavelet/internal/task"
 	"github.com/Rain-kl/Wavelet/internal/testhelper"
-	"github.com/Rain-kl/Wavelet/internal/util"
 	pkgpush "github.com/Rain-kl/Wavelet/pkg/push"
 	"github.com/alicebob/miniredis/v2"
 	"github.com/gin-gonic/gin"
@@ -104,7 +103,7 @@ func setupTestRouter(authUser *model.User) *gin.Engine {
 
 	adminGroup.Use(func(c *gin.Context) {
 		if authUser != nil {
-			util.SetToContext(c, "user_obj", authUser)
+			oauth.SetToContext(c, "user_obj", authUser)
 		}
 		c.Next()
 	})

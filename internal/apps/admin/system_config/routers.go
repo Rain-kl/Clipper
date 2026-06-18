@@ -10,7 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"time"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -18,8 +18,8 @@ import (
 	"github.com/Rain-kl/Wavelet/internal/apps/cap"
 	"github.com/Rain-kl/Wavelet/internal/apps/upload"
 	"github.com/Rain-kl/Wavelet/internal/common/response"
-	"github.com/Rain-kl/Wavelet/internal/db"
 	"github.com/Rain-kl/Wavelet/internal/model"
+	"github.com/Rain-kl/Wavelet/internal/repository"
 	"github.com/Rain-kl/Wavelet/internal/storage"
 	"github.com/Rain-kl/Wavelet/pkg/logger"
 	mail "github.com/Rain-kl/Wavelet/pkg/mail"
@@ -64,40 +64,13 @@ func CreateSystemConfig(c *gin.Context) {
 		return
 	}
 
-	// 检查配置键是否已存在
-	var existing model.SystemConfig
-	if err := db.DB(c.Request.Context()).Where("key = ?", req.Key).First(&existing).Error; err == nil {
-		response.AbortBadRequest(c, ConfigKeyExists)
-		return
-	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
-		response.AbortInternal(c, err.Error())
-		return
-	}
-
-	config := model.SystemConfig{
-		Key:         req.Key,
-		Value:       req.Value,
-		Type:        req.Type,
-		Visibility:  req.Visibility,
-		Description: req.Description,
-	}
-
-	if err := db.DB(c.Request.Context()).Transaction(func(tx *gorm.DB) error {
-		// 创建配置
-		if err := tx.Create(&config).Error; err != nil {
-			return err
+	if err := createSystemConfig(c.Request.Context(), req); err != nil {
+		if err.Error() == ConfigKeyExists {
+			response.AbortBadRequest(c, ConfigKeyExists)
+			return
 		}
-
-		return nil
-	}); err != nil {
 		response.AbortInternal(c, err.Error())
 		return
-	}
-
-	invalidateSystemConfigCaches(c.Request.Context(), req.Key)
-
-	if err := model.InvalidateVisibleSystemConfigsCache(c.Request.Context()); err != nil {
-		logger.WarnF(c.Request.Context(), "清理公共配置列表缓存失败: %v", err)
 	}
 
 	c.JSON(http.StatusOK, response.OKNil())
@@ -116,14 +89,8 @@ func CreateSystemConfig(c *gin.Context) {
 // @Failure 500 {object} response.Any "内部错误"
 // @Router /api/v1/admin/system-configs [get]
 func ListSystemConfigs(c *gin.Context) {
-	configType := c.Query("type")
-	query := db.DB(c.Request.Context()).Order("created_at DESC")
-	if configType != "" {
-		query = query.Where("type = ?", configType)
-	}
-
-	var configs []model.SystemConfig
-	if err := query.Find(&configs).Error; err != nil {
+	configs, err := listSystemConfigs(c.Request.Context(), c.Query("type"))
+	if err != nil {
 		response.AbortInternal(c, err.Error())
 		return
 	}
@@ -149,8 +116,8 @@ func ListSystemConfigs(c *gin.Context) {
 // @Failure 500 {object} response.Any "内部错误"
 // @Router /api/v1/admin/system-configs/{key} [get]
 func GetSystemConfig(c *gin.Context) {
-	var config model.SystemConfig
-	if err := db.DB(c.Request.Context()).Where("key = ?", c.Param("key")).First(&config).Error; err != nil {
+	config, err := getSystemConfig(c.Request.Context(), c.Param("key"))
+	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			response.AbortNotFound(c, SystemConfigNotFound)
 		} else {
@@ -188,101 +155,24 @@ func UpdateSystemConfig(c *gin.Context) {
 	}
 
 	key := c.Param("key")
-
-	// 检查配置是否存在
-	var config model.SystemConfig
-	if err := db.DB(c.Request.Context()).Where("key = ?", key).First(&config).Error; err != nil {
+	if err := updateSystemConfig(c.Request.Context(), key, req); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			response.AbortNotFound(c, SystemConfigNotFound)
-		} else {
-			response.AbortInternal(c, err.Error())
+			return
 		}
-		return
-	}
-
-	var originalDriver storage.Driver
-	if key == model.ConfigKeyStorageConfig {
-		var currentCfg storage.Config
-		if err := json.Unmarshal([]byte(config.Value), &currentCfg); err == nil {
-			originalDriver = currentCfg.Driver
-		}
-
-		validatedVal, err := validateAndMergeStorageConfig(c.Request.Context(), req.Value, config.Value)
-		if err != nil {
+		if isStorageConfigValidationError(err) {
 			response.AbortBadRequest(c, err.Error())
 			return
 		}
-		req.Value = validatedVal
-	}
-
-	if err := db.DB(c.Request.Context()).Transaction(func(tx *gorm.DB) error {
-		// 更新配置
-		updates := map[string]interface{}{
-			"description": req.Description,
-		}
-		if req.Visibility != nil {
-			updates["visibility"] = *req.Visibility
-			config.Visibility = *req.Visibility
-		}
-		if key != model.ConfigKeySMTPPassword || req.Value != maskedConfigValue {
-			updates["value"] = req.Value
-			config.Value = req.Value
-		}
-		if err := tx.Model(&config).Updates(updates).Error; err != nil {
-			return err
-		}
-
-		resolveStorageMigrationTasksOnDirectDriverUpdate(
-			c.Request.Context(),
-			tx,
-			key,
-			originalDriver,
-			req.Value,
-		)
-
-		return nil
-	}); err != nil {
 		response.AbortInternal(c, err.Error())
 		return
 	}
 
-	invalidateCachesAfterConfigUpdate(c.Request.Context(), key)
-
 	c.JSON(http.StatusOK, response.OKNil())
 }
 
-func resolveStorageMigrationTasksOnDirectDriverUpdate(
-	ctx context.Context,
-	tx *gorm.DB,
-	key string,
-	originalDriver storage.Driver,
-	newValue string,
-) {
-	if key != model.ConfigKeyStorageConfig || originalDriver == "" {
-		return
-	}
-
-	var newCfg storage.Config
-	if err := json.Unmarshal([]byte(newValue), &newCfg); err != nil {
-		return
-	}
-	if newCfg.Driver != originalDriver {
-		return
-	}
-
-	if err := tx.Model(&model.TaskExecution{}).
-		Where("task_type = ? AND status = ?", "storage:migrate", model.TaskExecutionStatusFailed).
-		Updates(map[string]any{
-			"status":      model.TaskExecutionStatusSucceeded,
-			"result":      "存储配置直接更新，故障迁移任务自动标记为已解决",
-			"finished_at": time.Now(),
-		}).Error; err != nil {
-		logger.ErrorF(ctx, "自动更新迁移任务状态失败: %v", err)
-	}
-}
-
 func invalidateSystemConfigCaches(ctx context.Context, key string) {
-	if err := model.InvalidateSystemConfigCache(ctx, key); err != nil {
+	if err := repository.InvalidateSystemConfigCache(ctx, key); err != nil {
 		logger.WarnF(ctx, "清理系统配置缓存失败: %v", err)
 	}
 	if cap.IsRuntimeConfigKey(key) {
@@ -304,7 +194,7 @@ func invalidateCachesAfterConfigUpdate(ctx context.Context, key string) {
 		upload.PublishAccessCacheInvalidation(ctx)
 	}
 
-	if err := model.InvalidateVisibleSystemConfigsCache(ctx); err != nil {
+	if err := repository.InvalidateVisibleSystemConfigsCache(ctx); err != nil {
 		logger.WarnF(ctx, "清理公共配置列表缓存失败: %v", err)
 	}
 }
@@ -345,8 +235,7 @@ func TestSMTP(c *gin.Context) {
 
 	password := req.SMTPPassword
 	if password == maskedConfigValue {
-		var sc model.SystemConfig
-		if err := sc.GetByKey(c.Request.Context(), model.ConfigKeySMTPPassword); err == nil {
+		if sc, err := repository.GetSystemConfigByKey(c.Request.Context(), model.ConfigKeySMTPPassword); err == nil {
 			password = sc.Value
 		}
 	}
@@ -373,6 +262,15 @@ func TestSMTP(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, response.OK(resp))
+}
+
+func isStorageConfigValidationError(err error) bool {
+	msg := err.Error()
+	return strings.HasPrefix(msg, "解析") ||
+		strings.HasPrefix(msg, "验证") ||
+		strings.HasPrefix(msg, "初始化测试") ||
+		strings.HasPrefix(msg, "存储连通性") ||
+		strings.HasPrefix(msg, "序列化")
 }
 
 func maskSensitiveConfig(key, value string) string {

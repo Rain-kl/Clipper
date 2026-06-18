@@ -4,7 +4,8 @@
 
 package system_config
 
-import ("bufio"
+import (
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -17,24 +18,24 @@ import ("bufio"
 	"github.com/Rain-kl/Wavelet/internal/apps/oauth"
 	"github.com/Rain-kl/Wavelet/internal/db"
 	"github.com/Rain-kl/Wavelet/internal/model"
+	"github.com/Rain-kl/Wavelet/internal/repository"
 	"github.com/Rain-kl/Wavelet/internal/storage"
 	"github.com/Rain-kl/Wavelet/internal/testhelper"
-	"github.com/Rain-kl/Wavelet/internal/util"
 	"github.com/gin-gonic/gin"
 
-	"github.com/Rain-kl/Wavelet/internal/common/response")
+	"github.com/Rain-kl/Wavelet/internal/common/response"
+)
 
 const expectedDefaultConfigsCount = 30
 
 func setupTestRouter(authUser *model.User) *gin.Engine {
-	gin.SetMode(gin.TestMode)
-	r := gin.New()
+	r := testhelper.NewTestGinEngine()
 	adminGroup := r.Group("/api/v1/admin")
 
 	// Mock authentication middleware
 	adminGroup.Use(func(c *gin.Context) {
 		if authUser != nil {
-			util.SetToContext(c, oauth.UserObjKey, authUser)
+			oauth.SetToContext(c, oauth.UserObjKey, authUser)
 		}
 		c.Next()
 	})
@@ -86,22 +87,22 @@ func TestCreateSystemConfig(t *testing.T) {
 		// Verify caches are invalidated after create and repopulate on read
 		_, err = db.Redis.HGet(
 			context.Background(),
-			db.PrefixedKey(model.SystemConfigRedisHashKey),
+			db.PrefixedKey(repository.SystemConfigRedisHashKey),
 			"custom_key",
 		).Result()
 		if err == nil {
 			t.Fatal("expected redis cache miss immediately after create")
 		}
 
-		var loaded model.SystemConfig
-		if err := loaded.GetByKey(context.Background(), "custom_key"); err != nil {
-			t.Fatalf("GetByKey(custom_key) error = %v", err)
+		loaded, err := repository.GetSystemConfigByKey(context.Background(), "custom_key")
+		if err != nil {
+			t.Fatalf("GetSystemConfigByKey(custom_key) error = %v", err)
 		}
 		if loaded.Value != "custom_value" {
-			t.Errorf("GetByKey(custom_key).Value = %q, want %q", loaded.Value, "custom_value")
+			t.Errorf("GetSystemConfigByKey(custom_key).Value = %q, want %q", loaded.Value, "custom_value")
 		}
 		if loaded.Visibility != model.ConfigVisibilityVisible {
-			t.Errorf("GetByKey(custom_key).Visibility = %d, want %d", loaded.Visibility, model.ConfigVisibilityVisible)
+			t.Errorf("GetSystemConfigByKey(custom_key).Visibility = %d, want %d", loaded.Visibility, model.ConfigVisibilityVisible)
 		}
 	})
 
@@ -245,22 +246,22 @@ func TestUpdateSystemConfig(t *testing.T) {
 		// Verify caches are invalidated after update and repopulate on read
 		_, err := db.Redis.HGet(
 			context.Background(),
-			db.PrefixedKey(model.SystemConfigRedisHashKey),
+			db.PrefixedKey(repository.SystemConfigRedisHashKey),
 			model.ConfigKeySiteName,
 		).Result()
 		if err == nil {
 			t.Fatal("expected redis cache miss immediately after update")
 		}
 
-		var loaded model.SystemConfig
-		if err := loaded.GetByKey(context.Background(), model.ConfigKeySiteName); err != nil {
-			t.Fatalf("GetByKey(site_name) error = %v", err)
+		loaded, err := repository.GetSystemConfigByKey(context.Background(), model.ConfigKeySiteName)
+		if err != nil {
+			t.Fatalf("GetSystemConfigByKey(site_name) error = %v", err)
 		}
 		if loaded.Value != "Super Site Name" {
-			t.Errorf("GetByKey(site_name).Value = %q, want %q", loaded.Value, "Super Site Name")
+			t.Errorf("GetSystemConfigByKey(site_name).Value = %q, want %q", loaded.Value, "Super Site Name")
 		}
 		if loaded.Visibility != model.ConfigVisibilityHidden {
-			t.Errorf("GetByKey(site_name).Visibility = %d, want %d", loaded.Visibility, model.ConfigVisibilityHidden)
+			t.Errorf("GetSystemConfigByKey(site_name).Visibility = %d, want %d", loaded.Visibility, model.ConfigVisibilityHidden)
 		}
 	})
 

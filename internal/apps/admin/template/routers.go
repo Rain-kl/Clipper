@@ -3,15 +3,15 @@
 
 package template
 
-import ("errors"
+import (
+	"errors"
 	"net/http"
 
-	"github.com/Rain-kl/Wavelet/internal/db"
-	"github.com/Rain-kl/Wavelet/internal/model"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 
-	"github.com/Rain-kl/Wavelet/internal/common/response")
+	"github.com/Rain-kl/Wavelet/internal/common/response"
+)
 
 // CreateTemplateRequest 创建模板请求
 type CreateTemplateRequest struct {
@@ -30,6 +30,24 @@ type UpdateTemplateRequest struct {
 	Subject     string `json:"subject" binding:"max=255"`
 	Content     string `json:"content" binding:"required"`
 	Description string `json:"description" binding:"max=255"`
+}
+
+func abortTemplateLogicError(c *gin.Context, err error) bool {
+	if err == nil {
+		return false
+	}
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		response.AbortNotFound(c, TemplateNotFound)
+		return true
+	}
+	msg := err.Error()
+	switch msg {
+	case TemplateKeyExists, SystemTemplateCannotDelete:
+		response.AbortBadRequest(c, msg)
+		return true
+	}
+	response.AbortInternal(c, msg)
+	return true
 }
 
 // CreateTemplate 创建模板
@@ -53,33 +71,8 @@ func CreateTemplate(c *gin.Context) {
 		return
 	}
 
-	// 检查模板 Key 是否已存在
-	var existing model.Template
-	if err := db.DB(c.Request.Context()).Where("key = ?", req.Key).First(&existing).Error; err == nil {
-		response.AbortBadRequest(c, TemplateKeyExists)
-		return
-	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
-		response.AbortInternal(c, err.Error())
-		return
-	}
-
-	tmpl := model.Template{
-		Key:         req.Key,
-		Name:        req.Name,
-		Type:        req.Type,
-		Subject:     req.Subject,
-		Content:     req.Content,
-		Description: req.Description,
-		IsSystem:    false,
-	}
-
-	if err := tmpl.Validate(); err != nil {
-		response.AbortBadRequest(c, err.Error())
-		return
-	}
-
-	if err := db.DB(c.Request.Context()).Create(&tmpl).Error; err != nil {
-		response.AbortInternal(c, err.Error())
+	tmpl, err := createTemplate(c.Request.Context(), req)
+	if abortTemplateLogicError(c, err) {
 		return
 	}
 
@@ -98,8 +91,8 @@ func CreateTemplate(c *gin.Context) {
 // @Failure 500 {object} response.Any "内部错误"
 // @Router /api/v1/admin/templates [get]
 func ListTemplates(c *gin.Context) {
-	var templates []model.Template
-	if err := db.DB(c.Request.Context()).Order("is_system DESC, created_at DESC").Find(&templates).Error; err != nil {
+	templates, err := listTemplates(c.Request.Context())
+	if err != nil {
 		response.AbortInternal(c, err.Error())
 		return
 	}
@@ -121,13 +114,8 @@ func ListTemplates(c *gin.Context) {
 // @Failure 500 {object} response.Any "内部错误"
 // @Router /api/v1/admin/templates/{key} [get]
 func GetTemplate(c *gin.Context) {
-	var tmpl model.Template
-	if err := db.DB(c.Request.Context()).Where("key = ?", c.Param("key")).First(&tmpl).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			response.AbortNotFound(c, TemplateNotFound)
-		} else {
-			response.AbortInternal(c, err.Error())
-		}
+	tmpl, err := getTemplate(c.Request.Context(), c.Param("key"))
+	if abortTemplateLogicError(c, err) {
 		return
 	}
 
@@ -157,32 +145,8 @@ func UpdateTemplate(c *gin.Context) {
 		return
 	}
 
-	key := c.Param("key")
-
-	// 检查模板是否存在
-	var tmpl model.Template
-	if err := db.DB(c.Request.Context()).Where("key = ?", key).First(&tmpl).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			response.AbortNotFound(c, TemplateNotFound)
-		} else {
-			response.AbortInternal(c, err.Error())
-		}
-		return
-	}
-
-	tmpl.Name = req.Name
-	tmpl.Type = req.Type
-	tmpl.Subject = req.Subject
-	tmpl.Content = req.Content
-	tmpl.Description = req.Description
-
-	if err := tmpl.Validate(); err != nil {
-		response.AbortBadRequest(c, err.Error())
-		return
-	}
-
-	if err := db.DB(c.Request.Context()).Save(&tmpl).Error; err != nil {
-		response.AbortInternal(c, err.Error())
+	tmpl, err := updateTemplate(c.Request.Context(), c.Param("key"), req)
+	if abortTemplateLogicError(c, err) {
 		return
 	}
 
@@ -204,27 +168,7 @@ func UpdateTemplate(c *gin.Context) {
 // @Failure 500 {object} response.Any "内部错误"
 // @Router /api/v1/admin/templates/{key} [delete]
 func DeleteTemplate(c *gin.Context) {
-	key := c.Param("key")
-
-	// 检查模板是否存在
-	var tmpl model.Template
-	if err := db.DB(c.Request.Context()).Where("key = ?", key).First(&tmpl).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			response.AbortNotFound(c, TemplateNotFound)
-		} else {
-			response.AbortInternal(c, err.Error())
-		}
-		return
-	}
-
-	// 限制系统模板删除
-	if tmpl.IsSystem {
-		response.AbortBadRequest(c, SystemTemplateCannotDelete)
-		return
-	}
-
-	if err := db.DB(c.Request.Context()).Delete(&tmpl).Error; err != nil {
-		response.AbortInternal(c, err.Error())
+	if err := deleteTemplate(c.Request.Context(), c.Param("key")); abortTemplateLogicError(c, err) {
 		return
 	}
 

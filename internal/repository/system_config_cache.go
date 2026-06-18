@@ -1,7 +1,7 @@
 // Copyright 2026 Arctel.net
 // SPDX-License-Identifier: Apache-2.0
 
-package model
+package repository
 
 import (
 	"context"
@@ -9,14 +9,20 @@ import (
 	"sync"
 
 	"github.com/Rain-kl/Wavelet/internal/db"
+	"github.com/Rain-kl/Wavelet/internal/model"
 	"github.com/Rain-kl/Wavelet/pkg/cache/ram"
 )
 
 const (
 	// SystemConfigInvalidationChannel broadcasts RAM cache eviction across nodes.
 	SystemConfigInvalidationChannel = "system:config_invalidation"
-	systemConfigInvalidateAllToken  = "*"
-	systemConfigRAMMaximumSize      = 512
+	// SystemConfigRedisHashKey Redis Hash key，存储所有系统配置。
+	SystemConfigRedisHashKey = "system:system_configs"
+	// SystemConfigVisibleListRedisKey Redis key，缓存所有 visibility=1 的公共配置列表。
+	SystemConfigVisibleListRedisKey = "system:visible_configs"
+
+	systemConfigInvalidateAllToken = "*"
+	systemConfigRAMMaximumSize     = 512
 )
 
 type systemConfigInvalidationMessage struct {
@@ -24,7 +30,7 @@ type systemConfigInvalidationMessage struct {
 }
 
 var (
-	systemConfigRAMCache     = ram.MustNew[string, SystemConfig](ram.Options{MaximumSize: systemConfigRAMMaximumSize})
+	systemConfigRAMCache     = ram.MustNew[string, model.SystemConfig](ram.Options{MaximumSize: systemConfigRAMMaximumSize})
 	systemConfigListenerOnce sync.Once
 )
 
@@ -58,11 +64,11 @@ func startSystemConfigCacheInvalidationListener() {
 	}()
 }
 
-func cloneSystemConfig(sc SystemConfig) SystemConfig {
+func cloneSystemConfig(sc model.SystemConfig) model.SystemConfig {
 	return sc
 }
 
-func populateSystemConfigCache(ctx context.Context, sc SystemConfig) {
+func populateSystemConfigCache(ctx context.Context, sc model.SystemConfig) {
 	systemConfigRAMCache.Set(sc.Key, cloneSystemConfig(sc))
 	if db.Redis != nil {
 		_ = db.HSetJSON(ctx, SystemConfigRedisHashKey, sc.Key, &sc)
@@ -81,7 +87,6 @@ func publishSystemConfigRAMInvalidation(ctx context.Context, key string) {
 }
 
 // InvalidateSystemConfigCache evicts one config key from local RAM and Redis.
-// It also publishes cluster-wide RAM invalidation when Redis is available.
 func InvalidateSystemConfigCache(ctx context.Context, key string) error {
 	ensureSystemConfigCacheListener()
 
@@ -96,7 +101,6 @@ func InvalidateSystemConfigCache(ctx context.Context, key string) error {
 }
 
 // InvalidateAllSystemConfigCaches evicts all config entries from local RAM and Redis.
-// It also publishes cluster-wide RAM invalidation when Redis is available.
 func InvalidateAllSystemConfigCaches(ctx context.Context) error {
 	ensureSystemConfigCacheListener()
 

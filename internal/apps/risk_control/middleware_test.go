@@ -14,7 +14,6 @@ import (
 	"github.com/Rain-kl/Wavelet/internal/config"
 	"github.com/Rain-kl/Wavelet/internal/model"
 	"github.com/Rain-kl/Wavelet/internal/testhelper"
-	"github.com/Rain-kl/Wavelet/internal/util"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 )
@@ -51,7 +50,7 @@ func TestRiskControlMiddleware(t *testing.T) {
 		r.Use(func(c *gin.Context) {
 			// Mock authentication middleware placing user in context
 			user := &model.User{ID: 12345}
-			util.SetToContext(c, oauth.UserObjKey, user)
+			oauth.SetToContext(c, oauth.UserObjKey, user)
 			c.Next()
 		})
 		r.Use(RiskControlMiddleware())

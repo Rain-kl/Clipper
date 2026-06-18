@@ -2,6 +2,7 @@
 // Copyright 2026 Arctel.net
 // SPDX-License-Identifier: Apache-2.0
 
+// Package util provides framework-agnostic helper types and HTTP utilities.
 package util
 
 import (

@@ -21,13 +21,13 @@ import (
 
 	"github.com/Rain-kl/Wavelet/internal/apps/oauth"
 	"github.com/Rain-kl/Wavelet/internal/apps/upload/shared"
-	"github.com/Rain-kl/Wavelet/internal/common/response"
 	uploadstats "github.com/Rain-kl/Wavelet/internal/apps/upload/stats"
+	"github.com/Rain-kl/Wavelet/internal/common/response"
 	"github.com/Rain-kl/Wavelet/internal/db"
 	"github.com/Rain-kl/Wavelet/internal/model"
+	"github.com/Rain-kl/Wavelet/internal/repository"
 	"github.com/Rain-kl/Wavelet/internal/storage"
 	"github.com/Rain-kl/Wavelet/internal/testhelper"
-	"github.com/Rain-kl/Wavelet/internal/util"
 	"github.com/gin-gonic/gin"
 )
 
@@ -43,7 +43,7 @@ func setupTestRouter(authUser *model.User) *gin.Engine {
 
 	authMiddleware := func(c *gin.Context) {
 		if authUser != nil {
-			util.SetToContext(c, oauth.UserObjKey, authUser)
+			oauth.SetToContext(c, oauth.UserObjKey, authUser)
 		}
 		c.Next()
 	}
@@ -297,8 +297,8 @@ func TestUploadFile(t *testing.T) {
 		dbConn.Where("key = ?", model.ConfigKeyUploadAllowedExtensions).First(&sc)
 		sc.Value = "jpg,png,webp,txt"
 		dbConn.Save(&sc)
-		_ = db.HSetJSON(context.Background(), model.SystemConfigRedisHashKey, sc.Key, &sc)
-		model.ResetSystemConfigRAMCacheForTest()
+		_ = db.HSetJSON(context.Background(), repository.SystemConfigRedisHashKey, sc.Key, &sc)
+		repository.ResetSystemConfigRAMCacheForTest()
 
 		contentType, body := createMultipartRequest(t, "file", "doc.txt", []byte("hello world generic document file"), map[string]string{
 			"type": "document",
@@ -998,4 +998,3 @@ func TestUserUploadManagement(t *testing.T) {
 		}
 	})
 }
-

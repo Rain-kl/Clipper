@@ -11,6 +11,7 @@ import (
 
 	"github.com/Rain-kl/Wavelet/internal/db"
 	"github.com/Rain-kl/Wavelet/internal/model"
+	"github.com/Rain-kl/Wavelet/internal/repository"
 	"github.com/alicebob/miniredis/v2"
 	"github.com/glebarez/sqlite"
 	"github.com/redis/go-redis/v9"
@@ -76,7 +77,7 @@ func SetupTestEnvironment(t *testing.T) (*gorm.DB, *miniredis.Miniredis, func())
 	// Cleanup function
 	cleanup := func() {
 		runExtraCleanups()
-		model.ResetSystemConfigRAMCacheForTest()
+		repository.ResetSystemConfigRAMCacheForTest()
 		_ = redisClient.Close()
 		mr.Close()
 		// Reset database and Redis references
@@ -316,6 +317,6 @@ func seedDefaultConfigs(t *testing.T, tx *gorm.DB) {
 		if _, ok := publicKeys[config.Key]; ok {
 			config.Visibility = model.ConfigVisibilityVisible
 		}
-		_ = db.HSetJSON(context.Background(), model.SystemConfigRedisHashKey, config.Key, &config)
+		_ = db.HSetJSON(context.Background(), repository.SystemConfigRedisHashKey, config.Key, &config)
 	}
 }

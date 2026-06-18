@@ -4,18 +4,16 @@
 // Package cache provides HTTP handlers for managing disk cache.
 package cache
 
-import ("context"
-	"errors"
+import (
 	"net/http"
 	"strconv"
 
-	"github.com/Rain-kl/Wavelet/internal/db"
 	"github.com/Rain-kl/Wavelet/internal/diskcache"
 	"github.com/Rain-kl/Wavelet/internal/model"
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 
-	"github.com/Rain-kl/Wavelet/internal/common/response")
+	"github.com/Rain-kl/Wavelet/internal/common/response"
+)
 
 type updateCacheConfigRequest struct {
 	MaxSizeMB  int64 `json:"max_size_mb" binding:"required,min=1"`
@@ -62,25 +60,21 @@ func UpdateCacheConfig(c *gin.Context) {
 
 	ctx := c.Request.Context()
 
-	// Update Max Size
 	if err := saveOrUpdateConfig(ctx, model.ConfigKeyDiskCacheMaxSizeMB, strconv.FormatInt(req.MaxSizeMB, 10)); err != nil {
 		response.AbortInternal(c, err.Error())
 		return
 	}
 
-	// Update Default TTL
 	if err := saveOrUpdateConfig(ctx, model.ConfigKeyDiskCacheTTLMinutes, strconv.FormatInt(req.TTLMinutes, 10)); err != nil {
 		response.AbortInternal(c, err.Error())
 		return
 	}
 
-	// Update LRU Enabled
 	if err := saveOrUpdateConfig(ctx, model.ConfigKeyDiskCacheLRUEnabled, strconv.FormatBool(req.LRUEnabled)); err != nil {
 		response.AbortInternal(c, err.Error())
 		return
 	}
 
-	// Trigger hot reloading in global cache
 	diskcache.GetGlobalCache().ReloadConfig(ctx)
 
 	c.JSON(http.StatusOK, response.OKNil())
@@ -103,31 +97,4 @@ func ClearCache(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, response.OKNil())
-}
-
-func saveOrUpdateConfig(ctx context.Context, key string, value string) error {
-	var sc model.SystemConfig
-	err := db.DB(ctx).Where("key = ?", key).First(&sc).Error
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-		return err
-	}
-
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		sc = model.SystemConfig{
-			Key:        key,
-			Value:      value,
-			Type:       "system",
-			Visibility: 0,
-		}
-		if err := db.DB(ctx).Create(&sc).Error; err != nil {
-			return err
-		}
-	} else {
-		sc.Value = value
-		if err := db.DB(ctx).Save(&sc).Error; err != nil {
-			return err
-		}
-	}
-
-	return model.InvalidateSystemConfigCache(ctx, key)
 }

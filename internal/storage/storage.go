@@ -15,6 +15,7 @@ import (
 
 	"github.com/Rain-kl/Wavelet/internal/db"
 	"github.com/Rain-kl/Wavelet/internal/model"
+	"github.com/Rain-kl/Wavelet/internal/repository"
 	"gorm.io/gorm"
 )
 
@@ -123,8 +124,7 @@ func Active(ctx context.Context) (Driver, Backend, error) {
 		return activeDriver, activeBackend, nil
 	}
 
-	var sc model.SystemConfig
-	err := sc.GetByKey(ctx, model.ConfigKeyStorageConfig)
+	sc, err := repository.GetSystemConfigByKey(ctx, model.ConfigKeyStorageConfig)
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return "", nil, err
 	}

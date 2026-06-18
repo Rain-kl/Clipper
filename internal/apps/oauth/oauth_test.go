@@ -35,6 +35,7 @@ import (
 	"github.com/Rain-kl/Wavelet/internal/config"
 	"github.com/Rain-kl/Wavelet/internal/db"
 	"github.com/Rain-kl/Wavelet/internal/model"
+	"github.com/Rain-kl/Wavelet/internal/repository"
 	"github.com/Rain-kl/Wavelet/internal/testhelper"
 	"github.com/Rain-kl/Wavelet/internal/util"
 )
@@ -1094,7 +1095,7 @@ func TestOIDCPolicyEnforcement(t *testing.T) {
 		Key:   model.ConfigKeyOIDCLoginEnabled,
 		Value: "false",
 	})
-	mockRedis.Del(context.Background(), db.PrefixedKey(model.SystemConfigRedisHashKey)+":"+model.ConfigKeyOIDCLoginEnabled)
+	mockRedis.Del(context.Background(), db.PrefixedKey(repository.SystemConfigRedisHashKey)+":"+model.ConfigKeyOIDCLoginEnabled)
 	wLoginDisabled := performRequest(router, http.MethodGet, "/api/v1/oauth/login?source="+testSourceName, nil, nil, nil)
 	if wLoginDisabled.Code != http.StatusBadRequest {
 		t.Errorf("expected 400 when OIDC globally disabled, got %d", wLoginDisabled.Code)
@@ -1102,7 +1103,7 @@ func TestOIDCPolicyEnforcement(t *testing.T) {
 
 	// Re-enable globally, but deactivate source
 	dbConn.Model(&model.SystemConfig{}).Where("key = ?", model.ConfigKeyOIDCLoginEnabled).Update("value", "true")
-	mockRedis.Del(context.Background(), db.PrefixedKey(model.SystemConfigRedisHashKey)+":"+model.ConfigKeyOIDCLoginEnabled)
+	mockRedis.Del(context.Background(), db.PrefixedKey(repository.SystemConfigRedisHashKey)+":"+model.ConfigKeyOIDCLoginEnabled)
 	dbConn.Model(&model.AuthSource{}).Where("name = ?", testSourceName).Update("is_active", false)
 
 	wSourceInactive := performRequest(router, http.MethodGet, "/api/v1/oauth/login?source="+testSourceName, nil, nil, nil)
@@ -1113,7 +1114,7 @@ func TestOIDCPolicyEnforcement(t *testing.T) {
 	// --- 2. Test Authorize enforcement ---
 	// Deactivate globally again
 	dbConn.Model(&model.SystemConfig{}).Where("key = ?", model.ConfigKeyOIDCLoginEnabled).Update("value", "false")
-	mockRedis.Del(context.Background(), db.PrefixedKey(model.SystemConfigRedisHashKey)+":"+model.ConfigKeyOIDCLoginEnabled)
+	mockRedis.Del(context.Background(), db.PrefixedKey(repository.SystemConfigRedisHashKey)+":"+model.ConfigKeyOIDCLoginEnabled)
 	dbConn.Model(&model.AuthSource{}).Where("name = ?", testSourceName).Update("is_active", true)
 
 	wAuthDisabled := performRequest(router, http.MethodGet, "/api/v1/oauth/"+testSourceName+"/authorize", nil, nil, nil)
@@ -1124,7 +1125,7 @@ func TestOIDCPolicyEnforcement(t *testing.T) {
 	// --- 3. Test Callback enforcement ---
 	// Set up a valid state beforehand (when enabled)
 	dbConn.Model(&model.SystemConfig{}).Where("key = ?", model.ConfigKeyOIDCLoginEnabled).Update("value", "true")
-	mockRedis.Del(context.Background(), db.PrefixedKey(model.SystemConfigRedisHashKey)+":"+model.ConfigKeyOIDCLoginEnabled)
+	mockRedis.Del(context.Background(), db.PrefixedKey(repository.SystemConfigRedisHashKey)+":"+model.ConfigKeyOIDCLoginEnabled)
 	dbConn.Model(&model.AuthSource{}).Where("name = ?", testSourceName).Update("is_active", true)
 
 	wLogin := performRequest(router, http.MethodGet, "/api/v1/oauth/login?source="+testSourceName, nil, nil, nil)
@@ -1149,7 +1150,7 @@ func TestOIDCPolicyEnforcement(t *testing.T) {
 
 	// Now disable OIDC globally and attempt callback
 	dbConn.Model(&model.SystemConfig{}).Where("key = ?", model.ConfigKeyOIDCLoginEnabled).Update("value", "false")
-	mockRedis.Del(context.Background(), db.PrefixedKey(model.SystemConfigRedisHashKey)+":"+model.ConfigKeyOIDCLoginEnabled)
+	mockRedis.Del(context.Background(), db.PrefixedKey(repository.SystemConfigRedisHashKey)+":"+model.ConfigKeyOIDCLoginEnabled)
 	reqBody := fmt.Sprintf(`{"state":"%s","code":"test_auth_code"}`, state)
 	wCallbackDisabled := performRequest(router, http.MethodPost, "/api/v1/oauth/callback", []byte(reqBody), map[string]string{
 		"Content-Type": "application/json",
@@ -1160,7 +1161,7 @@ func TestOIDCPolicyEnforcement(t *testing.T) {
 
 	// Enable globally but deactivate source and attempt callback
 	dbConn.Model(&model.SystemConfig{}).Where("key = ?", model.ConfigKeyOIDCLoginEnabled).Update("value", "true")
-	mockRedis.Del(context.Background(), db.PrefixedKey(model.SystemConfigRedisHashKey)+":"+model.ConfigKeyOIDCLoginEnabled)
+	mockRedis.Del(context.Background(), db.PrefixedKey(repository.SystemConfigRedisHashKey)+":"+model.ConfigKeyOIDCLoginEnabled)
 	dbConn.Model(&model.AuthSource{}).Where("name = ?", testSourceName).Update("is_active", false)
 
 	// Since callback deletes state, we need to generate state again

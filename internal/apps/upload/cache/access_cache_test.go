@@ -8,10 +8,11 @@ import (
 	"testing"
 	"time"
 
-	uploadstorage "github.com/Rain-kl/Wavelet/internal/apps/upload/storage"
 	"github.com/Rain-kl/Wavelet/internal/apps/upload/shared"
+	uploadstorage "github.com/Rain-kl/Wavelet/internal/apps/upload/storage"
 	"github.com/Rain-kl/Wavelet/internal/db"
 	"github.com/Rain-kl/Wavelet/internal/model"
+	"github.com/Rain-kl/Wavelet/internal/repository"
 	"github.com/Rain-kl/Wavelet/internal/testhelper"
 )
 
@@ -67,10 +68,10 @@ func TestResetAccessCachesRefreshesWhitelist(t *testing.T) {
 	if err := dbConn.Save(&sc).Error; err != nil {
 		t.Fatalf("save whitelist config: %v", err)
 	}
-	if err := db.HSetJSON(ctx, model.SystemConfigRedisHashKey, model.ConfigKeyFileAccessWhitelist, &sc); err != nil {
+	if err := db.HSetJSON(ctx, repository.SystemConfigRedisHashKey, model.ConfigKeyFileAccessWhitelist, &sc); err != nil {
 		t.Fatalf("refresh whitelist redis cache: %v", err)
 	}
-	model.ResetSystemConfigRAMCacheForTest()
+	repository.ResetSystemConfigRAMCacheForTest()
 
 	ResetAccessCaches()
 	if !IsFilePublic(ctx, "attachment") {

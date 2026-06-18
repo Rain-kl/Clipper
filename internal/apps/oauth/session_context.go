@@ -10,6 +10,7 @@ import (
 
 	"github.com/Rain-kl/Wavelet/internal/config"
 	"github.com/Rain-kl/Wavelet/internal/model"
+	"github.com/Rain-kl/Wavelet/internal/repository"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -56,7 +57,7 @@ func setLoginSession(ctx context.Context, c *gin.Context, user *model.User) erro
 	maxAge := config.Config.App.SessionAge
 	isSessionCookie := false
 
-	ttlHours, err := model.GetIntByKey(ctx, model.ConfigKeyLoginSessionTTLHours)
+	ttlHours, err := repository.GetIntByKey(ctx, model.ConfigKeyLoginSessionTTLHours)
 	if err == nil {
 		switch {
 		case ttlHours == -1:

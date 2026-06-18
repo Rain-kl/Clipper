@@ -5,16 +5,13 @@
 package user
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/Rain-kl/Wavelet/internal/apps/oauth"
-	"github.com/Rain-kl/Wavelet/internal/db"
-	"github.com/Rain-kl/Wavelet/internal/db/idgen"
 	"github.com/Rain-kl/Wavelet/internal/model"
-	"github.com/Rain-kl/Wavelet/internal/util"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 
@@ -85,6 +82,31 @@ func toUser(u model.User) user {
 	}
 }
 
+func abortUserLogicError(c *gin.Context, err error, notFoundMsg string, forbiddenMsgs, badRequestMsgs []string) bool {
+	if err == nil {
+		return false
+	}
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		response.AbortNotFound(c, notFoundMsg)
+		return true
+	}
+	msg := err.Error()
+	for _, m := range badRequestMsgs {
+		if msg == m {
+			response.AbortBadRequest(c, msg)
+			return true
+		}
+	}
+	for _, m := range forbiddenMsgs {
+		if msg == m {
+			response.AbortForbidden(c, msg)
+			return true
+		}
+	}
+	response.AbortInternal(c, msg)
+	return true
+}
+
 // ListUsers 获取用户列表
 // @Summary 获取用户列表
 // @Description 分页返回用户列表，支持按用户 ID 和用户名筛选，需要管理员权限
@@ -98,7 +120,6 @@ func toUser(u model.User) user {
 // @Failure 403 {object} response.Any "无管理员权限"
 // @Failure 500 {object} response.Any "内部错误"
 // @Router /api/v1/admin/users [get]
-// ListUsers 获取用户列表
 func ListUsers(c *gin.Context) {
 	var req listUsersRequest
 	if err := c.ShouldBindQuery(&req); err != nil {
@@ -106,34 +127,8 @@ func ListUsers(c *gin.Context) {
 		return
 	}
 
-	var modelUsers []model.User
-	var total int64
-
-	query := db.DB(c.Request.Context()).Model(&model.User{})
-
-	username := strings.TrimSpace(req.Username)
-
-	if req.UserID != nil {
-		query = query.Where("id = ?", *req.UserID)
-	}
-
-	if username != "" {
-		query = query.Where("username LIKE ?", username+"%")
-	}
-
-	if err := query.Count(&total).Error; err != nil {
-		response.AbortInternal(c, err.Error())
-		return
-	}
-
-	offset := (req.Page - 1) * req.PageSize
-	if err := query.
-		Select("id, username, nickname, avatar_url, is_active, is_admin, " +
-			"last_login_at, created_at, updated_at").
-		Order("id DESC").
-		Offset(offset).
-		Limit(req.PageSize).
-		Find(&modelUsers).Error; err != nil {
+	total, modelUsers, err := listUsers(c.Request.Context(), req)
+	if err != nil {
 		response.AbortInternal(c, err.Error())
 		return
 	}
@@ -169,17 +164,8 @@ func GetUser(c *gin.Context) {
 		return
 	}
 
-	var targetUser model.User
-	if err := db.DB(c.Request.Context()).
-		Select("id, username, nickname, email, avatar_url, is_active, is_admin, "+
-			"bio, phone, gender, website, location, last_login_at, created_at, updated_at").
-		Where("id = ?", id).
-		First(&targetUser).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			response.AbortNotFound(c, userNotFound)
-			return
-		}
-		response.AbortInternal(c, err.Error())
+	targetUser, err := getUserDetail(c.Request.Context(), id)
+	if abortUserLogicError(c, err, userNotFound, nil, nil) {
 		return
 	}
 
@@ -219,32 +205,10 @@ func UpdateUserStatus(c *gin.Context) {
 		return
 	}
 
-	var targetUser struct {
-		ID      uint64 `gorm:"column:id"`
-		IsAdmin bool   `gorm:"column:is_admin"`
-	}
-	if err := db.DB(c.Request.Context()).
-		Model(&model.User{}).
-		Select("id, is_admin").
-		Where("id = ?", id).
-		First(&targetUser).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			response.AbortNotFound(c, userNotFound)
+	if err := updateUserStatus(c.Request.Context(), id, req.IsActive); err != nil {
+		if abortUserLogicError(c, err, userNotFound, []string{cannotDisable}, nil) {
 			return
 		}
-		response.AbortInternal(c, err.Error())
-		return
-	}
-
-	if !req.IsActive && targetUser.IsAdmin {
-		response.AbortForbidden(c, cannotDisable)
-		return
-	}
-
-	if err := db.DB(c.Request.Context()).
-		Model(&model.User{}).
-		Where("id = ?", id).
-		Update("is_active", req.IsActive).Error; err != nil {
 		response.AbortInternal(c, updateUserFailed)
 		return
 	}
@@ -272,43 +236,11 @@ func DeleteUser(c *gin.Context) {
 		return
 	}
 
-	currUser, _ := util.GetFromContext[*model.User](c, oauth.UserObjKey)
-	if currUser != nil && currUser.ID == id {
-		response.AbortForbidden(c, cannotDeleteSelf)
-		return
-	}
-
-	var targetUser struct {
-		ID      uint64 `gorm:"column:id"`
-		IsAdmin bool   `gorm:"column:is_admin"`
-	}
-	if err := db.DB(c.Request.Context()).
-		Model(&model.User{}).
-		Select("id, is_admin").
-		Where("id = ?", id).
-		First(&targetUser).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			response.AbortNotFound(c, userNotFound)
+	currUser, _ := oauth.GetFromContext[*model.User](c, oauth.UserObjKey)
+	if err := deleteUser(c.Request.Context(), currUser.ID, id); err != nil {
+		if abortUserLogicError(c, err, userNotFound, []string{cannotDelete, cannotDeleteSelf}, nil) {
 			return
 		}
-		response.AbortInternal(c, err.Error())
-		return
-	}
-
-	if targetUser.IsAdmin {
-		response.AbortForbidden(c, cannotDelete)
-		return
-	}
-
-	if err := db.DB(c.Request.Context()).Transaction(func(tx *gorm.DB) error {
-		if err := tx.Where("user_id = ?", id).Delete(&model.AccessToken{}).Error; err != nil {
-			return err
-		}
-		if err := tx.Where("user_id = ?", id).Delete(&model.ExternalAccount{}).Error; err != nil {
-			return err
-		}
-		return tx.Where("id = ?", id).Delete(&model.User{}).Error
-	}); err != nil {
 		response.AbortInternal(c, deleteUserFailed)
 		return
 	}
@@ -347,65 +279,8 @@ func CreateUser(c *gin.Context) {
 		return
 	}
 
-	req.Username = strings.TrimSpace(req.Username)
-	req.Nickname = strings.TrimSpace(req.Nickname)
-	req.Password = strings.TrimSpace(req.Password)
-	req.Email = strings.TrimSpace(req.Email)
-
-	if req.Username == "" {
-		response.AbortBadRequest(c, usernameRequired)
-		return
-	}
-	if req.Email == "" {
-		response.AbortBadRequest(c, emailRequired)
-		return
-	}
-	if len(req.Password) < minPasswordLength {
-		response.AbortBadRequest(c, passwordTooShort)
-		return
-	}
-
-	ctx := c.Request.Context()
-	var count int64
-	if err := db.DB(ctx).Model(&model.User{}).Where("username = ?", req.Username).Count(&count).Error; err != nil {
-		response.AbortInternal(c, err.Error())
-		return
-	}
-	if count > 0 {
-		response.AbortBadRequest(c, usernameExists)
-		return
-	}
-
-	var emailCount int64
-	if err := db.DB(ctx).Model(&model.User{}).Where("email = ?", req.Email).Count(&emailCount).Error; err != nil {
-		response.AbortInternal(c, err.Error())
-		return
-	}
-	if emailCount > 0 {
-		response.AbortBadRequest(c, emailExists)
-		return
-	}
-
-	newUser := model.User{
-		ID:          idgen.NextUint64ID(),
-		Username:    req.Username,
-		Nickname:    req.Nickname,
-		Email:       req.Email,
-		IsActive:    req.IsActive,
-		IsAdmin:     req.IsAdmin,
-		LastLoginAt: time.Time{},
-	}
-	if newUser.Nickname == "" {
-		newUser.Nickname = req.Username
-	}
-
-	if err := newUser.SetEncryptedPassword(req.Password); err != nil {
-		response.AbortInternal(c, err.Error())
-		return
-	}
-
-	if err := db.DB(ctx).Create(&newUser).Error; err != nil {
-		response.AbortInternal(c, err.Error())
+	newUser, err := createUser(c.Request.Context(), req)
+	if abortUserLogicError(c, err, "", nil, []string{usernameRequired, emailRequired, passwordTooShort, usernameExists, emailExists}) {
 		return
 	}
 

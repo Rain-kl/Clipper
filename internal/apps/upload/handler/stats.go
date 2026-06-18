@@ -9,7 +9,6 @@ import (
 
 	"github.com/Rain-kl/Wavelet/internal/apps/upload/shared"
 	"github.com/Rain-kl/Wavelet/internal/common/response"
-	"github.com/Rain-kl/Wavelet/internal/db"
 	"github.com/Rain-kl/Wavelet/internal/model"
 	"github.com/gin-gonic/gin"
 )
@@ -48,8 +47,8 @@ type fileStatsResponse struct {
 func GetFileStats(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	var stats []model.UploadStat
-	if err := db.DB(ctx).Find(&stats).Error; err != nil {
+	stats, err := loadUploadStats(ctx)
+	if err != nil {
 		response.AbortBadRequest(c, err.Error())
 		return
 	}

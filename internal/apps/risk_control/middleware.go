@@ -14,7 +14,6 @@ import (
 	"github.com/Rain-kl/Wavelet/internal/config"
 	"github.com/Rain-kl/Wavelet/internal/db/idgen"
 	"github.com/Rain-kl/Wavelet/internal/model"
-	"github.com/Rain-kl/Wavelet/internal/util"
 	"github.com/gin-gonic/gin"
 )
 
@@ -39,7 +38,7 @@ func RiskControlMiddleware() gin.HandlerFunc {
 		c.Next()
 
 		// 3. 后置身份检查：仅记录通过认证的请求
-		userObj, exists := util.GetFromContext[*model.User](c, oauth.UserObjKey)
+		userObj, exists := oauth.GetFromContext[*model.User](c, oauth.UserObjKey)
 		if !exists || userObj == nil {
 			return
 		}

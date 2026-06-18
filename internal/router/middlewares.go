@@ -15,6 +15,7 @@ import (
 	"github.com/Rain-kl/Wavelet/internal/common/response"
 	"github.com/Rain-kl/Wavelet/internal/config"
 	"github.com/Rain-kl/Wavelet/internal/model"
+	"github.com/Rain-kl/Wavelet/internal/repository"
 	"github.com/Rain-kl/Wavelet/pkg/logger"
 	otel_trace "github.com/Rain-kl/Wavelet/pkg/trace"
 	"github.com/gin-gonic/gin"
@@ -72,8 +73,8 @@ func loggerMiddleware() gin.HandlerFunc {
 }
 
 func isOriginAllowed(ctx context.Context, origin string) bool {
-	var sc model.SystemConfig
-	if err := sc.GetByKey(ctx, model.ConfigKeyServerAddress); err != nil || sc.Value == "" {
+	sc, err := repository.GetSystemConfigByKey(ctx, model.ConfigKeyServerAddress)
+	if err != nil || sc.Value == "" {
 		return false
 	}
 	allowedOrigins := strings.Split(sc.Value, ",")

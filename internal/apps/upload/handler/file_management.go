@@ -4,22 +4,17 @@
 package handler
 
 import (
-	"errors"
 	"net/http"
-	"sort"
 	"strconv"
-	"strings"
 
 	"github.com/Rain-kl/Wavelet/internal/apps/oauth"
 	"github.com/Rain-kl/Wavelet/internal/apps/upload/shared"
-	uploadstats "github.com/Rain-kl/Wavelet/internal/apps/upload/stats"
 	uploadstorage "github.com/Rain-kl/Wavelet/internal/apps/upload/storage"
 	"github.com/Rain-kl/Wavelet/internal/common/response"
-	"github.com/Rain-kl/Wavelet/internal/db"
 	"github.com/Rain-kl/Wavelet/internal/model"
-	apputil "github.com/Rain-kl/Wavelet/internal/util"
+	"github.com/Rain-kl/Wavelet/internal/repository"
+
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 )
 
 type listFilesRequest struct {
@@ -69,31 +64,15 @@ func ListFiles(c *gin.Context) {
 		req.PageSize = 20
 	}
 
-	query := db.DB(ctx).Model(&model.Upload{}).
-		Where("status != ?", model.UploadStatusDeleted)
-
-	if req.UserID != 0 {
-		query = query.Where("user_id = ?", req.UserID)
-	}
-	if req.Keyword != "" {
-		query = query.Where("LOWER(file_name) LIKE ?", "%"+strings.ToLower(req.Keyword)+"%")
-	}
-	if req.Type != "" {
-		query = query.Where("type = ?", req.Type)
-	}
-	if req.Extension != "" {
-		query = query.Where("extension = ?", strings.ToLower(req.Extension))
-	}
-
-	var total int64
-	if err := query.Count(&total).Error; err != nil {
-		response.AbortBadRequest(c, shared.ErrQueryFileCountFailed)
-		return
-	}
-
-	var items []model.Upload
-	offset := (req.Page - 1) * req.PageSize
-	if err := query.Order("created_at DESC").Offset(offset).Limit(req.PageSize).Find(&items).Error; err != nil {
+	total, items, err := listUploadFiles(ctx, repository.UploadListFilter{
+		UserID:    req.UserID,
+		Keyword:   req.Keyword,
+		Type:      req.Type,
+		Extension: req.Extension,
+		Page:      req.Page,
+		PageSize:  req.PageSize,
+	})
+	if err != nil {
 		response.AbortBadRequest(c, shared.ErrQueryFileListFailed)
 		return
 	}
@@ -130,20 +109,14 @@ func DeleteFile(c *gin.Context) {
 		return
 	}
 
-	var upload model.Upload
-	if err := db.DB(ctx).Where("id = ? AND status != ?", uploadID, model.UploadStatusDeleted).First(&upload).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+	if _, err := softDeleteUpload(ctx, uploadID); err != nil {
+		if isRecordNotFound(err) {
 			c.AbortWithStatus(http.StatusNotFound)
 			return
 		}
-		response.AbortBadRequest(c, shared.ErrQueryUploadRecordFailed)
-		return
-	}
-	if err := db.DB(ctx).Model(&upload).Update("status", model.UploadStatusDeleted).Error; err != nil {
 		response.AbortBadRequest(c, shared.ErrDeleteFileFailed)
 		return
 	}
-	uploadstats.RecordUploadStatsRemove(ctx, &upload)
 	c.JSON(http.StatusOK, response.OKNil())
 }
 
@@ -159,16 +132,12 @@ func DeleteFile(c *gin.Context) {
 // @Failure 500 {object} response.Any "内部错误"
 // @Router /api/v1/admin/uploads/types [get]
 func GetDistinctUploadTypes(c *gin.Context) {
-	var dbTypes []string
-	if err := db.DB(c.Request.Context()).Model(&model.Upload{}).
-		Where("type IS NOT NULL AND type != ''").
-		Distinct().
-		Pluck("type", &dbTypes).Error; err != nil {
+	types, err := listDistinctUploadTypes(c.Request.Context())
+	if err != nil {
 		response.AbortInternal(c, err.Error())
 		return
 	}
-	sort.Strings(dbTypes)
-	c.JSON(http.StatusOK, response.OK(dbTypes))
+	c.JSON(http.StatusOK, response.OK(types))
 }
 
 type listMyFilesRequest struct {
@@ -201,7 +170,7 @@ type listMyFilesResponse struct {
 // @Failure 401 {object} response.Any "未登录"
 // @Router /api/v1/upload/my [get]
 func ListMyFiles(c *gin.Context) {
-	currUser, _ := apputil.GetFromContext[*model.User](c, oauth.UserObjKey)
+	currUser, _ := oauth.GetFromContext[*model.User](c, oauth.UserObjKey)
 	ctx := c.Request.Context()
 
 	var req listMyFilesRequest
@@ -216,28 +185,14 @@ func ListMyFiles(c *gin.Context) {
 		req.PageSize = 20
 	}
 
-	query := db.DB(ctx).Model(&model.Upload{}).
-		Where("user_id = ? AND status != ?", currUser.ID, model.UploadStatusDeleted)
-
-	if req.Keyword != "" {
-		query = query.Where("LOWER(file_name) LIKE ?", "%"+strings.ToLower(req.Keyword)+"%")
-	}
-	if req.Type != "" {
-		query = query.Where("type = ?", req.Type)
-	}
-	if req.Extension != "" {
-		query = query.Where("extension = ?", strings.ToLower(req.Extension))
-	}
-
-	var total int64
-	if err := query.Count(&total).Error; err != nil {
-		response.AbortBadRequest(c, shared.ErrQueryFileCountFailed)
-		return
-	}
-
-	var items []model.Upload
-	offset := (req.Page - 1) * req.PageSize
-	if err := query.Order("created_at DESC").Offset(offset).Limit(req.PageSize).Find(&items).Error; err != nil {
+	total, items, err := listMyUploadFiles(ctx, currUser.ID, repository.UploadListFilter{
+		Keyword:   req.Keyword,
+		Type:      req.Type,
+		Extension: req.Extension,
+		Page:      req.Page,
+		PageSize:  req.PageSize,
+	})
+	if err != nil {
 		response.AbortBadRequest(c, shared.ErrQueryFileListFailed)
 		return
 	}
@@ -262,7 +217,7 @@ func ListMyFiles(c *gin.Context) {
 // @Failure 404 {object} response.Any "文件不存在"
 // @Router /api/v1/upload/{id} [delete]
 func DeleteMyFile(c *gin.Context) {
-	currUser, _ := apputil.GetFromContext[*model.User](c, oauth.UserObjKey)
+	currUser, _ := oauth.GetFromContext[*model.User](c, oauth.UserObjKey)
 	ctx := c.Request.Context()
 	if uploadstorage.ReadOnly(ctx) {
 		response.AbortConflict(c, shared.ErrStorageReadOnly)
@@ -275,26 +230,18 @@ func DeleteMyFile(c *gin.Context) {
 		return
 	}
 
-	var upload model.Upload
-	if err := db.DB(ctx).Where("id = ? AND status != ?", uploadID, model.UploadStatusDeleted).First(&upload).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+	if _, err := softDeleteOwnedUpload(ctx, currUser.ID, uploadID); err != nil {
+		if isRecordNotFound(err) {
 			c.AbortWithStatus(http.StatusNotFound)
 			return
 		}
-		response.AbortBadRequest(c, shared.ErrQueryUploadRecordFailed)
-		return
-	}
-
-	if upload.UserID != currUser.ID {
-		c.AbortWithStatus(http.StatusForbidden)
-		return
-	}
-
-	if err := db.DB(ctx).Model(&upload).Update("status", model.UploadStatusDeleted).Error; err != nil {
+		if err == errUploadForbidden {
+			c.AbortWithStatus(http.StatusForbidden)
+			return
+		}
 		response.AbortBadRequest(c, shared.ErrDeleteFileFailed)
 		return
 	}
-	uploadstats.RecordUploadStatsRemove(ctx, &upload)
 	c.JSON(http.StatusOK, response.OKNil())
 }
 
@@ -317,7 +264,7 @@ type updateMyFileRequest struct {
 // @Failure 404 {object} response.Any "文件不存在"
 // @Router /api/v1/upload/{id} [put]
 func UpdateMyFile(c *gin.Context) {
-	currUser, _ := apputil.GetFromContext[*model.User](c, oauth.UserObjKey)
+	currUser, _ := oauth.GetFromContext[*model.User](c, oauth.UserObjKey)
 	ctx := c.Request.Context()
 	if uploadstorage.ReadOnly(ctx) {
 		response.AbortConflict(c, shared.ErrStorageReadOnly)
@@ -336,34 +283,18 @@ func UpdateMyFile(c *gin.Context) {
 		return
 	}
 
-	var upload model.Upload
-	if err := db.DB(ctx).Where("id = ? AND status != ?", uploadID, model.UploadStatusDeleted).First(&upload).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+	upload, err := updateOwnedUpload(ctx, currUser.ID, uploadID, updateMyUploadInput(req))
+	if err != nil {
+		if isRecordNotFound(err) {
 			c.AbortWithStatus(http.StatusNotFound)
 			return
 		}
-		response.AbortBadRequest(c, shared.ErrQueryUploadRecordFailed)
-		return
-	}
-
-	if upload.UserID != currUser.ID {
-		c.AbortWithStatus(http.StatusForbidden)
-		return
-	}
-
-	updates := make(map[string]any)
-	if req.FileName != "" {
-		updates["file_name"] = req.FileName
-	}
-	if req.AccessMode != nil {
-		updates["access_mode"] = *req.AccessMode
-	}
-
-	if len(updates) > 0 {
-		if err := db.DB(ctx).Model(&upload).Updates(updates).Error; err != nil {
-			response.AbortBadRequest(c, "更新文件记录失败")
+		if err == errUploadForbidden {
+			c.AbortWithStatus(http.StatusForbidden)
 			return
 		}
+		response.AbortBadRequest(c, "更新文件记录失败")
+		return
 	}
 
 	c.JSON(http.StatusOK, response.OK(upload))

@@ -15,6 +15,7 @@ import (
 	"github.com/Rain-kl/Wavelet/internal/db"
 	"github.com/Rain-kl/Wavelet/internal/listener"
 	"github.com/Rain-kl/Wavelet/internal/model"
+	"github.com/Rain-kl/Wavelet/internal/repository"
 	"github.com/Rain-kl/Wavelet/pkg/logger"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
@@ -188,7 +189,7 @@ func handleCallbackLogin(ctx context.Context, c *gin.Context, source *model.Auth
 // handleCallbackRegister 处理 OAuth 回调中的自动注册流程
 // 若注册被禁用则保存 pending 信息并返回 false；若注册成功则返回新用户；若出错则返回 false
 func handleCallbackRegister(ctx context.Context, c *gin.Context, source *model.AuthSource, userInfo *model.OAuthUserInfo) (model.User, bool) {
-	registrationEnabled, regErr := model.GetBoolByKey(ctx, model.ConfigKeyRegistrationEnabled)
+	registrationEnabled, regErr := repository.GetBoolByKey(ctx, model.ConfigKeyRegistrationEnabled)
 	if regErr != nil {
 		registrationEnabled = true
 	}
