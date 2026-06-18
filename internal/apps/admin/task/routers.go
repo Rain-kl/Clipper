@@ -13,17 +13,12 @@ import ("fmt"
 	"github.com/Rain-kl/Wavelet/internal/apps/admin"
 	"github.com/Rain-kl/Wavelet/internal/model"
 	"github.com/Rain-kl/Wavelet/internal/task"
-	taskhandlers "github.com/Rain-kl/Wavelet/internal/task/handlers"
 	"github.com/Rain-kl/Wavelet/internal/task/scheduler"
 	"github.com/Rain-kl/Wavelet/pkg/logger"
 	"github.com/gin-gonic/gin"
 	"github.com/robfig/cron/v3"
 
 	"github.com/Rain-kl/Wavelet/internal/common/response")
-
-func init() {
-	taskhandlers.Register()
-}
 
 // ListTaskTypes 获取支持的任务类型列表
 // @Summary 获取支持的任务类型
