@@ -307,19 +307,12 @@ func validateAndMergeStorageConfig(ctx context.Context, value string, currentCon
 
 	// 合并被掩码屏蔽的敏感信息，获取完整的真实配置
 	targetCfg := storage.MergeMaskedSecrets(newCfg, currentCfg)
-
-	// 校验配置参数是否合法
-	if err := storage.ValidateConfig(targetCfg); err != nil {
-		return "", fmt.Errorf("验证存储配置参数失败: %w", err)
+	if err := validateMergedStorageConfig(ctx, currentCfg, newCfg, targetCfg); err != nil {
+		return "", err
 	}
-
-	// 进行连通性测试验证，如果测试失败则拒绝保存
-	testBackend, err := storage.NewBackend(ctx, targetCfg, targetCfg.Driver)
-	if err != nil {
-		return "", fmt.Errorf("初始化测试存储实例失败: %w", err)
-	}
-	if err := testBackend.Test(ctx); err != nil {
-		return "", fmt.Errorf("存储连通性测试失败: %w", err)
+	if newCfg.Driver != "" && newCfg.Driver != currentCfg.Driver {
+		// 切换存储类型时仅暂存目标后端参数，活动 driver 由迁移任务正式切换。
+		targetCfg.Driver = currentCfg.Driver
 	}
 
 	// 序列化为最终保存的真实明文配置，防止保存屏蔽的 ****** 字符
@@ -329,4 +322,36 @@ func validateAndMergeStorageConfig(ctx context.Context, value string, currentCon
 	}
 
 	return string(unmaskedVal), nil
+}
+
+func validateMergedStorageConfig(ctx context.Context, currentCfg, newCfg, targetCfg storage.Config) error {
+	if newCfg.Driver != "" && newCfg.Driver != currentCfg.Driver {
+		if err := validateDriverConfig(targetCfg, newCfg.Driver); err != nil {
+			return fmt.Errorf("验证目标存储配置参数失败: %w", err)
+		}
+		pendingCfg := targetCfg
+		pendingCfg.Driver = newCfg.Driver
+		return testStorageBackend(ctx, pendingCfg, newCfg.Driver)
+	}
+
+	if err := storage.ValidateConfig(targetCfg); err != nil {
+		return fmt.Errorf("验证存储配置参数失败: %w", err)
+	}
+	return testStorageBackend(ctx, targetCfg, targetCfg.Driver)
+}
+
+func validateDriverConfig(cfg storage.Config, driver storage.Driver) error {
+	cfg.Driver = driver
+	return storage.ValidateConfig(cfg)
+}
+
+func testStorageBackend(ctx context.Context, cfg storage.Config, driver storage.Driver) error {
+	testBackend, err := storage.NewBackend(ctx, cfg, driver)
+	if err != nil {
+		return fmt.Errorf("初始化测试存储实例失败: %w", err)
+	}
+	if err := testBackend.Test(ctx); err != nil {
+		return fmt.Errorf("存储连通性测试失败: %w", err)
+	}
+	return nil
 }

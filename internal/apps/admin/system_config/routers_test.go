@@ -440,4 +440,57 @@ func TestUpdateStorageConfigValidation(t *testing.T) {
 			t.Errorf("expected 400 Bad Request, got %d. Body: %s", w.Code, w.Body.String())
 		}
 	})
+
+	t.Run("stage local config while active s3 is unreachable", func(t *testing.T) {
+		activeCfg := storage.DefaultConfig()
+		activeCfg.Driver = storage.DriverS3
+		activeCfg.S3.Endpoint = "http://127.0.0.1:9999"
+		activeCfg.S3.Region = "us-east-1"
+		activeCfg.S3.Bucket = "wavelet"
+		activeCfg.S3.AccessKeyID = "test"
+		activeCfg.S3.SecretAccessKey = "test"
+		activeBytes, _ := json.Marshal(activeCfg)
+		seedCfg := model.SystemConfig{
+			Key:   "storage_config",
+			Value: string(activeBytes),
+			Type:  "system",
+		}
+		if err := dbConn.Where("key = ?", "storage_config").
+			Assign(map[string]any{"value": seedCfg.Value, "type": seedCfg.Type}).
+			FirstOrCreate(&seedCfg).Error; err != nil {
+			t.Fatalf("seed active storage config failed: %v", err)
+		}
+
+		tempDir := t.TempDir()
+		stagedCfg := activeCfg
+		stagedCfg.Driver = storage.DriverLocal
+		stagedCfg.Local.Root = tempDir
+
+		cfgBytes, _ := json.Marshal(stagedCfg)
+		payload := UpdateSystemConfigRequest{Value: string(cfgBytes)}
+		body, _ := json.Marshal(payload)
+		req, _ := http.NewRequest("PUT", "/api/v1/admin/system-configs/storage_config", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("expected 200 OK, got %d. Body: %s", w.Code, w.Body.String())
+		}
+
+		var dbCfg model.SystemConfig
+		if err := dbConn.Where("key = ?", "storage_config").First(&dbCfg).Error; err != nil {
+			t.Fatalf("load saved storage config failed: %v", err)
+		}
+		var savedCfg storage.Config
+		if err := json.Unmarshal([]byte(dbCfg.Value), &savedCfg); err != nil {
+			t.Fatalf("parse saved storage config failed: %v", err)
+		}
+		if savedCfg.Driver != storage.DriverS3 {
+			t.Fatalf("active driver = %q, want %q until migration completes", savedCfg.Driver, storage.DriverS3)
+		}
+		if savedCfg.Local.Root != tempDir {
+			t.Fatalf("staged local root = %q, want %q", savedCfg.Local.Root, tempDir)
+		}
+	})
 }

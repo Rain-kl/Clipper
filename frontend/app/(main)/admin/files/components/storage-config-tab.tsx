@@ -149,13 +149,8 @@ export function StorageConfigTab() {
 
   const saveMutation = useMutation({
     mutationFn: async (value: StorageConfig) => {
-      const activeDriver = query.data?.config.driver || value.driver
-      const valueToSave = {
-        ...value,
-        driver: activeDriver,
-      }
       await services.adminSystemConfig.updateSystemConfig(storageConfigKey, {
-        value: JSON.stringify(valueToSave),
+        value: JSON.stringify(value),
       })
     },
     onSuccess: () => {
