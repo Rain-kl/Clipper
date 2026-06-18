@@ -8,12 +8,12 @@ import ("context"
 	"strings"
 	"time"
 
-	"github.com/Rain-kl/Wavelet/internal/apps/admin/push/custom_events"
 	"github.com/Rain-kl/Wavelet/internal/apps/oauth"
 	"github.com/Rain-kl/Wavelet/internal/common"
 	"github.com/Rain-kl/Wavelet/internal/config"
 	"github.com/Rain-kl/Wavelet/internal/db"
 	"github.com/Rain-kl/Wavelet/internal/db/idgen"
+	"github.com/Rain-kl/Wavelet/internal/listener"
 	"github.com/Rain-kl/Wavelet/internal/model"
 	"github.com/Rain-kl/Wavelet/internal/util"
 	"github.com/Rain-kl/Wavelet/pkg/logger"
@@ -172,7 +172,7 @@ func Login(c *gin.Context) {
 
 	logger.InfoF(ctx, "[LoginAudit] successful login for user: %s, ID: %d, IP: %s", user.Username, user.ID, c.ClientIP())
 
-	custom_events.TriggerAdminLoginEvent(ctx, &user, c.ClientIP())
+	listener.EmitAdminLoggedIn(ctx, &user, c.ClientIP())
 
 	c.JSON(http.StatusOK, response.OK(oauth.BuildBasicUserInfo(&user, needChangePassword)))
 }

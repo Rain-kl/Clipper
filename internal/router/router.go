@@ -16,12 +16,11 @@ import (
 	"time"
 
 	admin_push "github.com/Rain-kl/Wavelet/internal/apps/admin/push"
+	"github.com/Rain-kl/Wavelet/internal/apps/admin/push/custom_events"
 	"github.com/Rain-kl/Wavelet/internal/apps/risk_control"
 	router_root "github.com/Rain-kl/Wavelet/internal/router/root"
 	v1 "github.com/Rain-kl/Wavelet/internal/router/v1"
 
-	// Swagger 文档生成
-	_ "github.com/Rain-kl/Wavelet/internal/apps/admin/push/custom_events"
 	"github.com/Rain-kl/Wavelet/internal/apps/oauth"
 	"github.com/Rain-kl/Wavelet/internal/config"
 	otel_trace "github.com/Rain-kl/Wavelet/pkg/trace"
@@ -40,6 +39,9 @@ func Serve() {
 
 	// 初始化 ClickHouse 异步日志写入器
 	risk_control.InitLogWriter()
+
+	// 装配推送模块与领域事件的集成（组合根显式注册，避免 init 副作用）
+	custom_events.Register()
 
 	// 运行内置事件同步
 	if err := admin_push.SyncEvents(context.Background()); err != nil {
