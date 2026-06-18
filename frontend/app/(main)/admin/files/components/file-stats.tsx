@@ -2,35 +2,18 @@
 
 import * as React from "react"
 import {useQuery} from "@tanstack/react-query"
-import {
-  Upload,
-  Loader2,
-  HardDrive,
-  Database,
-  TrendingUp,
-  Files,
-  Info,
-} from "lucide-react"
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  Cell,
-  Pie,
-  PieChart,
-  XAxis,
-  YAxis,
-} from "recharts"
+import {Database, Files, HardDrive, Info, Loader2, TrendingUp, Upload,} from "lucide-react"
+import {Area, AreaChart, CartesianGrid, Cell, Pie, PieChart, XAxis, YAxis,} from "recharts"
 
 import {Button} from "@/components/ui/button"
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "@/components/ui/card"
 import {
   ChartConfig,
   ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
   ChartLegend,
   ChartLegendContent,
+  ChartTooltip,
+  ChartTooltipContent,
 } from "@/components/ui/chart"
 import services, {formatFileSize} from "@/lib/services"
 
@@ -84,6 +67,8 @@ export function FileStats() {
   const statsQuery = useQuery({
     queryKey: ["files", "stats"],
     queryFn: () => services.adminUpload.getFileStats(),
+    staleTime: 0,
+    refetchOnMount: "always",
   })
 
   const stats = statsQuery.data
@@ -159,7 +144,7 @@ export function FileStats() {
     )
   }, [stats?.trend])
 
-  if (statsQuery.isPending) {
+  if (statsQuery.isLoading) {
     return (
       <div className="flex items-center justify-center py-32">
         <Loader2 className="size-8 animate-spin text-sky-500" />
