@@ -441,7 +441,7 @@ func TestUpdateStorageConfigValidation(t *testing.T) {
 		}
 	})
 
-	t.Run("stage local config while active s3 is unreachable", func(t *testing.T) {
+	t.Run("switch to local while active s3 is unreachable", func(t *testing.T) {
 		activeCfg := storage.DefaultConfig()
 		activeCfg.Driver = storage.DriverS3
 		activeCfg.S3.Endpoint = "http://127.0.0.1:9999"
@@ -486,8 +486,8 @@ func TestUpdateStorageConfigValidation(t *testing.T) {
 		if err := json.Unmarshal([]byte(dbCfg.Value), &savedCfg); err != nil {
 			t.Fatalf("parse saved storage config failed: %v", err)
 		}
-		if savedCfg.Driver != storage.DriverS3 {
-			t.Fatalf("active driver = %q, want %q until migration completes", savedCfg.Driver, storage.DriverS3)
+		if savedCfg.Driver != storage.DriverLocal {
+			t.Fatalf("active driver = %q, want %q after save", savedCfg.Driver, storage.DriverLocal)
 		}
 		if savedCfg.Local.Root != tempDir {
 			t.Fatalf("staged local root = %q, want %q", savedCfg.Local.Root, tempDir)

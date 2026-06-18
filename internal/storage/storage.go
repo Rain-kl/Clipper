@@ -168,10 +168,11 @@ func ForDriver(ctx context.Context, driver Driver) (Backend, error) {
 	if err != nil {
 		return nil, err
 	}
-	if cfg.Driver == driver {
-		return NewBackend(ctx, cfg, driver)
+	backend, err := NewBackend(ctx, cfg, driver)
+	if err != nil {
+		return nil, fmt.Errorf("storage configuration for driver %q is unavailable: %w", driver, err)
 	}
-	return nil, fmt.Errorf("storage configuration for driver %q is unavailable", driver)
+	return backend, nil
 }
 
 type functionBackend struct {

@@ -35,7 +35,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import {Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle} from "@/components/ui/sheet"
-import services, {formatFileSize, getFileUrl} from "@/lib/services"
+import {FileImagePreview} from "@/components/common/file-image-preview"
+import services, {formatFileSize} from "@/lib/services"
 import type {Upload as UploadRecord} from "@/lib/services/upload/types"
 
 /* ─── 工具函数 ─────────────────────────────────────────── */
@@ -288,16 +289,12 @@ export function FileList() {
                     <TableCell className="py-3">
                       <div className="flex items-center justify-center size-9 rounded-lg bg-muted/40 overflow-hidden border">
                         {file.mime_type.startsWith("image/") ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={getFileUrl(file.id, "low") ?? undefined}
+                          <FileImagePreview
+                            fileId={file.id}
                             alt={file.file_name}
-                            loading="lazy"
-                            decoding="async"
+                            quality="low"
+                            variant="compact"
                             className="size-full object-cover"
-                            onError={(e) => {
-                              ;(e.currentTarget as HTMLImageElement).style.display = "none"
-                            }}
                           />
                         ) : (
                           getFileIcon(file.mime_type, "size-4.5")
@@ -406,13 +403,12 @@ export function FileList() {
               {/* 大图/格式预览 */}
               <div className="flex items-center justify-center h-48 rounded-xl bg-muted/30 border border-dashed overflow-hidden p-2">
                 {detailTarget.mime_type.startsWith("image/") ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={getFileUrl(detailTarget.id, "low") ?? undefined}
+                  <FileImagePreview
+                    fileId={detailTarget.id}
                     alt={detailTarget.file_name}
-                    loading="lazy"
-                    decoding="async"
+                    quality="low"
                     className="max-h-full max-w-full object-contain rounded-lg shadow-sm"
+                    fallbackClassName="min-h-32 w-full rounded-lg"
                   />
                 ) : (
                   <div className="flex flex-col items-center gap-3">

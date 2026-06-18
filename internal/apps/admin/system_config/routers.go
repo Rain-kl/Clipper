@@ -310,10 +310,6 @@ func validateAndMergeStorageConfig(ctx context.Context, value string, currentCon
 	if err := validateMergedStorageConfig(ctx, currentCfg, newCfg, targetCfg); err != nil {
 		return "", err
 	}
-	if newCfg.Driver != "" && newCfg.Driver != currentCfg.Driver {
-		// 切换存储类型时仅暂存目标后端参数，活动 driver 由迁移任务正式切换。
-		targetCfg.Driver = currentCfg.Driver
-	}
 
 	// 序列化为最终保存的真实明文配置，防止保存屏蔽的 ****** 字符
 	unmaskedVal, err := json.Marshal(targetCfg)

@@ -1,23 +1,23 @@
 "use client"
 
 import * as React from "react"
-import {useQuery, useMutation, useQueryClient} from "@tanstack/react-query"
+import {useMutation, useQuery, useQueryClient} from "@tanstack/react-query"
 import {
-  Upload,
-  Trash2,
+  ChevronLeft,
+  ChevronRight,
   Download,
-  Search,
-  FileText,
-  FileImage,
-  FileVideo,
-  FileAudio,
   FileArchive,
-  Loader2,
+  FileAudio,
+  FileImage,
+  FileText,
+  FileVideo,
   Globe,
+  Loader2,
   Lock,
   Plus,
-  ChevronLeft,
-  ChevronRight
+  Search,
+  Trash2,
+  Upload
 } from "lucide-react"
 import {toast} from "sonner"
 
@@ -36,7 +36,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 
-import services, {formatFileSize, getFileUrl} from "@/lib/services"
+import {FileImagePreview} from "@/components/common/file-image-preview"
+import services, {formatFileSize} from "@/lib/services"
 import type {Upload as UploadRecord} from "@/lib/services/upload/types"
 
 /* ─── 工具函数 ─────────────────────────────────────────── */
@@ -238,16 +239,12 @@ export function UserFileManager() {
               {/* 文件预览/图标区 */}
               <div className="h-36 bg-muted/30 border-b border-dashed relative flex items-center justify-center overflow-hidden p-2 group-hover:bg-muted/10 transition-colors">
                 {file.mime_type.startsWith("image/") ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={getFileUrl(file.id, "medium") ?? undefined}
+                  <FileImagePreview
+                    fileId={file.id}
                     alt={file.file_name}
-                    loading="lazy"
-                    decoding="async"
+                    quality="medium"
                     className="max-h-full max-w-full object-contain rounded-md shadow-xs transition-transform duration-350 group-hover:scale-103"
-                    onError={(e) => {
-                      ;(e.currentTarget as HTMLImageElement).style.display = "none"
-                    }}
+                    fallbackClassName="min-h-full w-full rounded-md"
                   />
                 ) : (
                   getFileIcon(file.mime_type)
@@ -283,7 +280,7 @@ export function UserFileManager() {
 
                 <div className="flex items-center justify-between pt-1 border-t border-dashed">
                   <span className="text-[9px] text-muted-foreground/80">{formatDate(file.created_at)}</span>
-                  
+
                   <div className="flex items-center gap-1">
                     <Button
                       size="icon"

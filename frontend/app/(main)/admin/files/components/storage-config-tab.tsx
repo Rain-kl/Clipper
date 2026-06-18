@@ -316,7 +316,7 @@ export function StorageConfigTab() {
         <CardFooter className="justify-end gap-2 flex-col sm:flex-row items-end sm:items-center border-t border-dashed pt-4 mt-6">
           {config.driver !== query.data?.config.driver && (
             <span className="text-xs text-amber-500 mr-auto text-left max-w-md">
-              ⚠️ 您已切换存储类型。请先点击“保存配置”保存各存储端的配置凭据，然后点击“开始迁移”手动执行文件迁移。
+              ⚠️ 您已切换存储类型。点击「保存配置」将立即切换活动存储引擎，并同步更新已有文件的存储驱动标记。仅在需要复制物理文件时才使用「开始迁移」。
             </span>
           )}
           <div className="flex gap-2">
