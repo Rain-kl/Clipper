@@ -20,8 +20,7 @@ import ("bytes"
 	"github.com/Rain-kl/Wavelet/internal/common/response")
 
 func setupTestRouter(authUser *model.User) *gin.Engine {
-	gin.SetMode(gin.TestMode)
-	r := gin.New()
+	r := testhelper.NewTestGinEngine()
 	adminGroup := r.Group("/api/v1/admin")
 
 	// Mock authentication middleware

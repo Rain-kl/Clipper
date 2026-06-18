@@ -98,8 +98,7 @@ func setupPushTest(t *testing.T) (*gorm.DB, *miniredis.Miniredis, func()) {
 }
 
 func setupTestRouter(authUser *model.User) *gin.Engine {
-	gin.SetMode(gin.TestMode)
-	r := gin.New()
+	r := testhelper.NewTestGinEngine()
 	adminGroup := r.Group("/api/v1/admin/push")
 
 	adminGroup.Use(func(c *gin.Context) {
@@ -656,7 +655,7 @@ func TestPushChannelAPI(t *testing.T) {
 	defer cleanup()
 
 	// 构建路由以进行 HTTP 模拟请求
-	r := gin.New()
+	r := testhelper.NewTestGinEngine()
 	adminGroup := r.Group("/api/v1/admin")
 	{
 		adminGroup.GET("/push/channels", ListChannels)

@@ -27,8 +27,7 @@ import ("bufio"
 const expectedDefaultConfigsCount = 30
 
 func setupTestRouter(authUser *model.User) *gin.Engine {
-	gin.SetMode(gin.TestMode)
-	r := gin.New()
+	r := testhelper.NewTestGinEngine()
 	adminGroup := r.Group("/api/v1/admin")
 
 	// Mock authentication middleware

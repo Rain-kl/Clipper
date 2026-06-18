@@ -13,6 +13,9 @@ import (
 )
 
 func TestInitSyncsPushEventsOnce(t *testing.T) {
+	ResetInitRuntimeOnceForTest()
+	t.Cleanup(ResetInitRuntimeOnceForTest)
+
 	dbConn, _, cleanup := testhelper.SetupTestEnvironment(t)
 	defer cleanup()
 
@@ -28,8 +31,8 @@ func TestInitSyncsPushEventsOnce(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	Init(ctx, Options{})
-	Init(ctx, Options{API: true}) // second Init must not duplicate events (initRuntimeOnce)
+	Init(ctx, Options{API: true})
+	Init(ctx, Options{}) // second Init must not duplicate events (initRuntimeOnce)
 
 	var count int64
 	if err := dbConn.Model(&model.PushEvent{}).Count(&count).Error; err != nil {
