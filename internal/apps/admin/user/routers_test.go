@@ -4,7 +4,8 @@
 
 package user
 
-import ("bytes"
+import (
+	"bytes"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -16,7 +17,8 @@ import ("bytes"
 	"github.com/Rain-kl/Wavelet/internal/testhelper"
 	"github.com/gin-gonic/gin"
 
-	"github.com/Rain-kl/Wavelet/internal/common/response")
+	"github.com/Rain-kl/Wavelet/internal/common/response"
+)
 
 func setupTestRouter(authUser *model.User) *gin.Engine {
 	r := testhelper.NewTestGinEngine()
@@ -106,9 +108,9 @@ func TestListUsers(t *testing.T) {
 		if listResp.Total != 3 {
 			t.Errorf("expected total 3, got %d", listResp.Total)
 		}
-		// Ordered by ID DESC
-		if listResp.Users[0].ID != 1003 || listResp.Users[1].ID != 1002 {
-			t.Errorf("expected ordered DESC, got first ID %d, second ID %d", listResp.Users[0].ID, listResp.Users[1].ID)
+		// Ordered by ID ASC
+		if listResp.Users[0].ID != 1001 || listResp.Users[1].ID != 1002 {
+			t.Errorf("expected ordered ASC, got first ID %d, second ID %d", listResp.Users[0].ID, listResp.Users[1].ID)
 		}
 	})
 
@@ -444,9 +446,9 @@ func TestCreateUser(t *testing.T) {
 
 	t.Run("validation error - invalid email format", func(t *testing.T) {
 		payload := map[string]interface{}{
-			"username": "bademail",
-			"password": "password123",
-			"email":    "not-an-email",
+			"username":  "bademail",
+			"password":  "password123",
+			"email":     "not-an-email",
 			"is_active": true,
 		}
 		body, _ := json.Marshal(payload)

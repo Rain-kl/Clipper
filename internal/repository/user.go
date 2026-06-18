@@ -78,7 +78,7 @@ func ListAdminUsers(ctx context.Context, filter AdminUserListFilter) (int64, []m
 	offset := (filter.Page - 1) * filter.PageSize
 	if err := query.
 		Select("id, username, nickname, avatar_url, is_active, is_admin, last_login_at, created_at, updated_at").
-		Order("id DESC").
+		Order("id ASC").
 		Offset(offset).
 		Limit(filter.PageSize).
 		Find(&users).Error; err != nil {
