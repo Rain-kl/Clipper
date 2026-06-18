@@ -37,6 +37,22 @@ type registerRequest struct {
 	Code        string `json:"code"`
 }
 
+type sendEmailCodeRequest struct {
+	Email string `json:"email" binding:"required,email"`
+	Scene string `json:"scene" binding:"required"`
+}
+
+type updateProfileRequest struct {
+	Nickname  string `json:"nickname"`
+	Email     string `json:"email"`
+	AvatarURL string `json:"avatar_url"`
+	Bio       string `json:"bio"`
+	Phone     string `json:"phone"`
+	Gender    string `json:"gender"`
+	Website   string `json:"website"`
+	Location  string `json:"location"`
+}
+
 func isPasswordLoginEnabled() bool {
 	enabled, err := model.GetBoolByKey(context.Background(), model.ConfigKeyPasswordLoginEnabled)
 	if err != nil {
@@ -146,7 +162,13 @@ func Login(c *gin.Context) {
 	}
 
 	if isEmailLoginVerificationEnabled(ctx) {
-		if emailErr := handleLoginEmailVerification(ctx, c, &req, &user); emailErr != nil {
+		result, err := processLoginEmailVerification(ctx, req.Code, &user)
+		if err != nil {
+			c.JSON(http.StatusOK, response.Err(err.Error()))
+			return
+		}
+		if result.Status != LoginEmailVerificationPassed {
+			c.JSON(http.StatusOK, response.Err(result.Message))
 			return
 		}
 	}
@@ -223,7 +245,7 @@ func Register(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	// 邮箱注册验证校验
-	if err := validateRegisterEmailVerification(ctx, &req); err != nil {
+	if err := validateRegisterEmailVerification(ctx, req.Email, req.Code); err != nil {
 		c.JSON(http.StatusOK, response.Err(err.Error()))
 		return
 	}
@@ -364,4 +386,78 @@ func ChangePassword(c *gin.Context) {
 	_ = session.Save()
 
 	c.JSON(http.StatusOK, response.OK("密码修改成功"))
+}
+
+// SendEmailCode 发送邮箱验证码
+// @Summary 发送邮箱验证码
+// @Description 向指定邮箱发送验证码（用于注册场景）
+// @Tags user
+// @Accept json
+// @Produce json
+// @Param request body user.sendEmailCodeRequest true "发送验证码请求参数"
+// @Success 200 {object} response.Any "发送成功"
+// @Failure 400 {object} response.Any "参数错误"
+// @Router /api/v1/user/send-email-code [post]
+func SendEmailCode(c *gin.Context) {
+	var req sendEmailCodeRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, response.Err(err.Error()))
+		return
+	}
+
+	req.Email = strings.TrimSpace(req.Email)
+	if req.Email == "" {
+		c.JSON(http.StatusOK, response.Err(errEmailRequired))
+		return
+	}
+
+	if req.Scene != "register" {
+		c.JSON(http.StatusOK, response.Err(errUnsupportedEmailScene))
+		return
+	}
+
+	ctx := c.Request.Context()
+	if err := sendRegisterEmailCode(ctx, req.Email); err != nil {
+		c.JSON(http.StatusOK, response.Err(err.Error()))
+		return
+	}
+
+	c.JSON(http.StatusOK, response.OKNil())
+}
+
+// UpdateProfile 修改当前登录用户的个人资料
+// @Summary 修改当前登录用户的个人资料
+// @Description 修改当前登录用户的昵称、邮箱、头像、简介、电话、性别、个人网站和所在地。
+// @Tags user
+// @Accept json
+// @Produce json
+// @Param request body user.updateProfileRequest true "更新请求参数"
+// @Success 200 {object} response.Any{data=oauth.BasicUserInfo} "修改成功，返回更新后的用户信息"
+// @Failure 400 {object} response.Any "邮箱已被占用或参数错误"
+// @Failure 401 {object} response.Any "未登录"
+// @Router /api/v1/user/profile [put]
+func UpdateProfile(c *gin.Context) {
+	var req updateProfileRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, response.Err(err.Error()))
+		return
+	}
+
+	userObj, _ := util.GetFromContext[*model.User](c, oauth.UserObjKey)
+	if userObj == nil {
+		c.JSON(http.StatusUnauthorized, response.Err(errLoginRequired))
+		return
+	}
+
+	ctx := c.Request.Context()
+	dbUser, err := updateUserProfile(ctx, userObj.ID, updateProfileInput(req))
+	if err != nil {
+		c.JSON(http.StatusOK, response.Err(err.Error()))
+		return
+	}
+
+	session := sessions.Default(c)
+	needChange := session.Get("need_change_password") == true
+
+	c.JSON(http.StatusOK, response.OK(oauth.BuildBasicUserInfo(dbUser, needChange)))
 }
