@@ -22,7 +22,7 @@ import {toast} from "sonner"
 import {format} from "date-fns"
 import {Activity, ChevronLeft, ChevronRight, Copy, Eye, RotateCcw, Search, XCircle} from "lucide-react"
 
-import {AdminService} from "@/lib/services/admin"
+import services from "@/lib/services"
 import {ErrorInline} from "@/components/layout/error"
 import {LoadingStateWithBorder} from "@/components/layout/loading"
 import {EmptyStateWithBorder} from "@/components/layout/empty"
@@ -106,7 +106,7 @@ export function AccessLogs() {
 				endISO = new Date(searchParams.end_time).toISOString()
 			}
 
-			return AdminService.getAccessLogs({
+			return services.adminLog.getAccessLogs({
 				page,
 				page_size: PAGE_SIZE,
 				username: searchParams.username || undefined,

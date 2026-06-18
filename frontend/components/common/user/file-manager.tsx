@@ -36,7 +36,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 
-import {formatFileSize, getFileUrl, UploadService} from "@/lib/services/upload/upload.service"
+import services, {formatFileSize, getFileUrl} from "@/lib/services"
 import type {Upload as UploadRecord} from "@/lib/services/upload/types"
 
 /* ─── 工具函数 ─────────────────────────────────────────── */
@@ -83,7 +83,7 @@ export function UserFileManager() {
   // 我的文件列表查询
   const { data, isPending } = useQuery({
     queryKey: ["user-files", page, pageSize, debouncedKeyword],
-    queryFn: () => UploadService.listMyUploads(page, pageSize, debouncedKeyword || undefined),
+    queryFn: () => services.upload.listMyUploads(page, pageSize, debouncedKeyword || undefined),
   })
 
   const files = data?.items ?? []
@@ -93,7 +93,7 @@ export function UserFileManager() {
   // 上传文件 Mutation
   const uploadMutation = useMutation({
     mutationFn: async (file: File) => {
-      return UploadService.uploadFile(file, "generic", undefined, uploadAccessMode)
+      return services.upload.uploadFile(file, "generic", undefined, uploadAccessMode)
     },
     onMutate: () => {
       setUploading(true)
@@ -115,7 +115,7 @@ export function UserFileManager() {
 
   // 删除文件 Mutation
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => UploadService.deleteMyFile(id),
+    mutationFn: (id: string) => services.upload.deleteMyFile(id),
     onSuccess: () => {
       toast.success("文件已成功删除")
       void queryClient.invalidateQueries({ queryKey: ["user-files"] })
@@ -138,7 +138,7 @@ export function UserFileManager() {
   }
 
   const handleDownload = (file: UploadRecord) => {
-    const url = UploadService.getDownloadUrl(file.id)
+    const url = services.upload.getDownloadUrl(file.id)
     const a = document.createElement("a")
     a.href = url
     a.download = file.file_name

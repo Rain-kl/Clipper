@@ -6,7 +6,7 @@ import {KeyRound, ShieldAlert, X} from "lucide-react"
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "@/components/ui/card"
 import {Badge} from "@/components/ui/badge"
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select"
-import {AdminService} from "@/lib/services/admin"
+import services from "@/lib/services"
 import type {SystemConfig} from "@/lib/services/admin"
 import {TemplatesManager} from "./templates"
 import {toast} from "sonner"
@@ -21,7 +21,7 @@ export function OperationTab({ configs, systemConfigsQuery }: OperationTabProps)
 
   const uploadTypesQuery = useQuery({
     queryKey: ["admin", "upload-types"],
-    queryFn: () => AdminService.listUploadTypes(),
+    queryFn: () => services.adminSystemConfig.listUploadTypes(),
   })
 
   const updateWhitelistMutation = useMutation({
@@ -30,7 +30,7 @@ export function OperationTab({ configs, systemConfigsQuery }: OperationTabProps)
       if (!config) {
         throw new Error("缺少配置项: file_access_whitelist")
       }
-      await AdminService.updateSystemConfig("file_access_whitelist", {
+      await services.adminSystemConfig.updateSystemConfig("file_access_whitelist", {
         value: newValue,
         description: config.description,
       })

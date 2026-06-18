@@ -12,7 +12,7 @@ import {Badge} from "@/components/ui/badge"
 import {Progress} from "@/components/ui/progress"
 import {Skeleton} from "@/components/ui/skeleton"
 import type {SystemStatus} from "@/lib/services/admin"
-import {AdminService} from "@/lib/services/admin"
+import services from "@/lib/services"
 
 /**
  * 格式化数字，每3位加逗号
@@ -40,7 +40,7 @@ export function SystemStatusManager() {
   const fetchStatus = useCallback(async (isSilent = false) => {
     if (!isSilent) setWavelet(true)
     try {
-      const data = await AdminService.getSystemStatus()
+      const data = await services.adminStatus.getSystemStatus()
 
       // 检测变化的字段用于微动画效果
       if (prevStatusRef.current) {

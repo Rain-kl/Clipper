@@ -32,7 +32,7 @@ import {
   ChartLegend,
   ChartLegendContent,
 } from "@/components/ui/chart"
-import {formatFileSize, UploadService} from "@/lib/services/upload/upload.service"
+import services, {formatFileSize} from "@/lib/services"
 
 const categoryMap: Record<string, string> = {
   "图片": "images",
@@ -83,7 +83,7 @@ export function FileStats() {
 
   const statsQuery = useQuery({
     queryKey: ["files", "stats"],
-    queryFn: () => UploadService.getFileStats(),
+    queryFn: () => services.adminUpload.getFileStats(),
   })
 
   const stats = statsQuery.data

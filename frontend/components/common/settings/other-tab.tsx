@@ -21,7 +21,7 @@ import {
 
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "@/components/ui/card"
 import {Switch} from "@/components/ui/switch"
-import {AdminService} from "@/lib/services/admin"
+import services from "@/lib/services"
 import type {SystemConfig} from "@/lib/services/admin"
 import {toast} from "sonner"
 
@@ -90,7 +90,7 @@ export function OtherTab({ configs }: OtherTabProps) {
     mutationFn: async ({ path, enabled }: { path: string; enabled: boolean }) => {
       const newConfig = { ...menuDisplayConfig, [path]: enabled }
       const currentCfg = configs["menu_display_config"]
-      await AdminService.updateSystemConfig("menu_display_config", {
+      await services.adminSystemConfig.updateSystemConfig("menu_display_config", {
         value: JSON.stringify(newConfig),
         description: currentCfg?.description || "目录显示配置（JSON 字符串，格式为 {url: enabled}）",
       })

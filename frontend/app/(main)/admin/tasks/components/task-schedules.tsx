@@ -12,7 +12,8 @@ import {Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, Di
 import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "@/components/ui/table"
 import {Clock, Edit2, Info, Plus, RefreshCw, Trash2} from "lucide-react"
 
-import {AdminService, CreateScheduleRequest, Schedule, TaskMeta, UpdateScheduleRequest} from "@/lib/services/admin"
+import type {CreateScheduleRequest, Schedule, TaskMeta, UpdateScheduleRequest} from "@/lib/services/admin"
+import services from "@/lib/services"
 import {buildTaskPayload} from "@/lib/task-param-utils"
 import {ErrorInline} from "@/components/layout/error"
 import {LoadingStateWithBorder} from "@/components/layout/loading"
@@ -47,8 +48,8 @@ export function TaskSchedulesManager() {
       setLoading(true)
       setError(null)
       const [schedulesData, taskTypesData] = await Promise.all([
-        AdminService.listSchedules(),
-        AdminService.getTaskTypes()
+        services.adminTask.listSchedules(),
+        services.adminTask.getTaskTypes()
       ])
       setSchedules(schedulesData || [])
       setTaskTypes(taskTypesData || [])
@@ -97,7 +98,7 @@ export function TaskSchedulesManager() {
 
   const handleToggleActive = async (schedule: Schedule) => {
     try {
-      const updated = await AdminService.updateSchedule(schedule.id, {
+      const updated = await services.adminTask.updateSchedule(schedule.id, {
         name: schedule.name,
         task_type: schedule.task_type,
         cron: schedule.cron,
@@ -167,7 +168,7 @@ export function TaskSchedulesManager() {
           payload: payloadStr,
           is_active: isActive
         }
-        const updated = await AdminService.updateSchedule(editingSchedule.id, req)
+        const updated = await services.adminTask.updateSchedule(editingSchedule.id, req)
         setSchedules(prev => prev.map(s => s.id === editingSchedule.id ? updated : s))
         toast.success("定时任务更新成功")
       } else {
@@ -178,7 +179,7 @@ export function TaskSchedulesManager() {
           payload: payloadStr,
           is_active: isActive
         }
-        const created = await AdminService.createSchedule(req)
+        const created = await services.adminTask.createSchedule(req)
         setSchedules(prev => [created, ...prev])
         toast.success("定时任务创建成功")
       }
@@ -202,7 +203,7 @@ export function TaskSchedulesManager() {
     if (!deletingId) return
     try {
       setDeleteLoading(true)
-      await AdminService.deleteSchedule(deletingId)
+      await services.adminTask.deleteSchedule(deletingId)
       setSchedules(prev => prev.filter(s => s.id !== deletingId))
       toast.success("定时任务删除成功")
       setDeleteOpen(false)

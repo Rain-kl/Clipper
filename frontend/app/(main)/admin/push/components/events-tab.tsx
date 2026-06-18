@@ -33,7 +33,7 @@ import {LoadingStateWithBorder} from "@/components/layout/loading"
 import {EmptyStateWithBorder} from "@/components/layout/empty"
 
 
-import {AdminService} from "@/lib/services/admin"
+import services from "@/lib/services"
 import {PushService} from "@/lib/services/push"
 import type {CreatePushEventRequest, PushEvent, UpdatePushEventRequest,} from "@/lib/services/push"
 
@@ -67,7 +67,7 @@ export function EventsTab() {
   // --- 获取所有系统可调度任务类型 ---
   const taskTypesQuery = useQuery({
     queryKey: ["admin", "task-types"],
-    queryFn: () => AdminService.getTaskTypes(),
+    queryFn: () => services.adminTask.getTaskTypes(),
   })
 
   // --- 修改保存事件 Mutation ---

@@ -21,7 +21,7 @@ import {useVirtualizer} from "@tanstack/react-virtual"
 import {toast} from "sonner"
 import {ArrowDown, ChevronUp, Loader2} from "lucide-react"
 
-import {AdminService} from "@/lib/services/admin"
+import services from "@/lib/services"
 import {ErrorInline} from "@/components/layout/error"
 import {LoadingStateWithBorder} from "@/components/layout/loading"
 import {Button} from "@/components/ui/button"
@@ -156,7 +156,7 @@ export function AppLogs() {
   // ---- Data fetching ---------------------------------------------------
   const fetchLogs = useCallback(async (cursor: number = 0) => {
     try {
-      return await AdminService.getLogs(cursor)
+      return await services.adminLog.getLogs(cursor)
     } catch (err) {
       throw err instanceof Error ? err : new Error("获取日志失败")
     }

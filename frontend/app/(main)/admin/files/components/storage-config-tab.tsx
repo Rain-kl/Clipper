@@ -13,7 +13,7 @@ import {Input} from "@/components/ui/input"
 import {Progress} from "@/components/ui/progress"
 import {Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select"
 import {Switch} from "@/components/ui/switch"
-import {AdminService} from "@/lib/services/admin/admin.service"
+import services from "@/lib/services"
 import type {
   ObjectStorageConfig,
   StorageConfig,
@@ -116,8 +116,8 @@ export function StorageConfigTab() {
     queryKey: ["admin", "storage-config"],
     queryFn: async () => {
       const [configRecord, executions] = await Promise.all([
-        AdminService.getSystemConfig(storageConfigKey),
-        AdminService.listTaskExecutions({task_type: storageMigrationTaskType, page: 1, page_size: 1}),
+        services.adminSystemConfig.getSystemConfig(storageConfigKey),
+        services.adminTask.listTaskExecutions({task_type: storageMigrationTaskType, page: 1, page_size: 1}),
       ])
       const current = normalizeConfig(JSON.parse(configRecord.value) as StorageConfig)
       const migration = latestMigration(executions.items, current)
@@ -154,7 +154,7 @@ export function StorageConfigTab() {
         ...value,
         driver: activeDriver,
       }
-      await AdminService.updateSystemConfig(storageConfigKey, {
+      await services.adminSystemConfig.updateSystemConfig(storageConfigKey, {
         value: JSON.stringify(valueToSave),
       })
     },
@@ -171,7 +171,7 @@ export function StorageConfigTab() {
   const migrateMutation = useMutation({
     mutationFn: async (value: StorageConfig) => {
       const payload: StorageMigrationPayload = {target: value}
-      return AdminService.dispatchTask({
+      return services.adminTask.dispatchTask({
         task_type: storageMigrationTaskType,
         payload: JSON.stringify(payload),
       })
@@ -186,7 +186,7 @@ export function StorageConfigTab() {
     },
   })
   const runMutation = useMutation({
-    mutationFn: (executionID: string) => AdminService.retryTaskExecution(executionID),
+    mutationFn: (executionID: string) => services.adminTask.retryTaskExecution(executionID),
     onSuccess: () => {
       toast.success("存储迁移任务已重新下发")
       void queryClient.invalidateQueries({queryKey: ["admin", "storage-config"]})

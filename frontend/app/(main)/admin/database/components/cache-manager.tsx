@@ -20,7 +20,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import type {CacheStatus} from "@/lib/services/admin"
-import {AdminService} from "@/lib/services/admin"
+import services from "@/lib/services"
 
 /**
  * 格式化字节大小
@@ -61,7 +61,7 @@ export function CacheManager({ refreshTrigger }: CacheManagerProps) {
   const fetchCacheStatus = useCallback(async (isSilent = false) => {
     if (!isSilent) setLoadingCache(true)
     try {
-      const data = await AdminService.getCacheStatus()
+      const data = await services.adminCache.getCacheStatus()
       setCacheStatus(data)
       setMaxSizeMB(data.max_size_mb.toString())
       setTtlMinutes(data.ttl_minutes.toString())
@@ -90,7 +90,7 @@ export function CacheManager({ refreshTrigger }: CacheManagerProps) {
     }
     setSavingConfig(true)
     try {
-      await AdminService.updateCacheConfig({
+      await services.adminCache.updateCacheConfig({
         max_size_mb: size,
         ttl_minutes: ttl,
         lru_enabled: lruEnabled,
@@ -110,7 +110,7 @@ export function CacheManager({ refreshTrigger }: CacheManagerProps) {
   const handleClearCache = async () => {
     setClearingCache(true)
     try {
-      await AdminService.clearCache()
+      await services.adminCache.clearCache()
       toast.success("清空成功", { description: "缓存数据已全部清除" })
       setShowClearConfirm(false)
       await fetchCacheStatus(true)

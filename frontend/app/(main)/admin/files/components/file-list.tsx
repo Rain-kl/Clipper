@@ -35,7 +35,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import {Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle} from "@/components/ui/sheet"
-import {formatFileSize, getFileUrl, UploadService} from "@/lib/services/upload/upload.service"
+import services, {formatFileSize, getFileUrl} from "@/lib/services"
 import type {Upload as UploadRecord} from "@/lib/services/upload/types"
 
 /* ─── 工具函数 ─────────────────────────────────────────── */
@@ -81,7 +81,7 @@ export function FileList() {
   // 文件列表查询
   const listQuery = useQuery({
     queryKey: ["files", "all", page, pageSize, debouncedKeyword],
-    queryFn: () => UploadService.listUploads(page, pageSize, debouncedKeyword || undefined),
+    queryFn: () => services.adminUpload.listUploads(page, pageSize, debouncedKeyword || undefined),
   })
 
   const files = listQuery.data?.items ?? []
@@ -109,7 +109,7 @@ export function FileList() {
 
   // 删除单文件
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => UploadService.deleteFile(id),
+    mutationFn: (id: string) => services.adminUpload.deleteFile(id),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["files", "my"] })
       void queryClient.invalidateQueries({ queryKey: ["files", "stats"] })
@@ -121,7 +121,7 @@ export function FileList() {
 
   // 批量 ZIP 下载
   const batchDownloadMutation = useMutation({
-    mutationFn: (ids: string[]) => UploadService.batchDownload(ids),
+    mutationFn: (ids: string[]) => services.adminUpload.batchDownload(ids),
     onSuccess: (blob) => {
       const url = URL.createObjectURL(blob)
       const a = document.createElement("a")
@@ -151,7 +151,7 @@ export function FileList() {
   const selectAll = () => setSelectedIds(new Set(files.map((f) => f.id)))
 
   const handleDownload = (file: UploadRecord) => {
-    const url = UploadService.getDownloadUrl(file.id)
+    const url = services.adminUpload.getDownloadUrl(file.id)
     const a = document.createElement("a")
     a.href = url
     a.download = file.file_name

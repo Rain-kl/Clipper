@@ -6,7 +6,7 @@ import {toast} from "sonner"
 import {format} from "date-fns"
 import {Activity, ChevronLeft, ChevronRight, RefreshCw, RotateCcw} from "lucide-react"
 
-import {AdminService} from "@/lib/services/admin"
+import services from "@/lib/services"
 import type {TaskExecution, TaskExecutionStatus, TaskMeta} from "@/lib/services/admin"
 import {ErrorInline} from "@/components/layout/error"
 import {LoadingStateWithBorder} from "@/components/layout/loading"
@@ -65,12 +65,12 @@ export function TaskExecutionsManager() {
 
   const taskTypesQuery = useQuery({
     queryKey: ["admin", "task-types"],
-    queryFn: () => AdminService.getTaskTypes(),
+    queryFn: () => services.adminTask.getTaskTypes(),
   })
 
   const executionsQuery = useQuery({
     queryKey: ["admin", "task-executions", executionsPage, executionStatus, executionTaskType],
-    queryFn: () => AdminService.listTaskExecutions({
+    queryFn: () => services.adminTask.listTaskExecutions({
       page: executionsPage,
       page_size: PAGE_SIZE,
       status: executionStatus === "all" ? undefined : executionStatus,
@@ -80,12 +80,12 @@ export function TaskExecutionsManager() {
 
   const detailQuery = useQuery({
     queryKey: ["admin", "task-execution", selectedExecutionId],
-    queryFn: () => AdminService.getTaskExecution(selectedExecutionId!),
+    queryFn: () => services.adminTask.getTaskExecution(selectedExecutionId!),
     enabled: detailOpen && !!selectedExecutionId,
   })
 
   const retryMutation = useMutation({
-    mutationFn: (id: string) => AdminService.retryTaskExecution(id),
+    mutationFn: (id: string) => services.adminTask.retryTaskExecution(id),
     onSuccess: (taskID) => {
       toast.success("任务已重新下发", {
         description: `新任务 ID：${ taskID }`,

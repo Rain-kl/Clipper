@@ -11,7 +11,8 @@ import {Spinner} from "@/components/ui/spinner"
 import {Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle} from "@/components/ui/dialog"
 import {Calendar as CalendarIcon, Clock, Info, Layers, Play} from "lucide-react"
 
-import {AdminService, DispatchTaskRequest, TaskMeta} from "@/lib/services/admin"
+import type {DispatchTaskRequest, TaskMeta} from "@/lib/services/admin"
+import services from "@/lib/services"
 import {buildTaskPayload} from "@/lib/task-param-utils"
 import {ErrorInline} from "@/components/layout/error"
 import {LoadingStateWithBorder} from "@/components/layout/loading"
@@ -148,7 +149,7 @@ export function TaskManager() {
     try {
       setLoading(true)
       setError(null)
-      const data = await AdminService.getTaskTypes()
+      const data = await services.adminTask.getTaskTypes()
       setTaskTypes(data)
     } catch (err) {
       setError(err instanceof Error ? err : new Error('加载任务类型失败'))
@@ -209,7 +210,7 @@ export function TaskManager() {
         params.payload = payload ?? undefined
       }
 
-      const taskID = await AdminService.dispatchTask(params)
+      const taskID = await services.adminTask.dispatchTask(params)
 
       toast.success('任务下发成功', {
         description: `已成功将任务 ${ targetTask?.name || selectedTaskType } 加入队列：${ taskID }`
