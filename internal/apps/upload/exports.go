@@ -39,9 +39,9 @@ var (
 
 // Ingest policy constants
 const (
-	PolicyCreate            = ingest.PolicyCreate
-	PolicyDedupNewRecord    = ingest.PolicyDedupNewRecord
-	PolicyResolveExisting   = ingest.PolicyResolveExisting
+	PolicyCreate          = ingest.PolicyCreate
+	PolicyDedupNewRecord  = ingest.PolicyDedupNewRecord
+	PolicyResolveExisting = ingest.PolicyResolveExisting
 )
 
 type (
@@ -55,7 +55,7 @@ type (
 
 // Ingest errors
 var (
-	ErrIngestForbidden      = ingest.ErrForbidden
+	ErrIngestForbidden       = ingest.ErrForbidden
 	ErrIngestStorageReadOnly = ingest.ErrStorageReadOnly
 )
 
@@ -82,9 +82,10 @@ var (
 
 // Task identifiers and metadata
 const (
-	StorageMigrationTask = uploadtask.StorageMigrationTask
-	SystemCleanupTask    = uploadtask.SystemCleanupTask
-	WarmImageCacheTask   = uploadtask.WarmImageCacheTask
+	StorageMigrationTask   = uploadtask.StorageMigrationTask
+	SystemCleanupTask      = uploadtask.SystemCleanupTask
+	WarmImageCacheTask     = uploadtask.WarmImageCacheTask
+	RebuildUploadStatsTask = uploadtask.RebuildUploadStatsTask
 )
 
 var (
@@ -94,6 +95,8 @@ var (
 	SystemCleanupMeta = uploadtask.SystemCleanupMeta
 	// WarmImageCacheMeta describes the image compression cache warmup task.
 	WarmImageCacheMeta = uploadtask.WarmImageCacheMeta
+	// RebuildUploadStatsMeta describes the upload stats rebuild task.
+	RebuildUploadStatsMeta = uploadtask.RebuildUploadStatsMeta
 )
 
 // MigrationHandler executes storage migration tasks.
@@ -105,6 +108,9 @@ type SystemCleanupHandler = uploadtask.SystemCleanupHandler
 // WarmImageCacheHandler pre-warms compressed image caches.
 type WarmImageCacheHandler = uploadtask.WarmImageCacheHandler
 
+// RebuildUploadStatsHandler rebuilds upload stats from active records.
+type RebuildUploadStatsHandler = uploadtask.RebuildUploadStatsHandler
+
 // WarmImageCachePayload is the payload for image cache warmup tasks.
 type WarmImageCachePayload = uploadtask.WarmImageCachePayload
 
@@ -112,6 +118,7 @@ type WarmImageCachePayload = uploadtask.WarmImageCachePayload
 var (
 	_ task.TaskHandler = (*MigrationHandler)(nil)
 	_ task.TaskHandler = (*SystemCleanupHandler)(nil)
+	_ task.TaskHandler = (*RebuildUploadStatsHandler)(nil)
 	_ interface {
 		task.TaskHandler
 		ValidatePayload([]byte) ([]byte, error)
