@@ -39,6 +39,10 @@
 - 当 API Handler 发生变化时，更新 Swagger 文档（运行 `make swagger`）。
 - 在完成代码开发后必须运行 `make code-check`, 并修复报错。
 - 需要缓存或文件管理能力时，必须复用现有平台实现，禁止在业务包中自行创建缓存目录、直接管理缓存文件或重复封装存储后端。
+- 禁止在 `init()` 中注册跨模块集成（任务 Handler、推送内置事件、域事件监听器、任务完成钩子）。统一通过 `internal/bootstrap` 在 `internal/cmd` 入口显式装配。
+- `internal/router/router.go` 的 `Serve()` 仅负责 HTTP 路由与中间件，禁止在其中执行 `SyncEvents`、`InitLogWriter` 等进程级运行时初始化。
+- 核心业务模块（如 `oauth`、`user`）禁止直接 `import` `internal/apps/admin/push` 或 `custom_events` 触发通知；应通过 `internal/listener` 发射域事件，由 push 模块在 bootstrap 阶段订阅。
+- 编写依赖任务注册或推送事件同步的测试时，必须在测试 setup 中显式调用 `bootstrap.RegisterTasks()`、`bootstrap.RegisterPushDomainEvents()` 等，不得依赖 `init()` 副作用。
 
 ## 项目介绍
 
@@ -67,7 +71,8 @@
 
 后端目录：
 
-- `internal/cmd/`：用于 API、worker、scheduler、root init 的 Cobra 命令。
+- `internal/cmd/`：用于 API、worker、scheduler、root init 的 Cobra 命令。进程启动时在此调用 `bootstrap.Register*` 与 `bootstrap.Init`，再启动 router / worker / scheduler。
+- `internal/bootstrap/`：应用装配根（composition root）。集中注册任务 Handler、推送域事件订阅、任务完成监听器，并执行 `SyncEvents`、ClickHouse 访问日志写入等进程级初始化；所有注册函数使用 `sync.Once` 保证幂等。
 - `internal/config/`：Viper 加载和配置结构体。运行时代码应使用 `config.Config.<Section>.<Field>`。
 - `internal/router/`：唯一的 HTTP 路由注册点。
 - `internal/apps/`：按功能（Feature-based）组织的 HTTP Handler、中间件、内部服务与模块逻辑。移除全局 service 层，模块内部业务逻辑（如验证码业务逻辑管理器 `internal/apps/cap/manager.go`）均收敛于各自模块中；管理端模块位于 `internal/apps/admin/`。
@@ -79,7 +84,7 @@
 - `internal/task/`：Asynq 任务框架；参见 `new-async-task` 了解变更。
 - `internal/common/`：共享的通用模型及响应（如 `internal/common/response`）、绑定（bind）、常量以及通用错误。
 - `internal/util/`：纯底层工具包，无任何 HTTP/数据库框架依赖。
-- `internal/listener/`：事件监听器和消息/Webhook 消费者。
+- `internal/listener/`：域事件分发层。核心域（auth、user 等）在此定义并发射事件（如 `EmitAdminLoggedIn`）；运维模块（push、webhook 等）在 bootstrap 阶段订阅，实现跨模块解耦。
 - `internal/otel_trace/`：链路追踪（tracing）助手。
 - `internal/testhelper/`：后端测试共享辅助能力。
 - `internal/buildinfo/`：暴露在发布/构建工作流中注入的元数据（如版本号、编译时间等）。
@@ -139,7 +144,13 @@ Handler 规范：
 路由与模块：
 
 - 仅在 `internal/router/router.go` 中作为统一高层入口进行路由分发委派，不允许在 `router.go` 中直接挂载业务 Handler。
-- 关于所有的路由归属划分、接口开发隔离防线以及详细的注册和开发步骤，请直接阅读并严格遵循 [new-api](file:///Users/ryan/DEV/Go/Wavelet/.agent/skills/new-api/SKILL.md) 技能。
+- 关于所有的路由归属划分、接口开发隔离防线以及详细的注册和开发步骤，请直接阅读并严格遵循 [new-api](file:///Users/ryan/DEV/Go/Wavelet/.claude/skills/new-api/SKILL.md) 技能。
+
+应用装配与跨模块集成：
+
+- 新增跨模块副作用（任务注册、推送订阅、后台监听器）时，在 `internal/bootstrap/bootstrap.go` 增加 `Register*` 函数，并在对应 `internal/cmd/*.go` 入口调用；参考现有 `RegisterAPI` / `RegisterWorker` / `RegisterAll` 分工。
+- `bootstrap.Init` 必须在 `RegisterPushDomainEvents()` 之后调用（API/`all` 模式），以确保 `SyncEvents` 能同步内置推送事件元数据。
+- Handler 与业务逻辑分离：HTTP Handler 负责绑定与响应；可复用逻辑放入 `logics.go`（接受 `context.Context`，不依赖 `*gin.Context`），便于 Worker 与单元测试复用。参考 `internal/apps/user/logics.go`。
 
 中间件：
 

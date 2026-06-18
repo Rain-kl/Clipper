@@ -60,13 +60,13 @@ type DispatchTaskRequest struct {
 func DispatchTask(c *gin.Context) {
 	var req DispatchTaskRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, response.Err(err.Error()))
+		response.AbortBadRequest(c, err.Error())
 		return
 	}
 
 	meta := task.GetTaskMeta(req.TaskType)
 	if meta == nil {
-		c.JSON(http.StatusBadRequest, response.Err(InvalidTaskType))
+		response.AbortBadRequest(c, InvalidTaskType)
 		return
 	}
 
@@ -77,13 +77,13 @@ func DispatchTask(c *gin.Context) {
 
 	validated, err := task.ValidateAndNormalizePayload(meta.AsynqTask, payloadBytes)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, response.Err(err.Error()))
+		response.AbortBadRequest(c, err.Error())
 		return
 	}
 
 	taskID, err := task.DispatchTask(c.Request.Context(), req.TaskType, validated, "manual")
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, response.Err(fmt.Sprintf("%s: %v", TaskDispatchFailed, err)))
+		response.AbortInternal(c, fmt.Sprintf("%s: %v", TaskDispatchFailed, err))
 		return
 	}
 
@@ -107,7 +107,7 @@ func DispatchTask(c *gin.Context) {
 func ListTaskExecutions(c *gin.Context) {
 	var req model.ListTaskExecutionsRequest
 	if err := c.ShouldBindQuery(&req); err != nil {
-		c.JSON(http.StatusBadRequest, response.Err(err.Error()))
+		response.AbortBadRequest(c, err.Error())
 		return
 	}
 
@@ -119,7 +119,7 @@ func ListTaskExecutions(c *gin.Context) {
 
 	executions, total, err := model.ListTaskExecutions(c.Request.Context(), req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, response.Err(err.Error()))
+		response.AbortInternal(c, err.Error())
 		return
 	}
 
@@ -147,13 +147,13 @@ func ListTaskExecutions(c *gin.Context) {
 func GetTaskExecution(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, response.Err(admin.InvalidTaskExecutionID))
+		response.AbortBadRequest(c, admin.InvalidTaskExecutionID)
 		return
 	}
 
 	execution, err := model.GetTaskExecutionByID(c.Request.Context(), id)
 	if err != nil {
-		c.JSON(http.StatusNotFound, response.Err(TaskNotFound))
+		response.AbortNotFound(c, TaskNotFound)
 		return
 	}
 
@@ -177,7 +177,7 @@ func GetTaskExecution(c *gin.Context) {
 func RetryTask(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, response.Err(admin.InvalidTaskExecutionID))
+		response.AbortBadRequest(c, admin.InvalidTaskExecutionID)
 		return
 	}
 
@@ -186,11 +186,11 @@ func RetryTask(c *gin.Context) {
 		errMsg := err.Error()
 		switch {
 		case strings.Contains(errMsg, "不存在"):
-			c.JSON(http.StatusNotFound, response.Err(errMsg))
+			response.AbortNotFound(c, errMsg)
 		case strings.Contains(errMsg, "只有失败的任务") || strings.Contains(errMsg, "不支持重试") || strings.Contains(errMsg, "已达到最大重试"):
-			c.JSON(http.StatusBadRequest, response.Err(errMsg))
+			response.AbortBadRequest(c, errMsg)
 		default:
-			c.JSON(http.StatusInternalServerError, response.Err(fmt.Sprintf("%s: %v", TaskRetryFailed, err)))
+			response.AbortInternal(c, fmt.Sprintf("%s: %v", TaskRetryFailed, err))
 		}
 		return
 	}
@@ -211,7 +211,7 @@ func RetryTask(c *gin.Context) {
 func ListSchedules(c *gin.Context) {
 	schedules, err := model.ListSchedules(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, response.Err(err.Error()))
+		response.AbortInternal(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, response.OK(schedules))
@@ -243,20 +243,20 @@ type CreateScheduleRequest struct {
 func CreateSchedule(c *gin.Context) {
 	var req CreateScheduleRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, response.Err(err.Error()))
+		response.AbortBadRequest(c, err.Error())
 		return
 	}
 
 	// 校验 Cron 表达式
 	if _, err := cron.ParseStandard(req.Cron); err != nil {
-		c.JSON(http.StatusBadRequest, response.Err(InvalidCronExpression))
+		response.AbortBadRequest(c, InvalidCronExpression)
 		return
 	}
 
 	// 校验关联的异步任务类型
 	meta := task.GetTaskMeta(req.TaskType)
 	if meta == nil {
-		c.JSON(http.StatusBadRequest, response.Err(InvalidTaskType))
+		response.AbortBadRequest(c, InvalidTaskType)
 		return
 	}
 
@@ -267,7 +267,7 @@ func CreateSchedule(c *gin.Context) {
 	}
 	validated, err := task.ValidateAndNormalizePayload(meta.AsynqTask, payloadBytes)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, response.Err(err.Error()))
+		response.AbortBadRequest(c, err.Error())
 		return
 	}
 
@@ -280,7 +280,7 @@ func CreateSchedule(c *gin.Context) {
 	}
 
 	if err := model.CreateSchedule(c.Request.Context(), schedule); err != nil {
-		c.JSON(http.StatusInternalServerError, response.Err(fmt.Sprintf("%s: %v", ScheduleSaveFailed, err)))
+		response.AbortInternal(c, fmt.Sprintf("%s: %v", ScheduleSaveFailed, err))
 		return
 	}
 
@@ -320,33 +320,33 @@ type UpdateScheduleRequest struct {
 func UpdateSchedule(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, response.Err("无效的定时任务ID"))
+		response.AbortBadRequest(c, "无效的定时任务ID")
 		return
 	}
 
 	var req UpdateScheduleRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, response.Err(err.Error()))
+		response.AbortBadRequest(c, err.Error())
 		return
 	}
 
 	// 检查定时任务是否存在
 	schedule, err := model.GetScheduleByID(c.Request.Context(), id)
 	if err != nil {
-		c.JSON(http.StatusNotFound, response.Err(ScheduleNotFound))
+		response.AbortNotFound(c, ScheduleNotFound)
 		return
 	}
 
 	// 校验 Cron 表达式
 	if _, err := cron.ParseStandard(req.Cron); err != nil {
-		c.JSON(http.StatusBadRequest, response.Err(InvalidCronExpression))
+		response.AbortBadRequest(c, InvalidCronExpression)
 		return
 	}
 
 	// 校验关联的异步任务类型
 	meta := task.GetTaskMeta(req.TaskType)
 	if meta == nil {
-		c.JSON(http.StatusBadRequest, response.Err(InvalidTaskType))
+		response.AbortBadRequest(c, InvalidTaskType)
 		return
 	}
 
@@ -357,7 +357,7 @@ func UpdateSchedule(c *gin.Context) {
 	}
 	validated, err := task.ValidateAndNormalizePayload(meta.AsynqTask, payloadBytes)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, response.Err(err.Error()))
+		response.AbortBadRequest(c, err.Error())
 		return
 	}
 
@@ -368,7 +368,7 @@ func UpdateSchedule(c *gin.Context) {
 	schedule.IsActive = *req.IsActive
 
 	if err := model.UpdateSchedule(c.Request.Context(), schedule); err != nil {
-		c.JSON(http.StatusInternalServerError, response.Err(fmt.Sprintf("%s: %v", ScheduleSaveFailed, err)))
+		response.AbortInternal(c, fmt.Sprintf("%s: %v", ScheduleSaveFailed, err))
 		return
 	}
 
@@ -396,12 +396,12 @@ func UpdateSchedule(c *gin.Context) {
 func DeleteSchedule(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, response.Err("无效的定时任务ID"))
+		response.AbortBadRequest(c, "无效的定时任务ID")
 		return
 	}
 
 	if err := model.DeleteSchedule(c.Request.Context(), id); err != nil {
-		c.JSON(http.StatusInternalServerError, response.Err(fmt.Sprintf("%s: %v", ScheduleDeleteFailed, err)))
+		response.AbortInternal(c, fmt.Sprintf("%s: %v", ScheduleDeleteFailed, err))
 		return
 	}
 

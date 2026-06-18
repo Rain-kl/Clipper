@@ -7,9 +7,9 @@ package oauth
 import (
 	"context"
 	"errors"
-	"net/http"
 
 	"github.com/Rain-kl/Wavelet/internal/common"
+	"github.com/Rain-kl/Wavelet/internal/common/response"
 	"github.com/Rain-kl/Wavelet/internal/db"
 	"github.com/Rain-kl/Wavelet/internal/model"
 	"github.com/Rain-kl/Wavelet/internal/util"
@@ -111,7 +111,7 @@ func LoginRequired() gin.HandlerFunc {
 
 		user, err := GetUserFromRequest(c)
 		if err != nil {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error_msg": common.UnAuthorized, "data": nil})
+			response.AbortUnauthorized(c, common.UnAuthorized)
 			return
 		}
 
@@ -130,7 +130,7 @@ func LoginRequired() gin.HandlerFunc {
 func DisallowTokenAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if tokenAuth, _ := util.GetFromContext[bool](c, TokenAuthKey); tokenAuth {
-			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error_msg": ErrTokenAuthNotAllowed, "data": nil})
+			response.AbortForbidden(c, ErrTokenAuthNotAllowed)
 			return
 		}
 		c.Next()

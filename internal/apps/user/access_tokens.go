@@ -43,7 +43,7 @@ func ListAccessTokens(c *gin.Context) {
 
 	var tokens []model.AccessToken
 	if err := db.DB(ctx).Where("user_id = ?", currUser.ID).Order("created_at desc").Find(&tokens).Error; err != nil {
-		c.JSON(http.StatusOK, response.Err(err.Error()))
+		response.AbortBadRequest(c, err.Error())
 		return
 	}
 
@@ -67,19 +67,19 @@ func CreateAccessToken(c *gin.Context) {
 
 	var req createTokenRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusOK, response.Err(errBindParamsFailed))
+		response.AbortBadRequest(c, errBindParamsFailed)
 		return
 	}
 
 	req.Name = strings.TrimSpace(req.Name)
 	if req.Name == "" {
-		c.JSON(http.StatusOK, response.Err(errTokenNameRequired))
+		response.AbortBadRequest(c, errTokenNameRequired)
 		return
 	}
 
 	// 只有管理员才能创建具有管理员权限的令牌
 	if req.IsAdmin && !currUser.IsAdmin {
-		c.JSON(http.StatusOK, response.Err(errAdminTokenRequiresAdmin))
+		response.AbortBadRequest(c, errAdminTokenRequiresAdmin)
 		return
 	}
 
@@ -91,19 +91,19 @@ func CreateAccessToken(c *gin.Context) {
 
 	var count int64
 	if err := db.DB(ctx).Model(&model.AccessToken{}).Where("user_id = ?", currUser.ID).Count(&count).Error; err != nil {
-		c.JSON(http.StatusOK, response.Err(err.Error()))
+		response.AbortBadRequest(c, err.Error())
 		return
 	}
 
 	if int(count) >= maxLimit {
-		c.JSON(http.StatusOK, response.Err(errAccessTokenLimitReached))
+		response.AbortBadRequest(c, errAccessTokenLimitReached)
 		return
 	}
 
 	// 生成 Token
 	tokenStr, err := model.GenerateTokenString()
 	if err != nil {
-		c.JSON(http.StatusOK, response.Err(errGenerateTokenFailed))
+		response.AbortBadRequest(c, errGenerateTokenFailed)
 		return
 	}
 
@@ -119,7 +119,7 @@ func CreateAccessToken(c *gin.Context) {
 	}
 
 	if err := db.DB(ctx).Create(&tokenRecord).Error; err != nil {
-		c.JSON(http.StatusOK, response.Err(err.Error()))
+		response.AbortBadRequest(c, err.Error())
 		return
 	}
 
@@ -146,18 +146,18 @@ func DeleteAccessToken(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 64)
 	if err != nil {
-		c.JSON(http.StatusOK, response.Err(errInvalidTokenID))
+		response.AbortBadRequest(c, errInvalidTokenID)
 		return
 	}
 
 	tx := db.DB(ctx).Where("id = ? AND user_id = ?", id, currUser.ID).Delete(&model.AccessToken{})
 	if tx.Error != nil {
-		c.JSON(http.StatusOK, response.Err(tx.Error.Error()))
+		response.AbortBadRequest(c, tx.Error.Error())
 		return
 	}
 
 	if tx.RowsAffected == 0 {
-		c.JSON(http.StatusOK, response.Err(errTokenNotFoundOrForbidden))
+		response.AbortBadRequest(c, errTokenNotFoundOrForbidden)
 		return
 	}
 
@@ -181,20 +181,20 @@ func RotateAccessToken(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 64)
 	if err != nil {
-		c.JSON(http.StatusOK, response.Err(errInvalidTokenID))
+		response.AbortBadRequest(c, errInvalidTokenID)
 		return
 	}
 
 	var tokenRecord model.AccessToken
 	if err := db.DB(ctx).Where("id = ? AND user_id = ?", id, currUser.ID).First(&tokenRecord).Error; err != nil {
-		c.JSON(http.StatusOK, response.Err(errTokenNotFoundOrForbidden))
+		response.AbortBadRequest(c, errTokenNotFoundOrForbidden)
 		return
 	}
 
 	// 生成新的 Token
 	newTokenStr, err := model.GenerateTokenString()
 	if err != nil {
-		c.JSON(http.StatusOK, response.Err(errGenerateTokenFailed))
+		response.AbortBadRequest(c, errGenerateTokenFailed)
 		return
 	}
 
@@ -205,7 +205,7 @@ func RotateAccessToken(c *gin.Context) {
 	tokenRecord.MaskedToken = newMaskedToken
 
 	if err := db.DB(ctx).Save(&tokenRecord).Error; err != nil {
-		c.JSON(http.StatusOK, response.Err(err.Error()))
+		response.AbortBadRequest(c, err.Error())
 		return
 	}
 

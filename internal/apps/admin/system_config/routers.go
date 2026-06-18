@@ -60,17 +60,17 @@ type UpdateSystemConfigRequest struct {
 func CreateSystemConfig(c *gin.Context) {
 	var req CreateSystemConfigRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, response.Err(err.Error()))
+		response.AbortBadRequest(c, err.Error())
 		return
 	}
 
 	// 检查配置键是否已存在
 	var existing model.SystemConfig
 	if err := db.DB(c.Request.Context()).Where("key = ?", req.Key).First(&existing).Error; err == nil {
-		c.JSON(http.StatusBadRequest, response.Err(ConfigKeyExists))
+		response.AbortBadRequest(c, ConfigKeyExists)
 		return
 	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
-		c.JSON(http.StatusInternalServerError, response.Err(err.Error()))
+		response.AbortInternal(c, err.Error())
 		return
 	}
 
@@ -90,7 +90,7 @@ func CreateSystemConfig(c *gin.Context) {
 
 		return nil
 	}); err != nil {
-		c.JSON(http.StatusInternalServerError, response.Err(err.Error()))
+		response.AbortInternal(c, err.Error())
 		return
 	}
 
@@ -124,7 +124,7 @@ func ListSystemConfigs(c *gin.Context) {
 
 	var configs []model.SystemConfig
 	if err := query.Find(&configs).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, response.Err(err.Error()))
+		response.AbortInternal(c, err.Error())
 		return
 	}
 
@@ -152,9 +152,9 @@ func GetSystemConfig(c *gin.Context) {
 	var config model.SystemConfig
 	if err := db.DB(c.Request.Context()).Where("key = ?", c.Param("key")).First(&config).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(http.StatusNotFound, response.Err(SystemConfigNotFound))
+			response.AbortNotFound(c, SystemConfigNotFound)
 		} else {
-			c.JSON(http.StatusInternalServerError, response.Err(err.Error()))
+			response.AbortInternal(c, err.Error())
 		}
 		return
 	}
@@ -183,7 +183,7 @@ func GetSystemConfig(c *gin.Context) {
 func UpdateSystemConfig(c *gin.Context) {
 	var req UpdateSystemConfigRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, response.Err(err.Error()))
+		response.AbortBadRequest(c, err.Error())
 		return
 	}
 
@@ -193,9 +193,9 @@ func UpdateSystemConfig(c *gin.Context) {
 	var config model.SystemConfig
 	if err := db.DB(c.Request.Context()).Where("key = ?", key).First(&config).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(http.StatusNotFound, response.Err(SystemConfigNotFound))
+			response.AbortNotFound(c, SystemConfigNotFound)
 		} else {
-			c.JSON(http.StatusInternalServerError, response.Err(err.Error()))
+			response.AbortInternal(c, err.Error())
 		}
 		return
 	}
@@ -209,7 +209,7 @@ func UpdateSystemConfig(c *gin.Context) {
 
 		validatedVal, err := validateAndMergeStorageConfig(c.Request.Context(), req.Value, config.Value)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, response.Err(err.Error()))
+			response.AbortBadRequest(c, err.Error())
 			return
 		}
 		req.Value = validatedVal
@@ -242,7 +242,7 @@ func UpdateSystemConfig(c *gin.Context) {
 
 		return nil
 	}); err != nil {
-		c.JSON(http.StatusInternalServerError, response.Err(err.Error()))
+		response.AbortInternal(c, err.Error())
 		return
 	}
 
@@ -339,7 +339,7 @@ type TestSMTPResponse struct {
 func TestSMTP(c *gin.Context) {
 	var req TestSMTPRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, response.Err(err.Error()))
+		response.AbortBadRequest(c, err.Error())
 		return
 	}
 

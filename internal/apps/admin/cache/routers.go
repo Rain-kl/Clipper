@@ -56,7 +56,7 @@ func GetCacheStatus(c *gin.Context) {
 func UpdateCacheConfig(c *gin.Context) {
 	var req updateCacheConfigRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, response.Err(err.Error()))
+		response.AbortBadRequest(c, err.Error())
 		return
 	}
 
@@ -64,19 +64,19 @@ func UpdateCacheConfig(c *gin.Context) {
 
 	// Update Max Size
 	if err := saveOrUpdateConfig(ctx, model.ConfigKeyDiskCacheMaxSizeMB, strconv.FormatInt(req.MaxSizeMB, 10)); err != nil {
-		c.JSON(http.StatusInternalServerError, response.Err(err.Error()))
+		response.AbortInternal(c, err.Error())
 		return
 	}
 
 	// Update Default TTL
 	if err := saveOrUpdateConfig(ctx, model.ConfigKeyDiskCacheTTLMinutes, strconv.FormatInt(req.TTLMinutes, 10)); err != nil {
-		c.JSON(http.StatusInternalServerError, response.Err(err.Error()))
+		response.AbortInternal(c, err.Error())
 		return
 	}
 
 	// Update LRU Enabled
 	if err := saveOrUpdateConfig(ctx, model.ConfigKeyDiskCacheLRUEnabled, strconv.FormatBool(req.LRUEnabled)); err != nil {
-		c.JSON(http.StatusInternalServerError, response.Err(err.Error()))
+		response.AbortInternal(c, err.Error())
 		return
 	}
 
@@ -99,7 +99,7 @@ func UpdateCacheConfig(c *gin.Context) {
 // @Router /api/v1/admin/cache/clear [post]
 func ClearCache(c *gin.Context) {
 	if err := diskcache.GetGlobalCache().Clear(); err != nil {
-		c.JSON(http.StatusInternalServerError, response.Err(err.Error()))
+		response.AbortInternal(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, response.OKNil())

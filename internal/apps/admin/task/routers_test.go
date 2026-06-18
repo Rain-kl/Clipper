@@ -16,6 +16,7 @@ import ("bytes"
 	"github.com/Rain-kl/Wavelet/internal/apps/oauth"
 	"github.com/Rain-kl/Wavelet/internal/apps/upload"
 	"github.com/Rain-kl/Wavelet/internal/apps/user"
+	"github.com/Rain-kl/Wavelet/internal/bootstrap"
 	"github.com/Rain-kl/Wavelet/internal/model"
 	"github.com/Rain-kl/Wavelet/internal/task"
 	"github.com/Rain-kl/Wavelet/internal/testhelper"
@@ -29,6 +30,7 @@ import ("bytes"
 
 func setupTaskTestEnvironment(t *testing.T) func() {
 	_, mr, cleanup := testhelper.SetupTestEnvironment(t)
+	bootstrap.RegisterTasks()
 	task.AsynqClient = asynq.NewClient(asynq.RedisClientOpt{
 		Addr: mr.Addr(),
 	})

@@ -76,7 +76,7 @@ func ListEvents(c *gin.Context) {
 
 	var events []model.PushEvent
 	if err := db.DB(ctx).Order("created_at DESC").Find(&events).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, response.Err(err.Error()))
+		response.AbortInternal(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, response.OK(events))
@@ -166,7 +166,7 @@ func getEventInfo(req CreateEventRequest) (string, string, []byte, error) {
 func CreateEvent(c *gin.Context) {
 	var req CreateEventRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, response.Err(err.Error()))
+		response.AbortBadRequest(c, err.Error())
 		return
 	}
 
@@ -174,18 +174,18 @@ func CreateEvent(c *gin.Context) {
 
 	eventKey, eventName, defaultTemplateBytes, err := getEventInfo(req)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, response.Err(err.Error()))
+		response.AbortBadRequest(c, err.Error())
 		return
 	}
 
 	// 2. 检查是否已经创建过该事件的配置
 	var count int64
 	if err := db.DB(ctx).Model(&model.PushEvent{}).Where("event_key = ?", eventKey).Count(&count).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, response.Err(err.Error()))
+		response.AbortInternal(c, err.Error())
 		return
 	}
 	if count > 0 {
-		c.JSON(http.StatusBadRequest, response.Err("this notification event is already configured"))
+		response.AbortBadRequest(c, "this notification event is already configured")
 		return
 	}
 
@@ -196,7 +196,7 @@ func CreateEvent(c *gin.Context) {
 	} else {
 		var tempMap map[string]any
 		if err := json.Unmarshal([]byte(templateStr), &tempMap); err != nil {
-			c.JSON(http.StatusBadRequest, response.Err("custom template is not a valid JSON format"))
+			response.AbortBadRequest(c, "custom template is not a valid JSON format")
 			return
 		}
 	}
@@ -222,12 +222,12 @@ func CreateEvent(c *gin.Context) {
 	}
 
 	if err := event.Validate(); err != nil {
-		c.JSON(http.StatusBadRequest, response.Err(err.Error()))
+		response.AbortBadRequest(c, err.Error())
 		return
 	}
 
 	if err := db.DB(ctx).Create(&event).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, response.Err(err.Error()))
+		response.AbortInternal(c, err.Error())
 		return
 	}
 
@@ -250,7 +250,7 @@ func DeleteEvent(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, response.Err("invalid event id"))
+		response.AbortBadRequest(c, "invalid event id")
 		return
 	}
 
@@ -258,15 +258,15 @@ func DeleteEvent(c *gin.Context) {
 	var event model.PushEvent
 	if err := db.DB(ctx).First(&event, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(http.StatusNotFound, response.Err("notification event not found"))
+			response.AbortNotFound(c, "notification event not found")
 		} else {
-			c.JSON(http.StatusInternalServerError, response.Err(err.Error()))
+			response.AbortInternal(c, err.Error())
 		}
 		return
 	}
 
 	if err := db.DB(ctx).Delete(&event).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, response.Err(err.Error()))
+		response.AbortInternal(c, err.Error())
 		return
 	}
 
@@ -291,22 +291,22 @@ func UpdateEvent(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, response.Err("invalid event id"))
+		response.AbortBadRequest(c, "invalid event id")
 		return
 	}
 
 	var req UpdateEventRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, response.Err(err.Error()))
+		response.AbortBadRequest(c, err.Error())
 		return
 	}
 
 	var event model.PushEvent
 	if err := db.DB(c.Request.Context()).First(&event, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(http.StatusNotFound, response.Err("notification event not found"))
+			response.AbortNotFound(c, "notification event not found")
 		} else {
-			c.JSON(http.StatusInternalServerError, response.Err(err.Error()))
+			response.AbortInternal(c, err.Error())
 		}
 		return
 	}
@@ -317,12 +317,12 @@ func UpdateEvent(c *gin.Context) {
 	event.Enabled = req.Enabled
 
 	if err := event.Validate(); err != nil {
-		c.JSON(http.StatusBadRequest, response.Err(err.Error()))
+		response.AbortBadRequest(c, err.Error())
 		return
 	}
 
 	if err := db.DB(c.Request.Context()).Save(&event).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, response.Err(err.Error()))
+		response.AbortInternal(c, err.Error())
 		return
 	}
 
@@ -345,27 +345,27 @@ func ToggleEvent(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, response.Err("invalid event id"))
+		response.AbortBadRequest(c, "invalid event id")
 		return
 	}
 
 	var event model.PushEvent
 	if err := db.DB(c.Request.Context()).First(&event, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(http.StatusNotFound, response.Err("notification event not found"))
+			response.AbortNotFound(c, "notification event not found")
 		} else {
-			c.JSON(http.StatusInternalServerError, response.Err(err.Error()))
+			response.AbortInternal(c, err.Error())
 		}
 		return
 	}
 
 	event.Enabled = !event.Enabled
 	if event.Enabled && len(event.Channels) == 0 {
-		c.JSON(http.StatusBadRequest, response.Err("cannot enable event without any push channels configured"))
+		response.AbortBadRequest(c, "cannot enable event without any push channels configured")
 		return
 	}
 	if err := db.DB(c.Request.Context()).Model(&event).Update("enabled", event.Enabled).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, response.Err(err.Error()))
+		response.AbortInternal(c, err.Error())
 		return
 	}
 
@@ -420,14 +420,14 @@ func ListHistories(c *gin.Context) {
 
 	var total int64
 	if err := query.Count(&total).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, response.Err(err.Error()))
+		response.AbortInternal(c, err.Error())
 		return
 	}
 
 	var results []model.PushHistory
 	offset := (page - 1) * pageSize
 	if err := query.Offset(offset).Limit(pageSize).Find(&results).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, response.Err(err.Error()))
+		response.AbortInternal(c, err.Error())
 		return
 	}
 
@@ -450,19 +450,19 @@ func ListHistories(c *gin.Context) {
 func TestPush(c *gin.Context) {
 	var req TestPushRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, response.Err(err.Error()))
+		response.AbortBadRequest(c, err.Error())
 		return
 	}
 
 	pusher, err := push.GetPusher(req.Config.Channel)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, response.Err(err.Error()))
+		response.AbortBadRequest(c, err.Error())
 		return
 	}
 
 	// 校验配置
 	if err := pusher.ValidateConfig(req.Config); err != nil {
-		c.JSON(http.StatusBadRequest, response.Err(fmt.Sprintf("validation failed: %v", err)))
+		response.AbortBadRequest(c, fmt.Sprintf("validation failed: %v", err))
 		return
 	}
 
@@ -494,7 +494,7 @@ func TestPush(c *gin.Context) {
 
 	err = pusher.Send(c.Request.Context(), req.Config, req.Target, testBody, "", nil)
 	if err != nil {
-		c.JSON(http.StatusOK, response.Err(err.Error()))
+		response.AbortBadRequest(c, err.Error())
 		return
 	}
 

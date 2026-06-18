@@ -49,17 +49,17 @@ type UpdateTemplateRequest struct {
 func CreateTemplate(c *gin.Context) {
 	var req CreateTemplateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, response.Err(err.Error()))
+		response.AbortBadRequest(c, err.Error())
 		return
 	}
 
 	// 检查模板 Key 是否已存在
 	var existing model.Template
 	if err := db.DB(c.Request.Context()).Where("key = ?", req.Key).First(&existing).Error; err == nil {
-		c.JSON(http.StatusBadRequest, response.Err(TemplateKeyExists))
+		response.AbortBadRequest(c, TemplateKeyExists)
 		return
 	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
-		c.JSON(http.StatusInternalServerError, response.Err(err.Error()))
+		response.AbortInternal(c, err.Error())
 		return
 	}
 
@@ -74,12 +74,12 @@ func CreateTemplate(c *gin.Context) {
 	}
 
 	if err := tmpl.Validate(); err != nil {
-		c.JSON(http.StatusBadRequest, response.Err(err.Error()))
+		response.AbortBadRequest(c, err.Error())
 		return
 	}
 
 	if err := db.DB(c.Request.Context()).Create(&tmpl).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, response.Err(err.Error()))
+		response.AbortInternal(c, err.Error())
 		return
 	}
 
@@ -100,7 +100,7 @@ func CreateTemplate(c *gin.Context) {
 func ListTemplates(c *gin.Context) {
 	var templates []model.Template
 	if err := db.DB(c.Request.Context()).Order("is_system DESC, created_at DESC").Find(&templates).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, response.Err(err.Error()))
+		response.AbortInternal(c, err.Error())
 		return
 	}
 
@@ -124,9 +124,9 @@ func GetTemplate(c *gin.Context) {
 	var tmpl model.Template
 	if err := db.DB(c.Request.Context()).Where("key = ?", c.Param("key")).First(&tmpl).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(http.StatusNotFound, response.Err(TemplateNotFound))
+			response.AbortNotFound(c, TemplateNotFound)
 		} else {
-			c.JSON(http.StatusInternalServerError, response.Err(err.Error()))
+			response.AbortInternal(c, err.Error())
 		}
 		return
 	}
@@ -153,7 +153,7 @@ func GetTemplate(c *gin.Context) {
 func UpdateTemplate(c *gin.Context) {
 	var req UpdateTemplateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, response.Err(err.Error()))
+		response.AbortBadRequest(c, err.Error())
 		return
 	}
 
@@ -163,9 +163,9 @@ func UpdateTemplate(c *gin.Context) {
 	var tmpl model.Template
 	if err := db.DB(c.Request.Context()).Where("key = ?", key).First(&tmpl).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(http.StatusNotFound, response.Err(TemplateNotFound))
+			response.AbortNotFound(c, TemplateNotFound)
 		} else {
-			c.JSON(http.StatusInternalServerError, response.Err(err.Error()))
+			response.AbortInternal(c, err.Error())
 		}
 		return
 	}
@@ -177,12 +177,12 @@ func UpdateTemplate(c *gin.Context) {
 	tmpl.Description = req.Description
 
 	if err := tmpl.Validate(); err != nil {
-		c.JSON(http.StatusBadRequest, response.Err(err.Error()))
+		response.AbortBadRequest(c, err.Error())
 		return
 	}
 
 	if err := db.DB(c.Request.Context()).Save(&tmpl).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, response.Err(err.Error()))
+		response.AbortInternal(c, err.Error())
 		return
 	}
 
@@ -210,21 +210,21 @@ func DeleteTemplate(c *gin.Context) {
 	var tmpl model.Template
 	if err := db.DB(c.Request.Context()).Where("key = ?", key).First(&tmpl).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(http.StatusNotFound, response.Err(TemplateNotFound))
+			response.AbortNotFound(c, TemplateNotFound)
 		} else {
-			c.JSON(http.StatusInternalServerError, response.Err(err.Error()))
+			response.AbortInternal(c, err.Error())
 		}
 		return
 	}
 
 	// 限制系统模板删除
 	if tmpl.IsSystem {
-		c.JSON(http.StatusBadRequest, response.Err(SystemTemplateCannotDelete))
+		response.AbortBadRequest(c, SystemTemplateCannotDelete)
 		return
 	}
 
 	if err := db.DB(c.Request.Context()).Delete(&tmpl).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, response.Err(err.Error()))
+		response.AbortInternal(c, err.Error())
 		return
 	}
 

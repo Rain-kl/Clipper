@@ -24,7 +24,7 @@ func GetPublicConfig(c *gin.Context) {
 	ctx := c.Request.Context()
 	configs, err := model.ListVisibleSystemConfigs(ctx)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, response.Err(err.Error()))
+		response.AbortInternal(c, err.Error())
 		return
 	}
 
