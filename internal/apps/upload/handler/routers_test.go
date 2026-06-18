@@ -193,10 +193,6 @@ func TestUploadFile(t *testing.T) {
 			t.Errorf("incorrect mime type detected: %s", dbRecord.MimeType)
 		}
 
-		if dbRecord.StorageDriver != "s3" {
-			t.Errorf("expected storage driver s3, got %s", dbRecord.StorageDriver)
-		}
-
 		if dbRecord.Metadata.Extra["source"] != "test_runner" {
 			t.Errorf("expected extra meta 'source' to be 'test_runner', got %v", dbRecord.Metadata.Extra)
 		}
@@ -325,10 +321,6 @@ func TestUploadFile(t *testing.T) {
 			t.Fatalf("failed to unmarshal local upload record: %v", err)
 		}
 
-		if localRecord.StorageDriver != "local" {
-			t.Errorf("expected storage driver local, got %s", localRecord.StorageDriver)
-		}
-
 		// Confirm file was actually written to local disk
 		fileContent, err := os.ReadFile(localRecord.FilePath)
 		if err != nil {
@@ -358,7 +350,6 @@ func TestDownloadFile(t *testing.T) {
 		FileSize:      12,
 		MimeType:      "text/plain",
 		Extension:     "txt",
-		StorageDriver: "local",
 		Status:        model.UploadStatusUsed,
 	}
 
@@ -426,7 +417,6 @@ func TestListFiles(t *testing.T) {
 			FileSize:      10,
 			MimeType:      "text/plain",
 			Extension:     "txt",
-			StorageDriver: "local",
 			Status:        model.UploadStatusUsed,
 		},
 		{
@@ -437,7 +427,6 @@ func TestListFiles(t *testing.T) {
 			FileSize:      20,
 			MimeType:      "image/png",
 			Extension:     "png",
-			StorageDriver: "local",
 			Status:        model.UploadStatusUsed,
 		},
 		{
@@ -448,7 +437,6 @@ func TestListFiles(t *testing.T) {
 			FileSize:      30,
 			MimeType:      "text/markdown",
 			Extension:     "md",
-			StorageDriver: "local",
 			Status:        model.UploadStatusUsed,
 		},
 		{
@@ -459,7 +447,6 @@ func TestListFiles(t *testing.T) {
 			FileSize:      40,
 			MimeType:      "text/plain",
 			Extension:     "txt",
-			StorageDriver: "local",
 			Status:        model.UploadStatusUsed,
 		},
 	}
@@ -582,7 +569,6 @@ func TestBatchDownloadFiles(t *testing.T) {
 			FileSize:      13,
 			MimeType:      "text/plain",
 			Extension:     "txt",
-			StorageDriver: "local",
 			Status:        model.UploadStatusUsed,
 		},
 		{
@@ -593,7 +579,6 @@ func TestBatchDownloadFiles(t *testing.T) {
 			FileSize:      13,
 			MimeType:      "text/plain",
 			Extension:     "txt",
-			StorageDriver: "local",
 			Status:        model.UploadStatusUsed,
 		},
 		{
@@ -604,7 +589,6 @@ func TestBatchDownloadFiles(t *testing.T) {
 			FileSize:      28,
 			MimeType:      "text/plain",
 			Extension:     "txt",
-			StorageDriver: "local",
 			Status:        model.UploadStatusUsed,
 		},
 	}
@@ -773,7 +757,6 @@ func TestGetFileStats(t *testing.T) {
 			FileSize:      100,
 			MimeType:      "image/png",
 			Extension:     "png",
-			StorageDriver: "local",
 			Type:          "generic",
 			Status:        model.UploadStatusUsed,
 			CreatedAt:     time.Now(),
@@ -786,7 +769,6 @@ func TestGetFileStats(t *testing.T) {
 			FileSize:      500,
 			MimeType:      "video/mp4",
 			Extension:     "mp4",
-			StorageDriver: "local",
 			Type:          "generic",
 			Status:        model.UploadStatusUsed,
 			CreatedAt:     time.Now().AddDate(0, 0, -2), // 2 days ago
@@ -799,7 +781,6 @@ func TestGetFileStats(t *testing.T) {
 			FileSize:      200,
 			MimeType:      "application/pdf",
 			Extension:     "pdf",
-			StorageDriver: "local",
 			Type:          "avatar", // different type
 			Status:        model.UploadStatusUsed,
 			CreatedAt:     time.Now().AddDate(0, 0, -10), // older than 7 days
@@ -891,7 +872,6 @@ func TestUserUploadManagement(t *testing.T) {
 		FileSize:      100,
 		MimeType:      "text/plain",
 		Extension:     "txt",
-		StorageDriver: "local",
 		Status:        model.UploadStatusUsed,
 		CreatedAt:     time.Now(),
 	}
@@ -903,7 +883,6 @@ func TestUserUploadManagement(t *testing.T) {
 		FileSize:      200,
 		MimeType:      "image/png",
 		Extension:     "png",
-		StorageDriver: "local",
 		Status:        model.UploadStatusUsed,
 		CreatedAt:     time.Now(),
 	}

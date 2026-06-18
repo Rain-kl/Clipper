@@ -84,11 +84,7 @@ func (h *SystemCleanupHandler) Execute(ctx context.Context, _ []byte) (*task.Tas
 					return err
 				}
 
-				driver := storage.Driver(u.StorageDriver)
-				if driver == "" {
-					driver = storage.DriverLocal
-				}
-				backend, err := storage.ForDriver(ctx, driver)
+				_, backend, err := storage.Active(ctx)
 				if err != nil {
 					return err
 				}

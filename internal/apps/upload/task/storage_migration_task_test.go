@@ -68,7 +68,6 @@ func TestMigrationHandlerExecute(t *testing.T) {
 		MimeType:      "text/plain",
 		Extension:     "txt",
 		Hash:          "hash",
-		StorageDriver: string(storage.DriverLocal),
 		Type:          "attachment",
 		Status:        model.UploadStatusUsed,
 	}
@@ -105,9 +104,6 @@ func TestMigrationHandlerExecute(t *testing.T) {
 	var migrated model.Upload
 	if err := dbConn.First(&migrated, upload.ID).Error; err != nil {
 		t.Fatalf("First(upload) returned error: %v", err)
-	}
-	if migrated.StorageDriver != string(storage.DriverS3) {
-		t.Errorf("StorageDriver = %q, want %q", migrated.StorageDriver, storage.DriverS3)
 	}
 	current, err := storage.LoadConfig(ctx)
 	if err != nil {
@@ -169,7 +165,6 @@ func TestMigrationHandlerExecuteWithHashValidation(t *testing.T) {
 		MimeType:      "text/plain",
 		Extension:     "txt",
 		Hash:          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", // Invalid hash
-		StorageDriver: string(storage.DriverLocal),
 		Type:          "attachment",
 		Status:        model.UploadStatusUsed,
 	}
@@ -224,8 +219,8 @@ func TestMigrationHandlerExecuteWithHashValidation(t *testing.T) {
 	if err := dbConn.First(&migrated, uploadIncorrect.ID).Error; err != nil {
 		t.Fatalf("First(upload) returned error: %v", err)
 	}
-	if migrated.StorageDriver != string(storage.DriverS3) {
-		t.Errorf("StorageDriver = %q, want %q", migrated.StorageDriver, storage.DriverS3)
+	if migrated.FilePath != "uploads/test-hash.txt" {
+		t.Errorf("FilePath = %q, want %q", migrated.FilePath, "uploads/test-hash.txt")
 	}
 }
 

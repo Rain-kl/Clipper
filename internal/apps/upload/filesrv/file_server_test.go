@@ -67,7 +67,6 @@ func TestServeFileByIDAccessControl(t *testing.T) {
 		FileSize:      5,
 		MimeType:      "image/png",
 		Extension:     "png",
-		StorageDriver: "local",
 		Type:          "avatar",
 		Status:        model.UploadStatusUsed,
 		AccessMode:    1,
@@ -80,7 +79,6 @@ func TestServeFileByIDAccessControl(t *testing.T) {
 		FileSize:      5,
 		MimeType:      "application/pdf",
 		Extension:     "pdf",
-		StorageDriver: "local",
 		Type:          "attachment",
 		Status:        model.UploadStatusUsed,
 		AccessMode:    1,
@@ -207,7 +205,6 @@ func TestImageCompression(t *testing.T) {
 		FileSize:      int64(pngBuf.Len()),
 		MimeType:      "image/png",
 		Extension:     "png",
-		StorageDriver: "local",
 		Type:          "avatar", // Whitelisted by default
 		Status:        model.UploadStatusUsed,
 		AccessMode:    1,

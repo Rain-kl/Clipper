@@ -29,7 +29,6 @@ func TestGetDistinctUploadTypes(t *testing.T) {
 		FileSize:      10,
 		MimeType:      "text/plain",
 		Extension:     "txt",
-		StorageDriver: "local",
 		Type:          "custom_type_xyz",
 		Status:        model.UploadStatusUsed,
 	}

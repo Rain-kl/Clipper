@@ -138,29 +138,28 @@ func UploadFile(c *gin.Context) {
 	id := idgen.NextUint64ID()
 	subPath := fmt.Sprintf("uploads/%s/%d.%s", time.Now().Format("2006/01/02"), id, ext)
 
-	storageDriver, subPath, err := storeUploadObject(ctx, subPath, size, mimeType, &buf, &meta)
+	subPath, err = storeUploadObject(ctx, subPath, size, mimeType, &buf, &meta)
 	if err != nil {
 		response.AbortBadRequest(c, err.Error())
 		return
 	}
 
 	newUpload := model.Upload{
-		ID:            id,
-		UserID:        currUser.ID,
-		FileName:      origName,
-		FilePath:      subPath,
-		FileSize:      size,
-		MimeType:      mimeType,
-		Extension:     ext,
-		Hash:          fileHash,
-		StorageDriver: storageDriver,
-		Type:          uploadType,
-		Status:        model.UploadStatusUsed,
-		AccessMode:    accessMode,
-		Metadata:      meta,
+		ID:         id,
+		UserID:     currUser.ID,
+		FileName:   origName,
+		FilePath:   subPath,
+		FileSize:   size,
+		MimeType:   mimeType,
+		Extension:  ext,
+		Hash:       fileHash,
+		Type:       uploadType,
+		Status:     model.UploadStatusUsed,
+		AccessMode: accessMode,
+		Metadata:   meta,
 	}
 
-	if err := saveNewUploadRecord(ctx, &newUpload, storageDriver, subPath); err != nil {
+	if err := saveNewUploadRecord(ctx, &newUpload, subPath); err != nil {
 		response.AbortBadRequest(c, shared.ErrSaveUploadRecordFailed)
 		return
 	}

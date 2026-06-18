@@ -18,6 +18,7 @@ import (
 	"github.com/Rain-kl/Wavelet/internal/apps/cap"
 	"github.com/Rain-kl/Wavelet/internal/apps/upload"
 	"github.com/Rain-kl/Wavelet/internal/common/response"
+	"github.com/Rain-kl/Wavelet/internal/db"
 	"github.com/Rain-kl/Wavelet/internal/model"
 	"github.com/Rain-kl/Wavelet/internal/repository"
 	"github.com/Rain-kl/Wavelet/internal/storage"
@@ -266,11 +267,13 @@ func TestSMTP(c *gin.Context) {
 
 func isStorageConfigValidationError(err error) bool {
 	msg := err.Error()
-	return strings.HasPrefix(msg, "解析") ||
+	return msg == StorageDriverSwitchRequiresMigration ||
+		strings.HasPrefix(msg, "解析") ||
 		strings.HasPrefix(msg, "验证") ||
 		strings.HasPrefix(msg, "初始化测试") ||
 		strings.HasPrefix(msg, "存储连通性") ||
-		strings.HasPrefix(msg, "序列化")
+		strings.HasPrefix(msg, "序列化") ||
+		strings.HasPrefix(msg, "检查存量文件")
 }
 
 func maskSensitiveConfig(key, value string) string {
@@ -322,6 +325,15 @@ func validateAndMergeStorageConfig(ctx context.Context, value string, currentCon
 
 func validateMergedStorageConfig(ctx context.Context, currentCfg, newCfg, targetCfg storage.Config) error {
 	if newCfg.Driver != "" && newCfg.Driver != currentCfg.Driver {
+		var uploadCount int64
+		if err := db.DB(ctx).Model(&model.Upload{}).
+			Where("status != ?", model.UploadStatusDeleted).
+			Count(&uploadCount).Error; err != nil {
+			return fmt.Errorf("检查存量文件失败: %w", err)
+		}
+		if uploadCount > 0 {
+			return errors.New(StorageDriverSwitchRequiresMigration)
+		}
 		if err := validateDriverConfig(targetCfg, newCfg.Driver); err != nil {
 			return fmt.Errorf("验证目标存储配置参数失败: %w", err)
 		}

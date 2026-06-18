@@ -7,7 +7,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/Rain-kl/Wavelet/internal/db"
@@ -88,9 +87,6 @@ func updateSystemConfig(ctx context.Context, key string, req UpdateSystemConfigR
 		if err := tx.Model(&config).Updates(updates).Error; err != nil {
 			return err
 		}
-		if err := repointUploadStorageDriversOnDriverSwitch(ctx, tx, key, originalDriver, req.Value); err != nil {
-			return err
-		}
 		resolveStorageMigrationTasksOnDirectDriverUpdate(ctx, tx, key, originalDriver, req.Value)
 		return nil
 	}); err != nil {
@@ -98,38 +94,6 @@ func updateSystemConfig(ctx context.Context, key string, req UpdateSystemConfigR
 	}
 
 	invalidateCachesAfterConfigUpdate(ctx, key)
-	return nil
-}
-
-func repointUploadStorageDriversOnDriverSwitch(
-	ctx context.Context,
-	tx *gorm.DB,
-	key string,
-	originalDriver storage.Driver,
-	newValue string,
-) error {
-	if key != model.ConfigKeyStorageConfig || originalDriver == "" {
-		return nil
-	}
-
-	var newCfg storage.Config
-	if err := json.Unmarshal([]byte(newValue), &newCfg); err != nil {
-		return fmt.Errorf("parse storage config for driver repoint: %w", err)
-	}
-	if newCfg.Driver == "" || newCfg.Driver == originalDriver {
-		return nil
-	}
-
-	result := tx.Model(&model.Upload{}).
-		Where("storage_driver = ? AND status != ?", string(originalDriver), model.UploadStatusDeleted).
-		Update("storage_driver", string(newCfg.Driver))
-	if result.Error != nil {
-		return result.Error
-	}
-	if result.RowsAffected > 0 {
-		logger.InfoF(ctx, "[StorageConfig] switched driver %s -> %s, repointed %d upload records",
-			originalDriver, newCfg.Driver, result.RowsAffected)
-	}
 	return nil
 }
 

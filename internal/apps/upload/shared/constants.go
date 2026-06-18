@@ -3,8 +3,6 @@
 
 package shared
 
-import "github.com/Rain-kl/Wavelet/internal/storage"
-
 // Upload size, path, media quality, and cache constants shared across subpackages.
 const (
 	MaxUploadSize      = 32 * 1024 * 1024 // 32MB
@@ -15,7 +13,6 @@ const (
 	ImageQualityMedium = "medium"
 	ImageQualityHigh   = "high"
 	ImageQualityOrigin = "origin"
-	StorageDriverLocal = string(storage.DriverLocal)
 	DefaultPublicUploadType = "avatar"
 	FileStatsTrendDays      = 7
 	MaxS3KeyLength          = 1024

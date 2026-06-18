@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/textproto"
+	"strings"
 	"testing"
 
 	"github.com/Rain-kl/Wavelet/internal/apps/oauth"
@@ -441,7 +442,53 @@ func TestUpdateStorageConfigValidation(t *testing.T) {
 		}
 	})
 
+	t.Run("reject driver switch when uploads exist", func(t *testing.T) {
+		upload := model.Upload{
+			ID:        88001,
+			UserID:    1,
+			FileName:  "keep.txt",
+			FilePath:  "uploads/keep.txt",
+			FileSize:  4,
+			MimeType:  "text/plain",
+			Extension: "txt",
+			Type:      "attachment",
+			Status:    model.UploadStatusUsed,
+		}
+		if err := dbConn.Create(&upload).Error; err != nil {
+			t.Fatalf("seed upload failed: %v", err)
+		}
+
+		tempDir := t.TempDir()
+		cfg := storage.DefaultConfig()
+		cfg.Driver = storage.DriverS3
+		cfg.S3.Endpoint = "http://127.0.0.1:19998"
+		cfg.S3.Region = "us-east-1"
+		cfg.S3.Bucket = "wavelet"
+		cfg.S3.AccessKeyID = "test"
+		cfg.S3.SecretAccessKey = "test"
+		cfg.Local.Root = tempDir
+
+		cfgBytes, _ := json.Marshal(cfg)
+		payload := UpdateSystemConfigRequest{Value: string(cfgBytes)}
+		body, _ := json.Marshal(payload)
+		req, _ := http.NewRequest("PUT", "/api/v1/admin/system-configs/storage_config", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusBadRequest {
+			t.Fatalf("expected 400 Bad Request, got %d. Body: %s", w.Code, w.Body.String())
+		}
+		if !strings.Contains(w.Body.String(), StorageDriverSwitchRequiresMigration) {
+			t.Fatalf("expected migration-required error, got: %s", w.Body.String())
+		}
+	})
+
 	t.Run("switch to local while active s3 is unreachable", func(t *testing.T) {
+		if err := dbConn.Where("1 = 1").Delete(&model.Upload{}).Error; err != nil {
+			t.Fatalf("clear uploads failed: %v", err)
+		}
+
 		activeCfg := storage.DefaultConfig()
 		activeCfg.Driver = storage.DriverS3
 		activeCfg.S3.Endpoint = "http://127.0.0.1:9999"

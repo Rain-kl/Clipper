@@ -85,6 +85,15 @@ export function FileList() {
     queryFn: () => services.adminUpload.listUploads(page, pageSize, debouncedKeyword || undefined),
   })
 
+  const storageDriverQuery = useQuery({
+    queryKey: ["admin", "storage-config", "driver"],
+    queryFn: async () => {
+      const record = await services.adminSystemConfig.getSystemConfig("storage_config")
+      const cfg = JSON.parse(record.value) as {driver?: string}
+      return cfg.driver ?? "local"
+    },
+  })
+
   const files = listQuery.data?.items ?? []
   const total = listQuery.data?.total ?? 0
   const totalPages = Math.ceil(total / pageSize)
@@ -470,7 +479,7 @@ export function FileList() {
 
                 <div className="grid grid-cols-3 gap-2 border-b border-dashed pb-2">
                   <span className="text-muted-foreground font-medium">存储驱动</span>
-                  <span className="col-span-2 font-mono text-foreground/90">{detailTarget.storage_driver || "local"}</span>
+                  <span className="col-span-2 font-mono text-foreground/90">{storageDriverQuery.data ?? "local"}</span>
                 </div>
 
                 <div className="grid grid-cols-3 gap-2 border-b border-dashed pb-2">

@@ -155,26 +155,6 @@ func Active(ctx context.Context) (Driver, Backend, error) {
 	return activeDriver, activeBackend, nil
 }
 
-// ForDriver returns the active or pending backend for an upload record, reusing the active singleton if matched.
-func ForDriver(ctx context.Context, driver Driver) (Backend, error) {
-	if driver == DriverS3 && mockBackend != nil {
-		return mockBackend, nil
-	}
-	activeDrv, activeBnd, err := Active(ctx)
-	if err == nil && activeDrv == driver {
-		return activeBnd, nil
-	}
-	cfg, err := LoadConfig(ctx)
-	if err != nil {
-		return nil, err
-	}
-	backend, err := NewBackend(ctx, cfg, driver)
-	if err != nil {
-		return nil, fmt.Errorf("storage configuration for driver %q is unavailable: %w", driver, err)
-	}
-	return backend, nil
-}
-
 type functionBackend struct {
 	put    func(context.Context, string, io.Reader, int64, string) error
 	get    func(context.Context, string) (*Object, error)

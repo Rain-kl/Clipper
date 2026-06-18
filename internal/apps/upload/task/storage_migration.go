@@ -29,8 +29,6 @@ const (
 	StorageMigrationTask = uploadstorage.StorageMigrationTask
 	// TaskTypeStorageMigration is the task metadata type for storage migration.
 	TaskTypeStorageMigration = "storage_migration"
-
-	colStorageDriver = "storage_driver"
 )
 
 // StorageMigrationMeta describes the manually dispatchable migration task.
@@ -136,7 +134,7 @@ func (h *MigrationHandler) Execute(ctx context.Context, payload []byte) (*task.T
 		return &task.TaskResult{Message: message}, nil
 	}
 
-	total, err := countStorageObjects(ctx, active.Driver)
+	total, err := countStorageObjects(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("count source objects: %w", err)
 	}
@@ -159,7 +157,7 @@ func (h *MigrationHandler) Execute(ctx context.Context, payload []byte) (*task.T
 	}
 
 	task.AppendLog(ctx, "开始存储迁移: %s -> %s，总对象数: %d", active.Driver, target.Driver, total)
-	migrated, err := migrateObjects(ctx, sourceBackend, targetBackend, active.Driver, target.Driver, total)
+	migrated, err := migrateObjects(ctx, sourceBackend, targetBackend, total)
 	if err != nil {
 		return nil, err
 	}
@@ -172,10 +170,10 @@ func (h *MigrationHandler) Execute(ctx context.Context, payload []byte) (*task.T
 	return &task.TaskResult{Message: message}, nil
 }
 
-func countStorageObjects(ctx context.Context, driver storage.Driver) (int64, error) {
+func countStorageObjects(ctx context.Context) (int64, error) {
 	var count int64
 	err := db.DB(ctx).Model(&model.Upload{}).
-		Where("storage_driver = ? AND status != ?", driver, model.UploadStatusDeleted).
+		Where("status != ?", model.UploadStatusDeleted).
 		Distinct("file_path").
 		Count(&count).Error
 	return count, err
@@ -189,18 +187,24 @@ func hasUnresolvedMigrationTask(ctx context.Context) (bool, error) {
 	return execution.Status == model.TaskExecutionStatusPending || execution.Status == model.TaskExecutionStatusRunning, nil
 }
 
+type migrationObject struct {
+	FilePath string `gorm:"column:file_path"`
+	FileSize int64  `gorm:"column:file_size"`
+	MimeType string `gorm:"column:mime_type"`
+	Hash     string `gorm:"column:hash"`
+}
+
 func migrateObjects(
 	ctx context.Context,
 	sourceBackend storage.Backend,
 	targetBackend storage.Backend,
-	sourceDriver storage.Driver,
-	targetDriver storage.Driver,
 	total int64,
 ) (int64, error) {
 	const batchSize = 50
 	const migrationConcurrency = 10
 	const sha256HexLength = 64
 	var migrated int64
+	var lastFilePath string
 	for {
 		if err := ctx.Err(); err != nil {
 			return atomic.LoadInt64(&migrated), fmt.Errorf("storage migration canceled: %w", err)
@@ -208,16 +212,14 @@ func migrateObjects(
 
 		task.AppendLog(ctx, "正在查询待迁移对象批次，当前已完成迁移: %d/%d", atomic.LoadInt64(&migrated), total)
 
-		var objects []struct {
-			FilePath string `gorm:"column:file_path"`
-			FileSize int64  `gorm:"column:file_size"`
-			MimeType string `gorm:"column:mime_type"`
-			Hash     string `gorm:"column:hash"`
-		}
-		if err := db.DB(ctx).Model(&model.Upload{}).
+		var objects []migrationObject
+		query := db.DB(ctx).Model(&model.Upload{}).
 			Select("file_path, MAX(file_size) AS file_size, MAX(mime_type) AS mime_type, MAX(hash) AS hash").
-			Where("storage_driver = ? AND status != ?", sourceDriver, model.UploadStatusDeleted).
-			Group("file_path").
+			Where("status != ?", model.UploadStatusDeleted)
+		if lastFilePath != "" {
+			query = query.Where("file_path > ?", lastFilePath)
+		}
+		if err := query.Group("file_path").
 			Order("file_path ASC").
 			Limit(batchSize).
 			Scan(&objects).Error; err != nil {
@@ -228,6 +230,7 @@ func migrateObjects(
 			break
 		}
 
+		lastFilePath = objects[len(objects)-1].FilePath
 		task.AppendLog(ctx, "获取当前批次迁移对象，批次大小: %d，实际获取对象数: %d", batchSize, len(objects))
 
 		var g errgroup.Group
@@ -236,7 +239,7 @@ func migrateObjects(
 		for _, object := range objects {
 			obj := object
 			g.Go(func() error {
-				if err := migrateSingleObject(ctx, sourceBackend, targetBackend, sourceDriver, targetDriver, obj, sha256HexLength); err != nil {
+				if err := migrateSingleObject(ctx, sourceBackend, targetBackend, obj, sha256HexLength); err != nil {
 					return err
 				}
 				atomic.AddInt64(&migrated, 1)
@@ -257,25 +260,11 @@ func migrateSingleObject(
 	ctx context.Context,
 	sourceBackend storage.Backend,
 	targetBackend storage.Backend,
-	sourceDriver storage.Driver,
-	targetDriver storage.Driver,
-	obj struct {
-		FilePath string `gorm:"column:file_path"`
-		FileSize int64  `gorm:"column:file_size"`
-		MimeType string `gorm:"column:mime_type"`
-		Hash     string `gorm:"column:hash"`
-	},
+	obj migrationObject,
 	sha256HexLength int,
 ) error {
 	if shouldSkipMigration(ctx, targetBackend, obj) {
-		task.AppendLog(ctx, "[跳过迁移] 目标存储已存在相同文件且校验一致: %s", obj.FilePath)
-		if err := db.DB(ctx).Model(&model.Upload{}).
-			Where("storage_driver = ? AND file_path = ?", sourceDriver, obj.FilePath).
-			Updates(map[string]any{
-				colStorageDriver: targetDriver,
-			}).Error; err != nil {
-			return fmt.Errorf("update migrated object %q: %w", obj.FilePath, err)
-		}
+		task.AppendLog(ctx, "[跳过迁移] 目标存储已存在相同文件: %s", obj.FilePath)
 		return nil
 	}
 
@@ -283,7 +272,7 @@ func migrateSingleObject(
 	source, err := sourceBackend.Get(ctx, obj.FilePath)
 	if err != nil {
 		if isNotFoundError(err) {
-			return markMissingMigrationObjectDeleted(ctx, sourceDriver, targetDriver, obj.FilePath, err)
+			return markMissingMigrationObjectDeleted(ctx, obj.FilePath, err)
 		}
 		return fmt.Errorf("open source object %q: %w", obj.FilePath, err)
 	}
@@ -319,28 +308,22 @@ func migrateSingleObject(
 		task.AppendLog(ctx, "[校验通过] 文件一致性校验成功: %s", targetResult.Key)
 	}
 
-	task.AppendLog(ctx, "[更新数据库] 正在更新文件 %s 的存储路径与驱动信息为: %s (%s)", obj.FilePath, targetResult.Key, targetDriver)
-	if err := db.DB(ctx).Model(&model.Upload{}).
-		Where("storage_driver = ? AND file_path = ?", sourceDriver, obj.FilePath).
-		Updates(map[string]any{
-			colStorageDriver: targetDriver,
-			"file_path":      targetResult.Key,
-		}).Error; err != nil {
-		return fmt.Errorf("update migrated object %q: %w", obj.FilePath, err)
+	if targetResult.Key != obj.FilePath {
+		task.AppendLog(ctx, "[更新数据库] 正在更新文件路径: %s -> %s", obj.FilePath, targetResult.Key)
+		if err := db.DB(ctx).Model(&model.Upload{}).
+			Where("file_path = ? AND status != ?", obj.FilePath, model.UploadStatusDeleted).
+			Update("file_path", targetResult.Key).Error; err != nil {
+			return fmt.Errorf("update migrated object %q: %w", obj.FilePath, err)
+		}
 	}
-	task.AppendLog(ctx, "[迁移成功] 文件已完成迁移: %s -> %s", obj.FilePath, targetResult.Key)
+	task.AppendLog(ctx, "[迁移成功] 文件已完成迁移: %s", targetResult.Key)
 	return nil
 }
 
 func shouldSkipMigration(
 	ctx context.Context,
 	targetBackend storage.Backend,
-	obj struct {
-		FilePath string `gorm:"column:file_path"`
-		FileSize int64  `gorm:"column:file_size"`
-		MimeType string `gorm:"column:mime_type"`
-		Hash     string `gorm:"column:hash"`
-	},
+	obj migrationObject,
 ) bool {
 	targetObj, err := targetBackend.Get(ctx, obj.FilePath)
 	if err != nil || targetObj == nil || targetObj.Body == nil {
@@ -355,8 +338,6 @@ func shouldSkipMigration(
 
 func markMissingMigrationObjectDeleted(
 	ctx context.Context,
-	sourceDriver storage.Driver,
-	targetDriver storage.Driver,
 	filePath string,
 	sourceErr error,
 ) error {
@@ -364,16 +345,13 @@ func markMissingMigrationObjectDeleted(
 
 	var affectedUploads []model.Upload
 	if err := db.DB(ctx).
-		Where("storage_driver = ? AND file_path = ? AND status != ?", sourceDriver, filePath, model.UploadStatusDeleted).
+		Where("file_path = ? AND status != ?", filePath, model.UploadStatusDeleted).
 		Find(&affectedUploads).Error; err != nil {
 		return fmt.Errorf("load missing object uploads %q: %w", filePath, err)
 	}
 	if err := db.DB(ctx).Model(&model.Upload{}).
-		Where("storage_driver = ? AND file_path = ?", sourceDriver, filePath).
-		Updates(map[string]any{
-			"status":         model.UploadStatusDeleted,
-			colStorageDriver: targetDriver,
-		}).Error; err != nil {
+		Where("file_path = ?", filePath).
+		Update("status", model.UploadStatusDeleted).Error; err != nil {
 		return fmt.Errorf("update missing object %q: %w", filePath, err)
 	}
 	for i := range affectedUploads {

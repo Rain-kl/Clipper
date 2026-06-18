@@ -124,7 +124,6 @@ func createInstantUpload(ctx context.Context, existing model.Upload, input insta
 		MimeType:      input.MimeType,
 		Extension:     input.Extension,
 		Hash:          input.FileHash,
-		StorageDriver: existing.StorageDriver,
 		Type:          input.UploadType,
 		Status:        model.UploadStatusUsed,
 		AccessMode:    input.AccessMode,
@@ -142,9 +141,9 @@ func findReusableUpload(ctx context.Context, hash string, size int64) (model.Upl
 	return repository.FindReusableUploadByHash(ctx, hash, size)
 }
 
-func saveNewUploadRecord(ctx context.Context, upload *model.Upload, storageDriver, filePath string) error {
+func saveNewUploadRecord(ctx context.Context, upload *model.Upload, filePath string) error {
 	if err := repository.CreateUpload(ctx, upload); err != nil {
-		backend, backendErr := storage.ForDriver(ctx, storage.Driver(storageDriver))
+		_, backend, backendErr := storage.Active(ctx)
 		if backendErr == nil {
 			if deleteErr := backend.Delete(ctx, filePath); deleteErr != nil {
 				logger.WarnF(ctx, "清理未写入数据库的上传对象失败: %v", deleteErr)
@@ -162,22 +161,22 @@ func loadUploadStats(ctx context.Context) ([]model.UploadStat, error) {
 
 var errUploadForbidden = errors.New("upload forbidden")
 
-func storeUploadObject(ctx context.Context, subPath string, size int64, mimeType string, buf *bytes.Buffer, meta *model.UploadMetadata) (string, string, error) {
+func storeUploadObject(ctx context.Context, subPath string, size int64, mimeType string, buf *bytes.Buffer, meta *model.UploadMetadata) (string, error) {
 	if uploadstorage.ReadOnly(ctx) {
-		return "", "", errors.New(shared.ErrStorageReadOnly)
+		return "", errors.New(shared.ErrStorageReadOnly)
 	}
 	driver, backend, err := storage.Active(ctx)
 	if err != nil {
 		logger.ErrorF(ctx, "初始化活动存储失败: %v", err)
-		return "", "", errors.New(shared.ErrSaveFileFailed)
+		return "", errors.New(shared.ErrSaveFileFailed)
 	}
 	result, err := backend.Put(ctx, subPath, bytes.NewReader(buf.Bytes()), size, mimeType)
 	if err != nil {
 		logger.ErrorF(ctx, "写入 %s 存储失败: %v", driver, err)
-		return "", "", errors.New(shared.ErrSaveFileFailed)
+		return "", errors.New(shared.ErrSaveFileFailed)
 	}
 	meta.Bucket = result.Bucket
-	return string(driver), result.Key, nil
+	return result.Key, nil
 }
 
 func validateUploadAllowedExtension(ctx context.Context, ext string) string {

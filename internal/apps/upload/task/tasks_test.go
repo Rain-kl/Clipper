@@ -42,6 +42,9 @@ func TestSystemCleanupHandler_Execute(t *testing.T) {
 		func(ctx context.Context, key string) error { return nil },
 	)
 	defer storageMock()
+	storage.IsEnabledFunc = func() bool { return true }
+	defer func() { storage.IsEnabledFunc = func() bool { return false } }()
+	storage.ResetCache()
 
 	ctx := context.Background()
 	err := db.DB(ctx).AutoMigrate(&model.PushHistory{})
@@ -56,27 +59,27 @@ func TestSystemCleanupHandler_Execute(t *testing.T) {
 		{
 			UserID: 1001, FileName: "old_file_1.jpg", FilePath: "uploads/old_1.jpg",
 			FileSize: 1024, MimeType: "image/jpeg", Extension: "jpg", Hash: "hash1",
-			StorageDriver: "s3", Type: "attachment", Status: model.UploadStatusPending,
+			Type: "attachment", Status: model.UploadStatusPending,
 			CreatedAt: twoHoursAgo,
 		},
 		{
 			UserID: 1001, FileName: "old_file_2.png", FilePath: "uploads/old_2.png",
 			FileSize: 2048, MimeType: "image/png", Extension: "png", Hash: "hash2",
-			StorageDriver: "s3", Type: "attachment", Status: model.UploadStatusPending,
+			Type: "attachment", Status: model.UploadStatusPending,
 			CreatedAt: twoHoursAgo,
 		},
 		// 状态为 used 的记录 —— 不应被清理
 		{
 			UserID: 1001, FileName: "used_file.jpg", FilePath: "uploads/used.jpg",
 			FileSize: 512, MimeType: "image/jpeg", Extension: "jpg", Hash: "hash3",
-			StorageDriver: "s3", Type: "attachment", Status: model.UploadStatusUsed,
+			Type: "attachment", Status: model.UploadStatusUsed,
 			CreatedAt: twoHoursAgo,
 		},
 		// 不到1小时的 pending 记录 —— 不应被清理
 		{
 			UserID: 1001, FileName: "recent_file.jpg", FilePath: "uploads/recent.jpg",
 			FileSize: 256, MimeType: "image/jpeg", Extension: "jpg", Hash: "hash4",
-			StorageDriver: "s3", Type: "attachment", Status: model.UploadStatusPending,
+			Type: "attachment", Status: model.UploadStatusPending,
 			CreatedAt: now.Add(-10 * time.Minute),
 		},
 	}
@@ -283,7 +286,6 @@ func TestWarmImageCacheHandlerExecute(t *testing.T) {
 			FilePath:      firstPath,
 			MimeType:      "image/png",
 			Extension:     "png",
-			StorageDriver: shared.StorageDriverLocal,
 			Status:        model.UploadStatusUsed,
 		},
 		{
@@ -293,7 +295,6 @@ func TestWarmImageCacheHandlerExecute(t *testing.T) {
 			FilePath:      secondPath,
 			MimeType:      "application/octet-stream",
 			Extension:     "jpg",
-			StorageDriver: shared.StorageDriverLocal,
 			Status:        model.UploadStatusPending,
 		},
 		{
@@ -303,7 +304,6 @@ func TestWarmImageCacheHandlerExecute(t *testing.T) {
 			FilePath:      filepath.Join(testDir, "notes.txt"),
 			MimeType:      "text/plain",
 			Extension:     "txt",
-			StorageDriver: shared.StorageDriverLocal,
 			Status:        model.UploadStatusUsed,
 		},
 		{
@@ -313,7 +313,6 @@ func TestWarmImageCacheHandlerExecute(t *testing.T) {
 			FilePath:      firstPath,
 			MimeType:      "image/png",
 			Extension:     "png",
-			StorageDriver: shared.StorageDriverLocal,
 			Status:        model.UploadStatusDeleted,
 		},
 	}
