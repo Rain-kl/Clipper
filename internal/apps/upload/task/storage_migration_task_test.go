@@ -1,7 +1,7 @@
 // Copyright 2026 Arctel.net
 // SPDX-License-Identifier: Apache-2.0
 
-package upload
+package task
 
 import (
 	"bytes"
@@ -52,7 +52,9 @@ func TestMigrationHandlerExecute(t *testing.T) {
 		AccessKeyID:     "key",
 		SecretAccessKey: "secret",
 	}
-	payload, err := json.Marshal(storageMigrationPayload{Target: target})
+	payload, err := json.Marshal(struct {
+		Target storage.Config `json:"target"`
+	}{Target: target})
 	if err != nil {
 		t.Fatalf("Marshal(storageMigrationPayload) returned error: %v", err)
 	}
@@ -150,7 +152,9 @@ func TestMigrationHandlerExecuteWithHashValidation(t *testing.T) {
 		AccessKeyID:     "key",
 		SecretAccessKey: "secret",
 	}
-	payload, err := json.Marshal(storageMigrationPayload{Target: target})
+	payload, err := json.Marshal(struct {
+		Target storage.Config `json:"target"`
+	}{Target: target})
 	if err != nil {
 		t.Fatalf("Marshal(storageMigrationPayload) returned error: %v", err)
 	}
@@ -259,7 +263,9 @@ func TestMigrationHandlerExecuteWithRedisLock(t *testing.T) {
 		t.Fatalf("SaveActiveConfig() returned error: %v", err)
 	}
 
-	payload, err := json.Marshal(storageMigrationPayload{Target: active})
+	payload, err := json.Marshal(struct {
+		Target storage.Config `json:"target"`
+	}{Target: active})
 	if err != nil {
 		t.Fatalf("Marshal payload failed: %v", err)
 	}

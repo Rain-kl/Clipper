@@ -1,7 +1,7 @@
 // Copyright 2026 Arctel.net
 // SPDX-License-Identifier: Apache-2.0
 
-package upload
+package handler
 
 import (
 	"errors"
@@ -11,10 +11,13 @@ import (
 	"strings"
 
 	"github.com/Rain-kl/Wavelet/internal/apps/oauth"
+	"github.com/Rain-kl/Wavelet/internal/apps/upload/shared"
+	uploadstats "github.com/Rain-kl/Wavelet/internal/apps/upload/stats"
+	uploadstorage "github.com/Rain-kl/Wavelet/internal/apps/upload/storage"
 	"github.com/Rain-kl/Wavelet/internal/common/response"
 	"github.com/Rain-kl/Wavelet/internal/db"
 	"github.com/Rain-kl/Wavelet/internal/model"
-	"github.com/Rain-kl/Wavelet/internal/util"
+	apputil "github.com/Rain-kl/Wavelet/internal/util"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -56,7 +59,7 @@ func ListFiles(c *gin.Context) {
 
 	var req listFilesRequest
 	if err := c.ShouldBindQuery(&req); err != nil {
-		c.JSON(http.StatusOK, response.Err(ErrInvalidParams))
+		response.AbortBadRequest(c, shared.ErrInvalidParams)
 		return
 	}
 	if req.Page <= 0 {
@@ -84,14 +87,14 @@ func ListFiles(c *gin.Context) {
 
 	var total int64
 	if err := query.Count(&total).Error; err != nil {
-		c.JSON(http.StatusOK, response.Err(ErrQueryFileCountFailed))
+		response.AbortBadRequest(c, shared.ErrQueryFileCountFailed)
 		return
 	}
 
 	var items []model.Upload
 	offset := (req.Page - 1) * req.PageSize
 	if err := query.Order("created_at DESC").Offset(offset).Limit(req.PageSize).Find(&items).Error; err != nil {
-		c.JSON(http.StatusOK, response.Err(ErrQueryFileListFailed))
+		response.AbortBadRequest(c, shared.ErrQueryFileListFailed)
 		return
 	}
 
@@ -116,14 +119,14 @@ func ListFiles(c *gin.Context) {
 // @Router /api/v1/admin/uploads/{id} [delete]
 func DeleteFile(c *gin.Context) {
 	ctx := c.Request.Context()
-	if StorageReadOnly(ctx) {
-		c.JSON(http.StatusConflict, response.Err(ErrStorageReadOnly))
+	if uploadstorage.ReadOnly(ctx) {
+		response.AbortConflict(c, shared.ErrStorageReadOnly)
 		return
 	}
 
 	uploadID, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
-		c.JSON(http.StatusOK, response.Err(ErrInvalidFileID))
+		response.AbortBadRequest(c, shared.ErrInvalidFileID)
 		return
 	}
 
@@ -133,14 +136,14 @@ func DeleteFile(c *gin.Context) {
 			c.AbortWithStatus(http.StatusNotFound)
 			return
 		}
-		c.JSON(http.StatusOK, response.Err(ErrQueryUploadRecordFailed))
+		response.AbortBadRequest(c, shared.ErrQueryUploadRecordFailed)
 		return
 	}
 	if err := db.DB(ctx).Model(&upload).Update("status", model.UploadStatusDeleted).Error; err != nil {
-		c.JSON(http.StatusOK, response.Err(ErrDeleteFileFailed))
+		response.AbortBadRequest(c, shared.ErrDeleteFileFailed)
 		return
 	}
-	recordUploadStatsRemove(ctx, &upload)
+	uploadstats.RecordUploadStatsRemove(ctx, &upload)
 	c.JSON(http.StatusOK, response.OKNil())
 }
 
@@ -161,7 +164,7 @@ func GetDistinctUploadTypes(c *gin.Context) {
 		Where("type IS NOT NULL AND type != ''").
 		Distinct().
 		Pluck("type", &dbTypes).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, response.Err(err.Error()))
+		response.AbortInternal(c, err.Error())
 		return
 	}
 	sort.Strings(dbTypes)
@@ -198,12 +201,12 @@ type listMyFilesResponse struct {
 // @Failure 401 {object} response.Any "未登录"
 // @Router /api/v1/upload/my [get]
 func ListMyFiles(c *gin.Context) {
-	currUser, _ := util.GetFromContext[*model.User](c, oauth.UserObjKey)
+	currUser, _ := apputil.GetFromContext[*model.User](c, oauth.UserObjKey)
 	ctx := c.Request.Context()
 
 	var req listMyFilesRequest
 	if err := c.ShouldBindQuery(&req); err != nil {
-		c.JSON(http.StatusOK, response.Err(ErrInvalidParams))
+		response.AbortBadRequest(c, shared.ErrInvalidParams)
 		return
 	}
 	if req.Page <= 0 {
@@ -228,14 +231,14 @@ func ListMyFiles(c *gin.Context) {
 
 	var total int64
 	if err := query.Count(&total).Error; err != nil {
-		c.JSON(http.StatusOK, response.Err(ErrQueryFileCountFailed))
+		response.AbortBadRequest(c, shared.ErrQueryFileCountFailed)
 		return
 	}
 
 	var items []model.Upload
 	offset := (req.Page - 1) * req.PageSize
 	if err := query.Order("created_at DESC").Offset(offset).Limit(req.PageSize).Find(&items).Error; err != nil {
-		c.JSON(http.StatusOK, response.Err(ErrQueryFileListFailed))
+		response.AbortBadRequest(c, shared.ErrQueryFileListFailed)
 		return
 	}
 
@@ -259,16 +262,16 @@ func ListMyFiles(c *gin.Context) {
 // @Failure 404 {object} response.Any "文件不存在"
 // @Router /api/v1/upload/{id} [delete]
 func DeleteMyFile(c *gin.Context) {
-	currUser, _ := util.GetFromContext[*model.User](c, oauth.UserObjKey)
+	currUser, _ := apputil.GetFromContext[*model.User](c, oauth.UserObjKey)
 	ctx := c.Request.Context()
-	if StorageReadOnly(ctx) {
-		c.JSON(http.StatusConflict, response.Err(ErrStorageReadOnly))
+	if uploadstorage.ReadOnly(ctx) {
+		response.AbortConflict(c, shared.ErrStorageReadOnly)
 		return
 	}
 
 	uploadID, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
-		c.JSON(http.StatusOK, response.Err(ErrInvalidFileID))
+		response.AbortBadRequest(c, shared.ErrInvalidFileID)
 		return
 	}
 
@@ -278,7 +281,7 @@ func DeleteMyFile(c *gin.Context) {
 			c.AbortWithStatus(http.StatusNotFound)
 			return
 		}
-		c.JSON(http.StatusOK, response.Err(ErrQueryUploadRecordFailed))
+		response.AbortBadRequest(c, shared.ErrQueryUploadRecordFailed)
 		return
 	}
 
@@ -288,10 +291,10 @@ func DeleteMyFile(c *gin.Context) {
 	}
 
 	if err := db.DB(ctx).Model(&upload).Update("status", model.UploadStatusDeleted).Error; err != nil {
-		c.JSON(http.StatusOK, response.Err(ErrDeleteFileFailed))
+		response.AbortBadRequest(c, shared.ErrDeleteFileFailed)
 		return
 	}
-	recordUploadStatsRemove(ctx, &upload)
+	uploadstats.RecordUploadStatsRemove(ctx, &upload)
 	c.JSON(http.StatusOK, response.OKNil())
 }
 
@@ -314,22 +317,22 @@ type updateMyFileRequest struct {
 // @Failure 404 {object} response.Any "文件不存在"
 // @Router /api/v1/upload/{id} [put]
 func UpdateMyFile(c *gin.Context) {
-	currUser, _ := util.GetFromContext[*model.User](c, oauth.UserObjKey)
+	currUser, _ := apputil.GetFromContext[*model.User](c, oauth.UserObjKey)
 	ctx := c.Request.Context()
-	if StorageReadOnly(ctx) {
-		c.JSON(http.StatusConflict, response.Err(ErrStorageReadOnly))
+	if uploadstorage.ReadOnly(ctx) {
+		response.AbortConflict(c, shared.ErrStorageReadOnly)
 		return
 	}
 
 	uploadID, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
-		c.JSON(http.StatusOK, response.Err(ErrInvalidFileID))
+		response.AbortBadRequest(c, shared.ErrInvalidFileID)
 		return
 	}
 
 	var req updateMyFileRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusOK, response.Err(ErrInvalidParams))
+		response.AbortBadRequest(c, shared.ErrInvalidParams)
 		return
 	}
 
@@ -339,7 +342,7 @@ func UpdateMyFile(c *gin.Context) {
 			c.AbortWithStatus(http.StatusNotFound)
 			return
 		}
-		c.JSON(http.StatusOK, response.Err(ErrQueryUploadRecordFailed))
+		response.AbortBadRequest(c, shared.ErrQueryUploadRecordFailed)
 		return
 	}
 
@@ -358,7 +361,7 @@ func UpdateMyFile(c *gin.Context) {
 
 	if len(updates) > 0 {
 		if err := db.DB(ctx).Model(&upload).Updates(updates).Error; err != nil {
-			c.JSON(http.StatusOK, response.Err("更新文件记录失败"))
+			response.AbortBadRequest(c, "更新文件记录失败")
 			return
 		}
 	}

@@ -2,7 +2,7 @@
 // Copyright 2026 Arctel.net
 // SPDX-License-Identifier: Apache-2.0
 
-package upload
+package task
 
 import (
 	"context"
@@ -12,12 +12,13 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/Rain-kl/Wavelet/internal/apps/upload/filesrv"
+	"github.com/Rain-kl/Wavelet/internal/apps/upload/shared"
 	"github.com/Rain-kl/Wavelet/internal/db"
 	"github.com/Rain-kl/Wavelet/internal/model"
 	"github.com/Rain-kl/Wavelet/internal/task"
 )
 
-// 异步任务名称与管理类型定义
 const (
 	// WarmImageCacheTask 图片压缩缓存预热任务标识
 	WarmImageCacheTask = "upload:warm_image_cache"
@@ -54,29 +55,25 @@ type WarmImageCachePayload struct {
 	Quality string `json:"quality"`
 }
 
-// SystemCleanupHandler 系统定期垃圾清理异步任务处理器
-
 // WarmImageCacheHandler serially warms compressed image cache entries.
 type WarmImageCacheHandler struct{}
-
-// Execute 执行系统清理（包含文件清理和历史消息推送日志清理）
 
 // ValidatePayload validates and normalizes image cache warmup parameters.
 func (h *WarmImageCacheHandler) ValidatePayload(payload []byte) ([]byte, error) {
 	if len(payload) == 0 {
-		return nil, errors.New(errImageCacheWarmupPayloadRequired)
+		return nil, errors.New(shared.ErrImageCacheWarmupPayloadRequired)
 	}
 
 	var req WarmImageCachePayload
 	if err := json.Unmarshal(payload, &req); err != nil {
-		return nil, fmt.Errorf(errInvalidImageCacheWarmupPayload, err)
+		return nil, fmt.Errorf(shared.ErrInvalidImageCacheWarmupPayload, err)
 	}
 
 	req.Quality = strings.ToLower(strings.TrimSpace(req.Quality))
-	if req.Quality != imageQualityLow &&
-		req.Quality != imageQualityMedium &&
-		req.Quality != imageQualityHigh {
-		return nil, errors.New(errInvalidImageCacheWarmupQuality)
+	if req.Quality != shared.ImageQualityLow &&
+		req.Quality != shared.ImageQualityMedium &&
+		req.Quality != shared.ImageQualityHigh {
+		return nil, errors.New(shared.ErrInvalidImageCacheWarmupQuality)
 	}
 
 	return json.Marshal(req)
@@ -92,7 +89,7 @@ func (h *WarmImageCacheHandler) Execute(ctx context.Context, payload []byte) (*t
 
 	var req WarmImageCachePayload
 	if err := json.Unmarshal(normalizedPayload, &req); err != nil {
-		return nil, fmt.Errorf(errParseImageCacheWarmupPayload, err)
+		return nil, fmt.Errorf(shared.ErrParseImageCacheWarmupPayload, err)
 	}
 
 	task.AppendLog(ctx, "等待获取图片缓存预热执行锁，质量: %s", req.Quality)
@@ -128,7 +125,7 @@ func (h *WarmImageCacheHandler) Execute(ctx context.Context, payload []byte) (*t
 			Limit(batchSize).
 			Find(&uploads).Error; err != nil {
 			task.AppendLog(ctx, "查询图片上传记录失败: %v", err)
-			return nil, fmt.Errorf(errQueryImagesForCacheWarmup, err)
+			return nil, fmt.Errorf(shared.ErrQueryImagesForCacheWarmup, err)
 		}
 
 		if len(uploads) == 0 {
@@ -147,7 +144,7 @@ func (h *WarmImageCacheHandler) Execute(ctx context.Context, payload []byte) (*t
 			totalProcessed++
 			lastID = upload.ID
 
-			_, cacheHit, err := ensureCompressedImageCache(ctx, upload, req.Quality)
+			_, cacheHit, err := filesrv.EnsureCompressedImageCache(ctx, upload, req.Quality)
 			if err != nil {
 				totalFailed++
 				batchFailed++

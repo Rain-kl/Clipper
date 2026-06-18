@@ -139,7 +139,7 @@ func verifyEmailCode(ctx context.Context, email, scene, code string) bool {
 func handleLoginEmailVerification(ctx context.Context, c *gin.Context, req *loginRequest, user *model.User) error {
 	if req.Code != "" {
 		if !verifyEmailCode(ctx, user.Email, "login", req.Code) {
-			c.JSON(http.StatusOK, response.Err(errEmailCodeInvalidOrExpired))
+			response.AbortBadRequest(c, errEmailCodeInvalidOrExpired)
 			return errors.New("handled")
 		}
 		return nil
@@ -149,7 +149,7 @@ func handleLoginEmailVerification(ctx context.Context, c *gin.Context, req *logi
 	if !isSMTPConfigured(ctx) || user.Email == "" {
 		codeKey := getEmailCodeKey("login", user.Email)
 		if err := db.SetJSON(ctx, codeKey, "888888", emailCodeExpiry); err != nil {
-			c.JSON(http.StatusOK, response.Err(errGenerateEmailCodeFailed))
+			response.AbortBadRequest(c, errGenerateEmailCodeFailed)
 			return errors.New("handled")
 		}
 		var msg string
@@ -158,7 +158,7 @@ func handleLoginEmailVerification(ctx context.Context, c *gin.Context, req *logi
 		} else {
 			msg = errSMTPInvalidUseTempCodePrefix + "该账号未绑定邮箱，使用临时码登录"
 		}
-		c.JSON(http.StatusOK, response.Err(msg))
+		response.AbortBadRequest(c, msg)
 		return errors.New("handled")
 	}
 
@@ -167,13 +167,13 @@ func handleLoginEmailVerification(ctx context.Context, c *gin.Context, req *logi
 	err := db.GetJSON(ctx, cooldownKey, &temp)
 	if err != nil {
 		if err := sendEmailVerificationCode(ctx, user.Email, "login", "login_email"); err != nil {
-			c.JSON(http.StatusOK, response.Err(err.Error()))
+			response.AbortBadRequest(c, err.Error())
 			return errors.New("handled")
 		}
 	}
 
 	maskedEmail := pkgu.MaskEmail(user.Email)
-	c.JSON(http.StatusOK, response.Err(errNeedEmailCodePrefix+maskedEmail))
+	response.AbortBadRequest(c, errNeedEmailCodePrefix+maskedEmail)
 	return errors.New("handled")
 }
 
@@ -190,18 +190,18 @@ func handleLoginEmailVerification(ctx context.Context, c *gin.Context, req *logi
 func SendEmailCode(c *gin.Context) {
 	var req sendEmailCodeRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, response.Err(err.Error()))
+		response.AbortBadRequest(c, err.Error())
 		return
 	}
 
 	req.Email = strings.TrimSpace(req.Email)
 	if req.Email == "" {
-		c.JSON(http.StatusOK, response.Err(errEmailRequired))
+		response.AbortBadRequest(c, errEmailRequired)
 		return
 	}
 
 	if req.Scene != "register" {
-		c.JSON(http.StatusOK, response.Err(errUnsupportedEmailScene))
+		response.AbortBadRequest(c, errUnsupportedEmailScene)
 		return
 	}
 
@@ -209,11 +209,11 @@ func SendEmailCode(c *gin.Context) {
 
 	var count int64
 	if err := db.DB(ctx).Model(&model.User{}).Where("email = ?", req.Email).Count(&count).Error; err != nil {
-		c.JSON(http.StatusOK, response.Err(err.Error()))
+		response.AbortBadRequest(c, err.Error())
 		return
 	}
 	if count > 0 {
-		c.JSON(http.StatusOK, response.Err(errEmailAlreadyRegistered))
+		response.AbortBadRequest(c, errEmailAlreadyRegistered)
 		return
 	}
 
@@ -221,12 +221,12 @@ func SendEmailCode(c *gin.Context) {
 	var temp string
 	err := db.GetJSON(ctx, cooldownKey, &temp)
 	if err == nil {
-		c.JSON(http.StatusOK, response.Err(errEmailCodeCooldown))
+		response.AbortBadRequest(c, errEmailCodeCooldown)
 		return
 	}
 
 	if err := sendEmailVerificationCode(ctx, req.Email, "register", "register_email"); err != nil {
-		c.JSON(http.StatusOK, response.Err(err.Error()))
+		response.AbortBadRequest(c, err.Error())
 		return
 	}
 
@@ -271,37 +271,37 @@ type updateProfileRequest struct {
 func UpdateProfile(c *gin.Context) {
 	var req updateProfileRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, response.Err(err.Error()))
+		response.AbortBadRequest(c, err.Error())
 		return
 	}
 
 	userObj, _ := util.GetFromContext[*model.User](c, oauth.UserObjKey)
 	if userObj == nil {
-		c.JSON(http.StatusUnauthorized, response.Err(errLoginRequired))
+		response.AbortUnauthorized(c, errLoginRequired)
 		return
 	}
 
 	ctx := c.Request.Context()
 	var dbUser model.User
 	if err := db.DB(ctx).Where("id = ?", userObj.ID).First(&dbUser).Error; err != nil {
-		c.JSON(http.StatusOK, response.Err(errUserNotFound))
+		response.AbortBadRequest(c, errUserNotFound)
 		return
 	}
 
 	req.Email = strings.TrimSpace(req.Email)
 	if req.Email != "" && req.Email != dbUser.Email {
 		if !strings.Contains(req.Email, "@") || !strings.Contains(req.Email, ".") {
-			c.JSON(http.StatusOK, response.Err(errEmailFormatInvalid))
+			response.AbortBadRequest(c, errEmailFormatInvalid)
 			return
 		}
 
 		var count int64
 		if err := db.DB(ctx).Model(&model.User{}).Where("email = ? AND id != ?", req.Email, dbUser.ID).Count(&count).Error; err != nil {
-			c.JSON(http.StatusOK, response.Err(err.Error()))
+			response.AbortBadRequest(c, err.Error())
 			return
 		}
 		if count > 0 {
-			c.JSON(http.StatusOK, response.Err(errEmailAlreadyBound))
+			response.AbortBadRequest(c, errEmailAlreadyBound)
 			return
 		}
 	}
@@ -319,7 +319,7 @@ func UpdateProfile(c *gin.Context) {
 	dbUser.Location = strings.TrimSpace(req.Location)
 
 	if err := db.DB(ctx).Save(&dbUser).Error; err != nil {
-		c.JSON(http.StatusOK, response.Err(err.Error()))
+		response.AbortBadRequest(c, err.Error())
 		return
 	}
 

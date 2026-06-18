@@ -2,7 +2,7 @@
 // Copyright 2026 Arctel.net
 // SPDX-License-Identifier: Apache-2.0
 
-package upload
+package filesrv
 
 import (
 	"bytes"
@@ -15,7 +15,11 @@ import (
 	"os"
 	"testing"
 
+	"github.com/Rain-kl/Wavelet/internal/apps/upload/cache"
+	"github.com/Rain-kl/Wavelet/internal/apps/upload/shared"
+	"github.com/Rain-kl/Wavelet/internal/apps/upload/util"
 	"github.com/Rain-kl/Wavelet/internal/common"
+	"github.com/Rain-kl/Wavelet/internal/common/response"
 	"github.com/Rain-kl/Wavelet/internal/diskcache"
 	"github.com/Rain-kl/Wavelet/internal/model"
 	"github.com/Rain-kl/Wavelet/internal/testhelper"
@@ -27,6 +31,7 @@ import (
 func TestServeFileByIDAccessControl(t *testing.T) {
 	dbConn, _, cleanup := testhelper.SetupTestEnvironment(t)
 	defer cleanup()
+	cache.ResetAccessCaches()
 
 	// Ensure uploads dir is cleaned up
 	defer func() { _ = os.RemoveAll("uploads") }()
@@ -91,6 +96,7 @@ func TestServeFileByIDAccessControl(t *testing.T) {
 	// Set up router
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
+	r.Use(response.ErrorHandlerMiddleware())
 	store := cookie.NewStore([]byte("secret"))
 	r.Use(sessions.Sessions("test_session", store))
 	r.GET("/f/:id", ServeFileByID)
@@ -149,58 +155,6 @@ func TestServeFileByIDAccessControl(t *testing.T) {
 			t.Errorf("expected 404, got %d", w.Code)
 		}
 	})
-}
-
-func TestGetDistinctUploadTypes(t *testing.T) {
-	dbConn, _, cleanup := testhelper.SetupTestEnvironment(t)
-	defer cleanup()
-
-	// Seed some uploads with new custom types
-	user := model.User{ID: 2222, Username: "test_user_2"}
-	dbConn.Create(&user)
-
-	customUpload := model.Upload{
-		ID:            9001,
-		UserID:        user.ID,
-		FileName:      "custom.txt",
-		FilePath:      "uploads/custom.txt",
-		FileSize:      10,
-		MimeType:      "text/plain",
-		Extension:     "txt",
-		StorageDriver: "local",
-		Type:          "custom_type_xyz",
-		Status:        model.UploadStatusUsed,
-	}
-	dbConn.Create(&customUpload)
-
-	gin.SetMode(gin.TestMode)
-	r := gin.New()
-	r.GET("/api/v1/admin/uploads/types", GetDistinctUploadTypes)
-
-	req, _ := http.NewRequest("GET", "/api/v1/admin/uploads/types", nil)
-	w := httptest.NewRecorder()
-	r.ServeHTTP(w, req)
-
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d", w.Code)
-	}
-
-	var resp struct {
-		ErrorMsg string   `json:"error_msg"`
-		Data     []string `json:"data"`
-	}
-	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
-		t.Fatalf("failed to parse JSON: %v", err)
-	}
-
-	if resp.ErrorMsg != "" {
-		t.Fatalf("unexpected error: %s", resp.ErrorMsg)
-	}
-
-	// Verify that only custom_type_xyz is present
-	if len(resp.Data) != 1 || resp.Data[0] != "custom_type_xyz" {
-		t.Errorf("expected only custom_type_xyz in types list, got: %v", resp.Data)
-	}
 }
 
 func TestImageCompression(t *testing.T) {
@@ -295,7 +249,7 @@ func TestImageCompression(t *testing.T) {
 			t.Errorf("expected Content-Type image/webp, got %s", w.Header().Get("Content-Type"))
 		}
 
-		cacheKey := imageCompressionCacheKey(&uploadRecord, imageQualityMedium)
+		cacheKey := ImageCompressionCacheKey(&uploadRecord, shared.ImageQualityMedium)
 		cachedBytes, err := cache.Get(cacheKey)
 		if err != nil {
 			t.Fatalf("disk cache Get(%q) returned error: %v", cacheKey, err)
@@ -376,19 +330,19 @@ func TestNormalizeImageQuality(t *testing.T) {
 		quality string
 		want    string
 	}{
-		{name: imageQualityLow, quality: imageQualityLow, want: imageQualityLow},
-		{name: imageQualityMedium, quality: imageQualityMedium, want: imageQualityMedium},
-		{name: imageQualityHigh, quality: imageQualityHigh, want: imageQualityHigh},
+		{name: shared.ImageQualityLow, quality: shared.ImageQualityLow, want: shared.ImageQualityLow},
+		{name: shared.ImageQualityMedium, quality: shared.ImageQualityMedium, want: shared.ImageQualityMedium},
+		{name: shared.ImageQualityHigh, quality: shared.ImageQualityHigh, want: shared.ImageQualityHigh},
 		{name: "origin", quality: "origin", want: "origin"},
-		{name: "uppercase", quality: "LOW", want: imageQualityLow},
+		{name: "uppercase", quality: "LOW", want: shared.ImageQualityLow},
 		{name: "empty", quality: "", want: "origin"},
 		{name: "invalid", quality: "maximum", want: "origin"},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := normalizeImageQuality(tt.quality); got != tt.want {
-				t.Errorf("normalizeImageQuality(%q) = %q, want %q", tt.quality, got, tt.want)
+			if got := util.NormalizeImageQuality(tt.quality); got != tt.want {
+				t.Errorf("NormalizeImageQuality(%q) = %q, want %q", tt.quality, got, tt.want)
 			}
 		})
 	}

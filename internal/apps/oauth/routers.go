@@ -98,7 +98,7 @@ func Logout(c *gin.Context) {
 	session.Options(GetSessionOptions(-1))
 	session.Clear()
 	if err := session.Save(); err != nil {
-		c.JSON(http.StatusInternalServerError, response.Err(err.Error()))
+		response.AbortInternal(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, response.OKNil())

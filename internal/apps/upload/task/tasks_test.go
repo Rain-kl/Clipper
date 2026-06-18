@@ -2,7 +2,7 @@
 // Copyright 2026 Arctel.net
 // SPDX-License-Identifier: Apache-2.0
 
-package upload
+package task
 
 import (
 	"bytes"
@@ -17,6 +17,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Rain-kl/Wavelet/internal/apps/upload/filesrv"
+	"github.com/Rain-kl/Wavelet/internal/apps/upload/shared"
 	"github.com/Rain-kl/Wavelet/internal/db"
 	"github.com/Rain-kl/Wavelet/internal/diskcache"
 	"github.com/Rain-kl/Wavelet/internal/model"
@@ -201,7 +203,7 @@ func TestWarmImageCacheHandlerValidatePayload(t *testing.T) {
 		{
 			name:        "normalizes quality",
 			payload:     []byte(`{"quality":" HIGH "}`),
-			wantQuality: imageQualityHigh,
+			wantQuality: shared.ImageQualityHigh,
 		},
 		{
 			name:    "empty payload",
@@ -281,7 +283,7 @@ func TestWarmImageCacheHandlerExecute(t *testing.T) {
 			FilePath:      firstPath,
 			MimeType:      "image/png",
 			Extension:     "png",
-			StorageDriver: storageDriverLocal,
+			StorageDriver: shared.StorageDriverLocal,
 			Status:        model.UploadStatusUsed,
 		},
 		{
@@ -291,7 +293,7 @@ func TestWarmImageCacheHandlerExecute(t *testing.T) {
 			FilePath:      secondPath,
 			MimeType:      "application/octet-stream",
 			Extension:     "jpg",
-			StorageDriver: storageDriverLocal,
+			StorageDriver: shared.StorageDriverLocal,
 			Status:        model.UploadStatusPending,
 		},
 		{
@@ -301,7 +303,7 @@ func TestWarmImageCacheHandlerExecute(t *testing.T) {
 			FilePath:      filepath.Join(testDir, "notes.txt"),
 			MimeType:      "text/plain",
 			Extension:     "txt",
-			StorageDriver: storageDriverLocal,
+			StorageDriver: shared.StorageDriverLocal,
 			Status:        model.UploadStatusUsed,
 		},
 		{
@@ -311,7 +313,7 @@ func TestWarmImageCacheHandlerExecute(t *testing.T) {
 			FilePath:      firstPath,
 			MimeType:      "image/png",
 			Extension:     "png",
-			StorageDriver: storageDriverLocal,
+			StorageDriver: shared.StorageDriverLocal,
 			Status:        model.UploadStatusDeleted,
 		},
 	}
@@ -339,7 +341,7 @@ func TestWarmImageCacheHandlerExecute(t *testing.T) {
 	}
 
 	for i := range records[:2] {
-		key := imageCompressionCacheKey(&records[i], imageQualityLow)
+		key := filesrv.ImageCompressionCacheKey(&records[i], shared.ImageQualityLow)
 		got, err := cache.Get(key)
 		if err != nil {
 			t.Errorf("cache.Get(%q) returned error: %v", key, err)

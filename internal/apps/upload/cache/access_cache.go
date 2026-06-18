@@ -1,7 +1,8 @@
 // Copyright 2026 Arctel.net
 // SPDX-License-Identifier: Apache-2.0
 
-package upload
+// Package cache provides in-process upload access-control caches.
+package cache
 
 import (
 	"context"
@@ -10,32 +11,19 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Rain-kl/Wavelet/internal/apps/upload/shared"
+	uploadstorage "github.com/Rain-kl/Wavelet/internal/apps/upload/storage"
 	"github.com/Rain-kl/Wavelet/internal/db"
 	"github.com/Rain-kl/Wavelet/internal/model"
 	"github.com/Rain-kl/Wavelet/internal/storage"
 )
 
-const accessCacheTTL = 5 * time.Second
-
 const fileAccessInvalidationChannel = "upload:file_access_invalidation"
-
-type migrationAccessState struct {
-	readOnly  bool
-	target    storage.Config
-	hasTarget bool
-	targetErr error
-	loadErr   error
-}
 
 var (
 	accessCacheOnce sync.Once
 
-	migrationAccessMu       sync.RWMutex
-	migrationAccessCached   migrationAccessState
-	migrationAccessValid    bool
-	migrationAccessCheckedAt time.Time
-
-	fileAccessWhitelistMu      sync.RWMutex
+	fileAccessWhitelistMu        sync.RWMutex
 	fileAccessWhitelistTypes     map[string]struct{}
 	fileAccessWhitelistValid     bool
 	fileAccessWhitelistCheckedAt time.Time
@@ -43,9 +31,7 @@ var (
 
 // ResetAccessCaches clears in-process upload access caches.
 func ResetAccessCaches() {
-	migrationAccessMu.Lock()
-	migrationAccessValid = false
-	migrationAccessMu.Unlock()
+	uploadstorage.ResetMigrationAccessCache()
 
 	fileAccessWhitelistMu.Lock()
 	fileAccessWhitelistValid = false
@@ -85,62 +71,18 @@ func startAccessCacheInvalidationListener() {
 	}()
 }
 
-func loadMigrationAccessState(ctx context.Context) migrationAccessState {
-	ensureAccessCacheListener()
-
-	migrationAccessMu.RLock()
-	if migrationAccessValid && time.Since(migrationAccessCheckedAt) < accessCacheTTL {
-		state := migrationAccessCached
-		migrationAccessMu.RUnlock()
-		return state
-	}
-	migrationAccessMu.RUnlock()
-
-	migrationAccessMu.Lock()
-	defer migrationAccessMu.Unlock()
-
-	if migrationAccessValid && time.Since(migrationAccessCheckedAt) < accessCacheTTL {
-		return migrationAccessCached
-	}
-
-	migrationAccessCached = buildMigrationAccessState(ctx)
-	migrationAccessValid = true
-	migrationAccessCheckedAt = time.Now()
-	return migrationAccessCached
-}
-
-func buildMigrationAccessState(ctx context.Context) migrationAccessState {
-	execution, ok, err := latestStorageMigrationExecution(ctx)
-	if err != nil {
-		return migrationAccessState{loadErr: err, readOnly: true}
-	}
-	if !ok {
-		return migrationAccessState{}
-	}
-
-	state := migrationAccessState{
-		readOnly: execution.Status != model.TaskExecutionStatusSucceeded,
-	}
-	if execution.Status == model.TaskExecutionStatusSucceeded {
-		return state
-	}
-
-	target, err := parseMigrationTargetConfig(ctx, []byte(execution.Payload))
-	if err != nil {
-		state.targetErr = err
-		return state
-	}
-
-	state.target = target
-	state.hasTarget = true
-	return state
+// IsFilePublic reports whether uploadType is in the public access whitelist.
+func IsFilePublic(ctx context.Context, uploadType string) bool {
+	whitelist := loadFileAccessWhitelist(ctx)
+	_, ok := whitelist[strings.ToLower(uploadType)]
+	return ok
 }
 
 func loadFileAccessWhitelist(ctx context.Context) map[string]struct{} {
 	ensureAccessCacheListener()
 
 	fileAccessWhitelistMu.RLock()
-	if fileAccessWhitelistValid && time.Since(fileAccessWhitelistCheckedAt) < accessCacheTTL {
+	if fileAccessWhitelistValid && time.Since(fileAccessWhitelistCheckedAt) < time.Duration(shared.AccessCacheTTL)*time.Second {
 		types := fileAccessWhitelistTypes
 		fileAccessWhitelistMu.RUnlock()
 		return types
@@ -150,7 +92,7 @@ func loadFileAccessWhitelist(ctx context.Context) map[string]struct{} {
 	fileAccessWhitelistMu.Lock()
 	defer fileAccessWhitelistMu.Unlock()
 
-	if fileAccessWhitelistValid && time.Since(fileAccessWhitelistCheckedAt) < accessCacheTTL {
+	if fileAccessWhitelistValid && time.Since(fileAccessWhitelistCheckedAt) < time.Duration(shared.AccessCacheTTL)*time.Second {
 		return fileAccessWhitelistTypes
 	}
 
@@ -172,7 +114,7 @@ func fetchFileAccessWhitelist(ctx context.Context) map[string]struct{} {
 func parseFileAccessWhitelist(ctx context.Context) []string {
 	var sc model.SystemConfig
 	if err := sc.GetByKey(ctx, model.ConfigKeyFileAccessWhitelist); err != nil || sc.Value == "" {
-		return []string{defaultPublicUploadType}
+		return []string{shared.DefaultPublicUploadType}
 	}
 
 	var whitelist []string
@@ -182,7 +124,7 @@ func parseFileAccessWhitelist(ctx context.Context) []string {
 
 	whitelist = parseCommaSeparatedWhitelist(sc.Value)
 	if len(whitelist) == 0 {
-		return []string{defaultPublicUploadType}
+		return []string{shared.DefaultPublicUploadType}
 	}
 	return whitelist
 }

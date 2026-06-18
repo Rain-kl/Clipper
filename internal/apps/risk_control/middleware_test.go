@@ -13,6 +13,7 @@ import (
 	"github.com/Rain-kl/Wavelet/internal/apps/oauth"
 	"github.com/Rain-kl/Wavelet/internal/config"
 	"github.com/Rain-kl/Wavelet/internal/model"
+	"github.com/Rain-kl/Wavelet/internal/testhelper"
 	"github.com/Rain-kl/Wavelet/internal/util"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
@@ -25,8 +26,7 @@ func TestRiskControlMiddleware(t *testing.T) {
 		config.Config.ClickHouse.Enabled = false
 		defer func() { config.Config.ClickHouse.Enabled = false }()
 
-		r := gin.New()
-		r.Use(RiskControlMiddleware())
+		r := testhelper.NewTestGinEngine(RiskControlMiddleware())
 		r.GET("/test", func(c *gin.Context) {
 			c.String(http.StatusOK, "ok")
 		})
@@ -91,8 +91,7 @@ func TestRiskControlMiddleware(t *testing.T) {
 			logChan = nil
 		}()
 
-		r := gin.New()
-		r.Use(RiskControlMiddleware())
+		r := testhelper.NewTestGinEngine(RiskControlMiddleware())
 		r.GET("/test", func(c *gin.Context) {
 			c.String(http.StatusOK, "ok")
 		})
@@ -126,8 +125,7 @@ func TestRiskControlMiddleware(t *testing.T) {
 			logChan <- &UserAccessLog{}
 		}
 
-		r := gin.New()
-		r.Use(RiskControlMiddleware())
+		r := testhelper.NewTestGinEngine(RiskControlMiddleware())
 		r.GET("/test", func(c *gin.Context) {
 			c.String(http.StatusOK, "ok")
 		})

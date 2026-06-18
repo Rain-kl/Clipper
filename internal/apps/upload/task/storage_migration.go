@@ -1,13 +1,12 @@
 // Copyright 2026 Arctel.net
 // SPDX-License-Identifier: Apache-2.0
 
-package upload
+package task
 
 import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -16,17 +15,18 @@ import (
 	"sync/atomic"
 	"time"
 
+	uploadstats "github.com/Rain-kl/Wavelet/internal/apps/upload/stats"
+	uploadstorage "github.com/Rain-kl/Wavelet/internal/apps/upload/storage"
 	"github.com/Rain-kl/Wavelet/internal/db"
 	"github.com/Rain-kl/Wavelet/internal/model"
 	"github.com/Rain-kl/Wavelet/internal/storage"
 	"github.com/Rain-kl/Wavelet/internal/task"
 	"golang.org/x/sync/errgroup"
-	"gorm.io/gorm"
 )
 
 const (
 	// StorageMigrationTask is the Asynq task name for storage migration.
-	StorageMigrationTask = "storage:migrate"
+	StorageMigrationTask = uploadstorage.StorageMigrationTask
 	// TaskTypeStorageMigration is the task metadata type for storage migration.
 	TaskTypeStorageMigration = "storage_migration"
 
@@ -58,13 +58,9 @@ var StorageMigrationMeta = task.TaskMeta{
 // MigrationHandler copies stored objects and activates the target backend.
 type MigrationHandler struct{}
 
-type storageMigrationPayload struct {
-	Target storage.Config `json:"target"`
-}
-
 // ValidatePayload rejects duplicate active migrations through the task framework.
 func (h *MigrationHandler) ValidatePayload(payload []byte) ([]byte, error) {
-	normalized, _, err := normalizeStorageMigrationPayload(context.Background(), payload)
+	normalized, _, err := uploadstorage.NormalizeMigrationPayload(context.Background(), payload)
 	if err != nil {
 		return payload, err
 	}
@@ -95,7 +91,6 @@ func (h *MigrationHandler) Execute(ctx context.Context, payload []byte) (*task.T
 			return nil, errors.New("另一个存储迁移任务正在运行中")
 		}
 
-		// 任务结束时清理锁，使用 Background context 避免受任务 context 取消的影响
 		stopRenewal := make(chan struct{})
 		//nolint:contextcheck
 		defer func() {
@@ -105,7 +100,6 @@ func (h *MigrationHandler) Execute(ctx context.Context, payload []byte) (*task.T
 			_ = db.Redis.Del(cleanupCtx, lockKey)
 		}()
 
-		// 启动看门狗续租协程，每 10 分钟将锁的 TTL 自动延长为 1 小时
 		//nolint:contextcheck,gosec
 		go func() {
 			ticker := time.NewTicker(renewalInterval)
@@ -129,7 +123,7 @@ func (h *MigrationHandler) Execute(ctx context.Context, payload []byte) (*task.T
 	if err != nil {
 		return nil, fmt.Errorf("load active storage config: %w", err)
 	}
-	target, err := parseMigrationTargetConfig(ctx, payload)
+	target, err := uploadstorage.ParseMigrationTargetConfig(ctx, payload)
 	if err != nil {
 		return nil, err
 	}
@@ -178,62 +172,6 @@ func (h *MigrationHandler) Execute(ctx context.Context, payload []byte) (*task.T
 	return &task.TaskResult{Message: message}, nil
 }
 
-func normalizeStorageMigrationPayload(ctx context.Context, payload []byte) ([]byte, storage.Config, error) {
-	target, err := parseMigrationTargetConfig(ctx, payload)
-	if err != nil {
-		return nil, storage.Config{}, err
-	}
-	normalized, err := json.Marshal(storageMigrationPayload{Target: target})
-	if err != nil {
-		return nil, storage.Config{}, fmt.Errorf("marshal storage migration payload: %w", err)
-	}
-	return normalized, target, nil
-}
-
-func parseMigrationTargetConfig(ctx context.Context, payload []byte) (storage.Config, error) {
-	if strings.TrimSpace(string(payload)) == "" {
-		return storage.Config{}, errors.New("storage migration target payload is required")
-	}
-
-	// Try to parse using raw JSON message to handle both struct and string payload formats
-	var raw struct {
-		Target json.RawMessage `json:"target"`
-	}
-	if err := json.Unmarshal(payload, &raw); err != nil {
-		return storage.Config{}, fmt.Errorf("parse storage migration payload envelope: %w", err)
-	}
-
-	if len(raw.Target) == 0 {
-		return storage.Config{}, errors.New("storage migration target payload is required")
-	}
-
-	var targetBytes []byte
-	var targetStr string
-	// Check if Target is a JSON string
-	if err := json.Unmarshal(raw.Target, &targetStr); err == nil {
-		// It is a string (e.g. from dynamic form input), parse its content as JSON
-		targetBytes = []byte(targetStr)
-	} else {
-		// It is a JSON object, use directly
-		targetBytes = raw.Target
-	}
-
-	var target storage.Config
-	if err := json.Unmarshal(targetBytes, &target); err != nil {
-		return storage.Config{}, fmt.Errorf("parse target storage config: %w", err)
-	}
-
-	current, err := storage.LoadConfig(ctx)
-	if err != nil {
-		return storage.Config{}, fmt.Errorf("load active storage config: %w", err)
-	}
-	target = storage.MergeMaskedSecrets(target, current)
-	if err := storage.ValidateConfig(target); err != nil {
-		return storage.Config{}, fmt.Errorf("validate target storage config: %w", err)
-	}
-	return target, nil
-}
-
 func countStorageObjects(ctx context.Context, driver storage.Driver) (int64, error) {
 	var count int64
 	err := db.DB(ctx).Model(&model.Upload{}).
@@ -244,26 +182,11 @@ func countStorageObjects(ctx context.Context, driver storage.Driver) (int64, err
 }
 
 func hasUnresolvedMigrationTask(ctx context.Context) (bool, error) {
-	execution, ok, err := latestStorageMigrationExecution(ctx)
+	execution, ok, err := uploadstorage.LatestMigrationExecution(ctx)
 	if err != nil || !ok {
 		return false, err
 	}
 	return execution.Status == model.TaskExecutionStatusPending || execution.Status == model.TaskExecutionStatusRunning, nil
-}
-
-func latestStorageMigrationExecution(ctx context.Context) (*model.TaskExecution, bool, error) {
-	var execution model.TaskExecution
-	err := db.DB(ctx).
-		Where("task_type = ?", StorageMigrationTask).
-		Order("id DESC").
-		First(&execution).Error
-	if err == nil {
-		return &execution, true, nil
-	}
-	if !errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, false, err
-	}
-	return nil, false, nil
 }
 
 func migrateObjects(
@@ -311,7 +234,7 @@ func migrateObjects(
 		g.SetLimit(migrationConcurrency)
 
 		for _, object := range objects {
-			obj := object // Capture range variable
+			obj := object
 			g.Go(func() error {
 				if err := migrateSingleObject(ctx, sourceBackend, targetBackend, sourceDriver, targetDriver, obj, sha256HexLength); err != nil {
 					return err
@@ -344,7 +267,6 @@ func migrateSingleObject(
 	},
 	sha256HexLength int,
 ) error {
-	// Check if the file already exists in target storage and has matching size
 	if shouldSkipMigration(ctx, targetBackend, obj) {
 		task.AppendLog(ctx, "[跳过迁移] 目标存储已存在相同文件且校验一致: %s", obj.FilePath)
 		if err := db.DB(ctx).Model(&model.Upload{}).
@@ -375,7 +297,6 @@ func migrateSingleObject(
 		return fmt.Errorf("close source object %q: %w", obj.FilePath, closeErr)
 	}
 
-	// Data integrity check (SHA-256 hash verification)
 	if len(obj.Hash) == sha256HexLength {
 		task.AppendLog(ctx, "[校验中] 正在对目标文件进行数据一致性校验 (SHA-256): %s", targetResult.Key)
 		targetObj, getErr := targetBackend.Get(ctx, targetResult.Key)
@@ -450,13 +371,13 @@ func markMissingMigrationObjectDeleted(
 	if err := db.DB(ctx).Model(&model.Upload{}).
 		Where("storage_driver = ? AND file_path = ?", sourceDriver, filePath).
 		Updates(map[string]any{
-			"status":           model.UploadStatusDeleted,
-			colStorageDriver:   targetDriver,
+			"status":         model.UploadStatusDeleted,
+			colStorageDriver: targetDriver,
 		}).Error; err != nil {
 		return fmt.Errorf("update missing object %q: %w", filePath, err)
 	}
 	for i := range affectedUploads {
-		recordUploadStatsRemove(ctx, &affectedUploads[i])
+		uploadstats.RecordUploadStatsRemove(ctx, &affectedUploads[i])
 	}
 	return nil
 }

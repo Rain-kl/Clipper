@@ -1,13 +1,15 @@
 // Copyright 2026 Arctel.net
 // SPDX-License-Identifier: Apache-2.0
 
-package upload
+package cache
 
 import (
 	"context"
 	"testing"
 	"time"
 
+	uploadstorage "github.com/Rain-kl/Wavelet/internal/apps/upload/storage"
+	"github.com/Rain-kl/Wavelet/internal/apps/upload/shared"
 	"github.com/Rain-kl/Wavelet/internal/db"
 	"github.com/Rain-kl/Wavelet/internal/model"
 	"github.com/Rain-kl/Wavelet/internal/testhelper"
@@ -19,14 +21,14 @@ func TestLoadMigrationAccessStateCachesResult(t *testing.T) {
 	ResetAccessCaches()
 
 	ctx := context.Background()
-	first := loadMigrationAccessState(ctx)
-	second := loadMigrationAccessState(ctx)
+	first := uploadstorage.LoadMigrationAccessState(ctx)
+	second := uploadstorage.LoadMigrationAccessState(ctx)
 
-	if first.readOnly != second.readOnly {
-		t.Fatalf("readOnly mismatch: first=%v second=%v", first.readOnly, second.readOnly)
+	if first.ReadOnly != second.ReadOnly {
+		t.Fatalf("readOnly mismatch: first=%v second=%v", first.ReadOnly, second.ReadOnly)
 	}
-	if first.hasTarget != second.hasTarget {
-		t.Fatalf("hasTarget mismatch: first=%v second=%v", first.hasTarget, second.hasTarget)
+	if first.HasTarget != second.HasTarget {
+		t.Fatalf("hasTarget mismatch: first=%v second=%v", first.HasTarget, second.HasTarget)
 	}
 }
 
@@ -36,13 +38,13 @@ func TestIsFilePublicUsesCachedWhitelist(t *testing.T) {
 	ResetAccessCaches()
 
 	ctx := context.Background()
-	if !isFilePublic(ctx, "avatar") {
+	if !IsFilePublic(ctx, "avatar") {
 		t.Fatal("expected avatar to be public by default")
 	}
-	if isFilePublic(ctx, "attachment") {
+	if IsFilePublic(ctx, "attachment") {
 		t.Fatal("expected attachment to be private by default")
 	}
-	if !isFilePublic(ctx, "AVATAR") {
+	if !IsFilePublic(ctx, "AVATAR") {
 		t.Fatal("expected whitelist lookup to be case-insensitive")
 	}
 }
@@ -53,7 +55,7 @@ func TestResetAccessCachesRefreshesWhitelist(t *testing.T) {
 	ResetAccessCaches()
 
 	ctx := context.Background()
-	if !isFilePublic(ctx, "avatar") {
+	if !IsFilePublic(ctx, "avatar") {
 		t.Fatal("expected seeded avatar whitelist before reset")
 	}
 
@@ -68,12 +70,13 @@ func TestResetAccessCachesRefreshesWhitelist(t *testing.T) {
 	if err := db.HSetJSON(ctx, model.SystemConfigRedisHashKey, model.ConfigKeyFileAccessWhitelist, &sc); err != nil {
 		t.Fatalf("refresh whitelist redis cache: %v", err)
 	}
+	model.ResetSystemConfigRAMCacheForTest()
 
 	ResetAccessCaches()
-	if !isFilePublic(ctx, "attachment") {
+	if !IsFilePublic(ctx, "attachment") {
 		t.Fatal("expected attachment to be public after whitelist refresh")
 	}
-	if isFilePublic(ctx, "avatar") {
+	if IsFilePublic(ctx, "avatar") {
 		t.Fatal("expected avatar to be private after whitelist refresh")
 	}
 }
@@ -87,11 +90,11 @@ func TestAccessCacheTTLExpires(t *testing.T) {
 	_ = loadFileAccessWhitelist(ctx)
 
 	fileAccessWhitelistMu.Lock()
-	fileAccessWhitelistCheckedAt = time.Now().Add(-accessCacheTTL - time.Second)
+	fileAccessWhitelistCheckedAt = time.Now().Add(-time.Duration(shared.AccessCacheTTL)*time.Second - time.Second)
 	fileAccessWhitelistMu.Unlock()
 
 	// Should still work after TTL by reloading from config.
-	if !isFilePublic(ctx, "avatar") {
+	if !IsFilePublic(ctx, "avatar") {
 		t.Fatal("expected whitelist reload after TTL expiration")
 	}
 }

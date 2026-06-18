@@ -1,7 +1,7 @@
 // Copyright 2026 Arctel.net
 // SPDX-License-Identifier: Apache-2.0
 
-package upload
+package stats
 
 import (
 	"context"
@@ -72,7 +72,7 @@ func applyUploadStatsDeltaTx(tx *gorm.DB, upload *model.Upload, sign int64) erro
 	}{
 		{model.UploadStatDimensionTotal, ""},
 		{model.UploadStatDimensionType, typeKey},
-		{model.UploadStatDimensionCategory, getFileCategory(upload.MimeType, upload.Extension)},
+		{model.UploadStatDimensionCategory, GetFileCategory(upload.MimeType, upload.Extension)},
 		{model.UploadStatDimensionTrend, upload.CreatedAt.Format("2006-01-02")},
 	}
 
@@ -111,13 +111,15 @@ func upsertUploadStatDelta(tx *gorm.DB, dimension, key string, countDelta, sizeD
 	}).Error
 }
 
-func recordUploadStatsAdd(ctx context.Context, upload *model.Upload) {
+// RecordUploadStatsAdd logs and applies upload stats increment.
+func RecordUploadStatsAdd(ctx context.Context, upload *model.Upload) {
 	if err := ApplyUploadStatsAdd(ctx, upload); err != nil {
 		logger.WarnF(ctx, "increment upload stats failed: %v", err)
 	}
 }
 
-func recordUploadStatsRemove(ctx context.Context, upload *model.Upload) {
+// RecordUploadStatsRemove logs and applies upload stats decrement.
+func RecordUploadStatsRemove(ctx context.Context, upload *model.Upload) {
 	if err := ApplyUploadStatsRemove(ctx, upload); err != nil {
 		logger.WarnF(ctx, "decrement upload stats failed: %v", err)
 	}

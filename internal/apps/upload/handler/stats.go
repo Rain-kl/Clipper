@@ -1,27 +1,17 @@
 // Copyright 2026 Arctel.net
 // SPDX-License-Identifier: Apache-2.0
 
-package upload
+package handler
 
 import (
 	"net/http"
-	"strings"
 	"time"
 
+	"github.com/Rain-kl/Wavelet/internal/apps/upload/shared"
+	"github.com/Rain-kl/Wavelet/internal/common/response"
 	"github.com/Rain-kl/Wavelet/internal/db"
 	"github.com/Rain-kl/Wavelet/internal/model"
 	"github.com/gin-gonic/gin"
-
-	"github.com/Rain-kl/Wavelet/internal/common/response"
-)
-
-const (
-	catImage    = "图片"
-	catVideo    = "视频"
-	catAudio    = "音频"
-	catDocument = "文档"
-	catArchive  = "压缩包"
-	catOther    = "其他"
 )
 
 type trendItem struct {
@@ -60,15 +50,15 @@ func GetFileStats(c *gin.Context) {
 
 	var stats []model.UploadStat
 	if err := db.DB(ctx).Find(&stats).Error; err != nil {
-		c.JSON(http.StatusOK, response.Err(err.Error()))
+		response.AbortBadRequest(c, err.Error())
 		return
 	}
 
 	now := time.Now()
-	trendDates := make([]string, 0, fileStatsTrendDays)
-	trendCountMap := make(map[string]int64, fileStatsTrendDays)
-	trendSizeMap := make(map[string]int64, fileStatsTrendDays)
-	for i := fileStatsTrendDays - 1; i >= 0; i-- {
+	trendDates := make([]string, 0, shared.FileStatsTrendDays)
+	trendCountMap := make(map[string]int64, shared.FileStatsTrendDays)
+	trendSizeMap := make(map[string]int64, shared.FileStatsTrendDays)
+	for i := shared.FileStatsTrendDays - 1; i >= 0; i-- {
 		date := now.AddDate(0, 0, -i).Format("2006-01-02")
 		trendDates = append(trendDates, date)
 		trendCountMap[date] = 0
@@ -82,7 +72,7 @@ func GetFileStats(c *gin.Context) {
 		categories []distributionItem
 	)
 
-	categoriesList := []string{catImage, catVideo, catAudio, catDocument, catArchive, catOther}
+	categoriesList := []string{"图片", "视频", "音频", "文档", "压缩包", "其他"}
 	categoryMap := make(map[string]distributionItem, len(categoriesList))
 	for _, cat := range categoriesList {
 		categoryMap[cat] = distributionItem{Name: cat}
@@ -134,44 +124,4 @@ func GetFileStats(c *gin.Context) {
 		Categories: categories,
 		Types:      types,
 	}))
-}
-
-func getFileCategory(mimeType, ext string) string {
-	mimeType = strings.ToLower(mimeType)
-	ext = strings.ToLower(ext)
-
-	if strings.HasPrefix(mimeType, "image/") || isImageExtension(ext) {
-		return catImage
-	}
-	if strings.HasPrefix(mimeType, "video/") {
-		return catVideo
-	}
-	if strings.HasPrefix(mimeType, "audio/") {
-		return catAudio
-	}
-	if isArchiveExtension(ext) || strings.Contains(mimeType, "zip") || strings.Contains(mimeType, "tar") || strings.Contains(mimeType, "gzip") {
-		return catArchive
-	}
-	if isDocumentExtension(ext) || strings.HasPrefix(mimeType, "text/") || mimeType == "application/pdf" {
-		return catDocument
-	}
-	return catOther
-}
-
-func isArchiveExtension(ext string) bool {
-	for _, e := range []string{"zip", "rar", "7z", "tar", "gz", "tgz", "bz2", "xz"} {
-		if ext == e {
-			return true
-		}
-	}
-	return false
-}
-
-func isDocumentExtension(ext string) bool {
-	for _, e := range []string{"pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "txt", "md", "csv", "json", "yaml", "yml", "xml"} {
-		if ext == e {
-			return true
-		}
-	}
-	return false
 }
