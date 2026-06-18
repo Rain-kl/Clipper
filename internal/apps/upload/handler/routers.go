@@ -2,9 +2,11 @@
 // Copyright 2026 Arctel.net
 // SPDX-License-Identifier: Apache-2.0
 
-package upload
+// Package handler provides upload HTTP API handlers.
+package handler
 
-import ("archive/zip"
+import (
+	"archive/zip"
 	"bytes"
 	"context"
 	"crypto/sha256"
@@ -22,16 +24,21 @@ import ("archive/zip"
 	"time"
 
 	"github.com/Rain-kl/Wavelet/internal/apps/oauth"
+	"github.com/Rain-kl/Wavelet/internal/apps/upload/filesrv"
+	"github.com/Rain-kl/Wavelet/internal/apps/upload/shared"
+	uploadstats "github.com/Rain-kl/Wavelet/internal/apps/upload/stats"
+	uploadstorage "github.com/Rain-kl/Wavelet/internal/apps/upload/storage"
+	"github.com/Rain-kl/Wavelet/internal/apps/upload/util"
 	"github.com/Rain-kl/Wavelet/internal/common"
+	"github.com/Rain-kl/Wavelet/internal/common/response"
 	"github.com/Rain-kl/Wavelet/internal/db"
 	"github.com/Rain-kl/Wavelet/internal/db/idgen"
 	"github.com/Rain-kl/Wavelet/internal/model"
 	"github.com/Rain-kl/Wavelet/internal/storage"
-	"github.com/Rain-kl/Wavelet/internal/util"
+	apputil "github.com/Rain-kl/Wavelet/internal/util"
 	"github.com/Rain-kl/Wavelet/pkg/logger"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
-	"github.com/Rain-kl/Wavelet/internal/common/response"
 )
 
 type batchDownloadRequest struct {
@@ -59,59 +66,53 @@ func UploadFile(c *gin.Context) {
 	c.Header("X-Content-Type-Options", "nosniff")
 	c.Header("Content-Security-Policy", "sandbox")
 
-	// 限制请求体大小以防止 DoS
-	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxUploadSize)
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, shared.MaxUploadSize)
 
-	currUser, _ := util.GetFromContext[*model.User](c, oauth.UserObjKey)
+	currUser, _ := apputil.GetFromContext[*model.User](c, oauth.UserObjKey)
 	ctx := c.Request.Context()
 
 	header, err := c.FormFile("file")
 	if err != nil {
-		c.JSON(http.StatusOK, response.Err(ErrNoFileSelected))
+		response.AbortBadRequest(c, shared.ErrNoFileSelected)
 		return
 	}
 
 	file, err := header.Open()
 	if err != nil {
-		c.JSON(http.StatusOK, response.Err(ErrOpenFileFailed))
+		response.AbortBadRequest(c, shared.ErrOpenFileFailed)
 		return
 	}
 	defer func() { _ = file.Close() }()
 
-	// 校验大小
-	if header.Size > maxUploadSize {
-		c.JSON(http.StatusOK, response.Err(ErrGenericFileTooLarge))
+	if header.Size > shared.MaxUploadSize {
+		response.AbortBadRequest(c, shared.ErrGenericFileTooLarge)
 		return
 	}
 
-	// 2. 提取文件基本元数据
 	origName := header.Filename
 	ext := strings.ToLower(strings.TrimPrefix(filepath.Ext(origName), "."))
 	if ext == "" {
 		ext = "bin"
 	}
 
-	// 3. 校验文件后缀是否在允许的系统配置列表中
 	if errMsg := validateUploadExtension(ctx, ext); errMsg != "" {
-		c.JSON(http.StatusOK, response.Err(errMsg))
+		response.AbortBadRequest(c, errMsg)
 		return
 	}
 
-	// 4. 读取文件并计算 Hash
 	hashWriter := sha256.New()
 	var buf bytes.Buffer
 	size, err := io.Copy(&buf, io.TeeReader(file, hashWriter))
 	if err != nil {
-		c.JSON(http.StatusOK, response.Err(ErrProcessFileFailed))
+		response.AbortBadRequest(c, shared.ErrProcessFileFailed)
 		return
 	}
 
 	fileHash := hex.EncodeToString(hashWriter.Sum(nil))
 	mimeType := detectMimeType(&buf, header, size)
 
-	// 校验真实 MIME Type 是否与常见图片扩展名匹配，防止 Polyglot / HTML 注入攻击
-	if isImageExtension(ext) && !strings.HasPrefix(mimeType, "image/") {
-		c.JSON(http.StatusOK, response.Err(ErrFileContentExtensionMismatch))
+	if util.IsImageExtension(ext) && !strings.HasPrefix(mimeType, "image/") {
+		response.AbortBadRequest(c, shared.ErrFileContentExtensionMismatch)
 		return
 	}
 
@@ -119,38 +120,34 @@ func UploadFile(c *gin.Context) {
 
 	accessMode, errMsg := resolveUploadAccessMode(c, uploadType)
 	if errMsg != "" {
-		c.JSON(http.StatusOK, response.Err(errMsg))
+		response.AbortBadRequest(c, errMsg)
 		return
 	}
 
-	// 6. 秒传匹配校验：校验数据库中是否存在相同 Hash 且大小一致的可用文件
 	handled, lookupErr := tryInstantUpload(ctx, c, currUser, fileHash, size, mimeType, ext, origName, accessMode)
 	if handled {
 		return
 	}
 	if lookupErr != nil && !errors.Is(lookupErr, gorm.ErrRecordNotFound) {
-		c.JSON(http.StatusOK, response.Err(ErrFileValidationFailed))
+		response.AbortBadRequest(c, shared.ErrFileValidationFailed)
 		return
 	}
 
-	// 7. 解析可选元数据字段
 	meta, errMsg := parseUploadMetadata(c, mimeType)
 	if errMsg != "" {
-		c.JSON(http.StatusOK, response.Err(errMsg))
+		response.AbortBadRequest(c, errMsg)
 		return
 	}
 
 	id := idgen.NextUint64ID()
 	subPath := fmt.Sprintf("uploads/%s/%d.%s", time.Now().Format("2006/01/02"), id, ext)
 
-	// 8. 写入当前活动存储驱动。
 	storageDriver, subPath, errMsg := storeUploadFile(ctx, subPath, size, mimeType, &buf, &meta)
 	if errMsg != "" {
-		c.JSON(http.StatusOK, response.Err(errMsg))
+		response.AbortBadRequest(c, errMsg)
 		return
 	}
 
-	// 9. 保存文件记录至数据库
 	newUpload := model.Upload{
 		ID:            id,
 		UserID:        currUser.ID,
@@ -168,7 +165,7 @@ func UploadFile(c *gin.Context) {
 	}
 
 	if err := saveUploadRecord(ctx, &newUpload, storageDriver, subPath); err != "" {
-		c.JSON(http.StatusOK, response.Err(err))
+		response.AbortBadRequest(c, err)
 		return
 	}
 
@@ -189,31 +186,30 @@ func UploadFile(c *gin.Context) {
 // @Failure 500 {object} response.Any "服务内部错误"
 // @Router /api/v1/admin/uploads/download/{id} [get]
 func DownloadFile(c *gin.Context) {
-	upload, err := getUploadRecordByID(c)
+	upload, err := filesrv.GetUploadRecordByID(c)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.AbortWithStatus(http.StatusNotFound)
 			return
 		}
 		if _, ok := err.(*strconv.NumError); ok {
-			c.JSON(http.StatusOK, response.Err(ErrInvalidFileID))
+			response.AbortBadRequest(c, shared.ErrInvalidFileID)
 			return
 		}
-		c.JSON(http.StatusOK, response.Err(ErrQueryUploadRecordFailed))
+		response.AbortBadRequest(c, shared.ErrQueryUploadRecordFailed)
 		return
 	}
 
-	// 校验文件访问权限
-	if err := checkFileAccessPermission(c, upload); err != nil {
-		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error_msg": common.UnAuthorized, "data": nil})
+	if err := filesrv.CheckFileAccessPermission(c, upload); err != nil {
+		response.AbortUnauthorized(c, common.UnAuthorized)
 		return
 	}
 
 	fileName := upload.FileName
-	quality := normalizeImageQuality(c.Query("quality"))
-	isImage := strings.HasPrefix(strings.ToLower(upload.MimeType), "image/") || isImageExtension(strings.ToLower(upload.Extension))
+	quality := util.NormalizeImageQuality(c.Query("quality"))
+	isImage := strings.HasPrefix(strings.ToLower(upload.MimeType), "image/") || util.IsImageExtension(strings.ToLower(upload.Extension))
 
-	if quality != imageQualityOrigin && isImage {
+	if quality != shared.ImageQualityOrigin && isImage {
 		ext := filepath.Ext(fileName)
 		if ext != "" {
 			fileName = strings.TrimSuffix(fileName, ext) + ".webp"
@@ -222,9 +218,8 @@ func DownloadFile(c *gin.Context) {
 		}
 	}
 
-	// 设置下载 Attachment 响应头 (支持 UTF-8 中文文件名转义)
 	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename*=UTF-8''%s", url.PathEscape(fileName)))
-	ServeUpload(c, upload)
+	filesrv.ServeUpload(c, upload)
 }
 
 // BatchDownloadFiles 批量打包 ZIP 下载接口
@@ -233,7 +228,7 @@ func DownloadFile(c *gin.Context) {
 // @Tags admin
 // @Accept json
 // @Produce octet-stream
-// @Param request body upload.batchDownloadRequest true "包含文件 ID 数组 of string 的请求体"
+// @Param request body handler.batchDownloadRequest true "包含文件 ID 数组 of string 的请求体"
 // @Security SessionCookie
 // @Success 200 {file} file "成功下载打包后的 ZIP"
 // @Failure 400 {object} response.Any "参数错误"
@@ -244,52 +239,45 @@ func BatchDownloadFiles(c *gin.Context) {
 
 	var req batchDownloadRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusOK, response.Err(ErrInvalidBatchDownloadRequest))
+		response.AbortBadRequest(c, shared.ErrInvalidBatchDownloadRequest)
 		return
 	}
 
-	// 转换 ID 列表
 	var ids []uint64
 	for _, idStr := range req.IDs {
 		id, err := strconv.ParseUint(idStr, 10, 64)
 		if err != nil {
-			c.JSON(http.StatusOK, response.Err(fmt.Sprintf(ErrInvalidIDValueFormat, idStr)))
+			response.AbortBadRequest(c, fmt.Sprintf(shared.ErrInvalidIDValueFormat, idStr))
 			return
 		}
 		ids = append(ids, id)
 	}
 
-	// 查库获取所有匹配且正常的文件记录
 	var uploads []model.Upload
 	if err := db.DB(ctx).Where("id IN ? AND status IN (?, ?)", ids, model.UploadStatusPending, model.UploadStatusUsed).Find(&uploads).Error; err != nil {
-		c.JSON(http.StatusOK, response.Err(ErrRetrieveUploadRecordsFailed))
+		response.AbortBadRequest(c, shared.ErrRetrieveUploadRecordsFailed)
 		return
 	}
 
 	if len(uploads) == 0 {
-		c.JSON(http.StatusOK, response.Err(ErrNoValidFilesForArchive))
+		response.AbortBadRequest(c, shared.ErrNoValidFilesForArchive)
 		return
 	}
 
-	// 设置 ZIP 格式流的响应头
 	c.Header("Content-Type", "application/zip")
 	c.Header("Content-Disposition", "attachment; filename=\"batch_download.zip\"")
 
-	// 开启实时 ZIP 压缩器并直接输出给 Response Writer
 	zipWriter := zip.NewWriter(c.Writer)
 	defer func() { _ = zipWriter.Close() }()
 
-	// 用于解决 ZIP 内部文件名称发生碰撞冲突的问题
 	usedNames := make(map[string]int)
 
 	for _, upload := range uploads {
-		// 校验文件访问权限
-		if err := checkFileAccessPermission(c, &upload); err != nil {
+		if err := filesrv.CheckFileAccessPermission(c, &upload); err != nil {
 			logger.WarnF(ctx, "Batch download: skip file %d due to permission denied: %v", upload.ID, err)
 			continue
 		}
 
-		// 校验防冲突重命名逻辑
 		fileName := upload.FileName
 		if count, exists := usedNames[fileName]; exists {
 			usedNames[fileName] = count + 1
@@ -300,23 +288,19 @@ func BatchDownloadFiles(c *gin.Context) {
 			usedNames[fileName] = 1
 		}
 
-		// 在 ZIP 包内建新条目
 		zipFileEntry, err := zipWriter.Create(fileName)
 		if err != nil {
 			logger.ErrorF(ctx, "ZIP 添加条目失败 [%s]: %v", fileName, err)
 			continue
 		}
 
-		// 打开底层文件数据源
-		var rc io.ReadCloser
-		obj, err := openStoredObject(ctx, &upload)
+		obj, err := uploadstorage.OpenStoredObject(ctx, &upload)
 		if err != nil {
 			logger.ErrorF(ctx, "打包时读取文件失败: %v", err)
 			continue
 		}
-		rc = obj.Body
+		rc := obj.Body
 
-		// 流式拷贝到 ZIP entry
 		_, err = io.Copy(zipFileEntry, rc)
 		_ = rc.Close()
 		if err != nil {
@@ -328,7 +312,7 @@ func BatchDownloadFiles(c *gin.Context) {
 func resolveUploadAccessMode(c *gin.Context, uploadType string) (int, string) {
 	accessModeStr := c.PostForm("access_mode")
 	if accessModeStr == "" {
-		if uploadType == defaultPublicUploadType {
+		if uploadType == shared.DefaultPublicUploadType {
 			return 1, ""
 		}
 		return 0, ""
@@ -341,7 +325,6 @@ func resolveUploadAccessMode(c *gin.Context, uploadType string) (int, string) {
 	return accessMode, ""
 }
 
-// validateUploadExtension 校验文件后缀是否在系统允许的上传扩展名列表中
 func validateUploadExtension(ctx context.Context, ext string) string {
 	var sc model.SystemConfig
 	if err := sc.GetByKey(ctx, model.ConfigKeyUploadAllowedExtensions); err == nil && sc.Value != "" {
@@ -354,21 +337,20 @@ func validateUploadExtension(ctx context.Context, ext string) string {
 			}
 		}
 		if !allowed {
-			return ErrUnsupportedFormat
+			return shared.ErrUnsupportedFormat
 		}
 	}
 	return ""
 }
 
-// tryInstantUpload 尝试秒传：若数据库已存在相同 Hash 且大小一致的可用文件，直接生成新记录
 func tryInstantUpload(ctx context.Context, c *gin.Context, currUser *model.User, fileHash string, size int64, mimeType, ext, origName string, accessMode int) (bool, error) {
 	var existing model.Upload
 	err := db.DB(ctx).Where("hash = ? AND file_size = ? AND status IN (?, ?)", fileHash, size, model.UploadStatusPending, model.UploadStatusUsed).First(&existing).Error
 	if err != nil {
 		return false, err
 	}
-	if StorageReadOnly(ctx) {
-		c.JSON(http.StatusConflict, response.Err(ErrStorageReadOnly))
+	if uploadstorage.ReadOnly(ctx) {
+		response.AbortConflict(c, shared.ErrStorageReadOnly)
 		return true, nil
 	}
 
@@ -390,52 +372,40 @@ func tryInstantUpload(ctx context.Context, c *gin.Context, currUser *model.User,
 	}
 
 	if err := db.DB(ctx).Create(&newUpload).Error; err != nil {
-		c.JSON(http.StatusOK, response.Err(ErrSaveUploadRecordFailed))
+		response.AbortBadRequest(c, shared.ErrSaveUploadRecordFailed)
 		return true, err
 	}
-	recordUploadStatsAdd(ctx, &newUpload)
+	uploadstats.RecordUploadStatsAdd(ctx, &newUpload)
 
 	logger.InfoF(ctx, "文件触发秒传成功! ID: %d, Path: %s", id, existing.FilePath)
 	c.JSON(http.StatusOK, response.OK(newUpload))
 	return true, nil
 }
 
-// storeUploadFile 将文件写入当前活动存储驱动。
 func storeUploadFile(ctx context.Context, subPath string, size int64, mimeType string, buf *bytes.Buffer, meta *model.UploadMetadata) (string, string, string) {
-	if StorageReadOnly(ctx) {
-		return "", "", ErrStorageReadOnly
+	if uploadstorage.ReadOnly(ctx) {
+		return "", "", shared.ErrStorageReadOnly
 	}
 	driver, backend, err := storage.Active(ctx)
 	if err != nil {
 		logger.ErrorF(ctx, "初始化活动存储失败: %v", err)
-		return "", "", ErrSaveFileFailed
+		return "", "", shared.ErrSaveFileFailed
 	}
 	result, err := backend.Put(ctx, subPath, bytes.NewReader(buf.Bytes()), size, mimeType)
 	if err != nil {
 		logger.ErrorF(ctx, "写入 %s 存储失败: %v", driver, err)
-		return "", "", ErrSaveFileFailed
+		return "", "", shared.ErrSaveFileFailed
 	}
 	meta.Bucket = result.Bucket
 	return string(driver), result.Key, ""
 }
 
-// isImageExtension 判断文件扩展名是否属于常见图片格式
-func isImageExtension(ext string) bool {
-	for _, imgExt := range []string{"jpg", "jpeg", "png", "webp", "gif"} {
-		if ext == imgExt {
-			return true
-		}
-	}
-	return false
-}
-
-// parseUploadMetadata 解析上传元数据字段
 func parseUploadMetadata(c *gin.Context, mimeType string) (model.UploadMetadata, string) {
 	var meta model.UploadMetadata
 	metadataStr := c.DefaultPostForm("metadata", "")
 	if metadataStr != "" {
 		if err := json.Unmarshal([]byte(metadataStr), &meta); err != nil {
-			return meta, ErrInvalidMetadataJSON
+			return meta, shared.ErrInvalidMetadataJSON
 		}
 	}
 	meta.OriginalMime = mimeType
@@ -444,16 +414,14 @@ func parseUploadMetadata(c *gin.Context, mimeType string) (model.UploadMetadata,
 	return meta, ""
 }
 
-// detectMimeType 检测文件的 MIME 类型，优先使用 Content-Type 头部信息
 func detectMimeType(buf *bytes.Buffer, header *multipart.FileHeader, size int64) string {
-	mimeType := http.DetectContentType(buf.Bytes()[:min(detectContentBytes, int(size))])
+	mimeType := http.DetectContentType(buf.Bytes()[:min(shared.DetectContentBytes, int(size))])
 	if mimeType == "application/octet-stream" && header.Header.Get("Content-Type") != "" {
 		mimeType = header.Header.Get("Content-Type")
 	}
 	return mimeType
 }
 
-// saveUploadRecord 保存上传记录到数据库，失败时清理本地垃圾文件
 func saveUploadRecord(ctx context.Context, upload *model.Upload, storageDriver, filePath string) string {
 	if err := db.DB(ctx).Create(upload).Error; err != nil {
 		backend, backendErr := storage.ForDriver(ctx, storage.Driver(storageDriver))
@@ -462,8 +430,8 @@ func saveUploadRecord(ctx context.Context, upload *model.Upload, storageDriver, 
 				logger.WarnF(ctx, "清理未写入数据库的上传对象失败: %v", deleteErr)
 			}
 		}
-		return ErrSaveUploadRecordFailed
+		return shared.ErrSaveUploadRecordFailed
 	}
-	recordUploadStatsAdd(ctx, upload)
+	uploadstats.RecordUploadStatsAdd(ctx, upload)
 	return ""
 }

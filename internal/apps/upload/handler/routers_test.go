@@ -2,7 +2,7 @@
 // Copyright 2026 Arctel.net
 // SPDX-License-Identifier: Apache-2.0
 
-package upload
+package handler
 
 import (
 	"archive/zip"
@@ -20,6 +20,9 @@ import (
 	"time"
 
 	"github.com/Rain-kl/Wavelet/internal/apps/oauth"
+	"github.com/Rain-kl/Wavelet/internal/apps/upload/shared"
+	"github.com/Rain-kl/Wavelet/internal/common/response"
+	uploadstats "github.com/Rain-kl/Wavelet/internal/apps/upload/stats"
 	"github.com/Rain-kl/Wavelet/internal/db"
 	"github.com/Rain-kl/Wavelet/internal/model"
 	"github.com/Rain-kl/Wavelet/internal/storage"
@@ -36,6 +39,7 @@ type testResponse struct {
 func setupTestRouter(authUser *model.User) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
+	r.Use(response.ErrorHandlerMiddleware())
 
 	authMiddleware := func(c *gin.Context) {
 		if authUser != nil {
@@ -211,13 +215,13 @@ func TestUploadFile(t *testing.T) {
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)
 
-		if w.Code != http.StatusOK {
-			t.Fatalf("expected status 200, got %d. Body: %s", w.Code, w.Body.String())
+		if w.Code != http.StatusBadRequest {
+			t.Fatalf("expected status 400, got %d. Body: %s", w.Code, w.Body.String())
 		}
 
 		var resp testResponse
 		_ = json.Unmarshal(w.Body.Bytes(), &resp)
-		if resp.ErrorMsg == "" || !strings.Contains(resp.ErrorMsg, ErrUnsupportedFormat) {
+		if resp.ErrorMsg == "" || !strings.Contains(resp.ErrorMsg, shared.ErrUnsupportedFormat) {
 			t.Errorf("expected unsupported format error, got: %v", resp)
 		}
 	})
@@ -294,6 +298,7 @@ func TestUploadFile(t *testing.T) {
 		sc.Value = "jpg,png,webp,txt"
 		dbConn.Save(&sc)
 		_ = db.HSetJSON(context.Background(), model.SystemConfigRedisHashKey, sc.Key, &sc)
+		model.ResetSystemConfigRAMCacheForTest()
 
 		contentType, body := createMultipartRequest(t, "file", "doc.txt", []byte("hello world generic document file"), map[string]string{
 			"type": "document",
@@ -806,7 +811,7 @@ func TestGetFileStats(t *testing.T) {
 			t.Fatalf("failed to create upload: %v", err)
 		}
 	}
-	if err := RebuildUploadStats(context.Background()); err != nil {
+	if err := uploadstats.RebuildUploadStats(context.Background()); err != nil {
 		t.Fatalf("failed to rebuild upload stats: %v", err)
 	}
 

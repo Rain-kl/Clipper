@@ -41,7 +41,7 @@ func ListChannels(c *gin.Context) {
 	ctx := c.Request.Context()
 	var channels []model.PushChannel
 	if err := db.DB(ctx).Order("created_at DESC").Find(&channels).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, response.Err(err.Error()))
+		response.AbortInternal(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, response.OK(channels))
@@ -71,7 +71,7 @@ type CreateChannelRequest struct {
 func CreateChannel(c *gin.Context) {
 	var req CreateChannelRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, response.Err(err.Error()))
+		response.AbortBadRequest(c, err.Error())
 		return
 	}
 
@@ -79,11 +79,11 @@ func CreateChannel(c *gin.Context) {
 
 	var count int64
 	if err := db.DB(ctx).Model(&model.PushChannel{}).Where("name = ?", req.Name).Count(&count).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, response.Err(err.Error()))
+		response.AbortInternal(c, err.Error())
 		return
 	}
 	if count > 0 {
-		c.JSON(http.StatusBadRequest, response.Err("channel name already exists"))
+		response.AbortBadRequest(c, "channel name already exists")
 		return
 	}
 
@@ -98,12 +98,12 @@ func CreateChannel(c *gin.Context) {
 	}
 
 	if err := channel.Validate(); err != nil {
-		c.JSON(http.StatusBadRequest, response.Err(err.Error()))
+		response.AbortBadRequest(c, err.Error())
 		return
 	}
 
 	if err := db.DB(ctx).Create(&channel).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, response.Err(err.Error()))
+		response.AbortInternal(c, err.Error())
 		return
 	}
 
@@ -138,13 +138,13 @@ func UpdateChannel(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, response.Err("invalid channel id"))
+		response.AbortBadRequest(c, "invalid channel id")
 		return
 	}
 
 	var req UpdateChannelRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, response.Err(err.Error()))
+		response.AbortBadRequest(c, err.Error())
 		return
 	}
 
@@ -153,10 +153,10 @@ func UpdateChannel(c *gin.Context) {
 	var channel model.PushChannel
 	if err := db.DB(ctx).Where("id = ?", id).First(&channel).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(http.StatusNotFound, response.Err("channel not found"))
+			response.AbortNotFound(c, "channel not found")
 			return
 		}
-		c.JSON(http.StatusInternalServerError, response.Err(err.Error()))
+		response.AbortInternal(c, err.Error())
 		return
 	}
 
@@ -168,12 +168,12 @@ func UpdateChannel(c *gin.Context) {
 	channel.Enabled = req.Enabled
 
 	if err := channel.Validate(); err != nil {
-		c.JSON(http.StatusBadRequest, response.Err(err.Error()))
+		response.AbortBadRequest(c, err.Error())
 		return
 	}
 
 	if err := db.DB(ctx).Save(&channel).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, response.Err(err.Error()))
+		response.AbortInternal(c, err.Error())
 		return
 	}
 
@@ -196,7 +196,7 @@ func DeleteChannel(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, response.Err("invalid channel id"))
+		response.AbortBadRequest(c, "invalid channel id")
 		return
 	}
 
@@ -204,15 +204,15 @@ func DeleteChannel(c *gin.Context) {
 	var channel model.PushChannel
 	if err := db.DB(ctx).Where("id = ?", id).First(&channel).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(http.StatusNotFound, response.Err("channel not found"))
+			response.AbortNotFound(c, "channel not found")
 			return
 		}
-		c.JSON(http.StatusInternalServerError, response.Err(err.Error()))
+		response.AbortInternal(c, err.Error())
 		return
 	}
 
 	if err := db.DB(ctx).Delete(&channel).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, response.Err(err.Error()))
+		response.AbortInternal(c, err.Error())
 		return
 	}
 
@@ -245,7 +245,7 @@ type TestChannelRequest struct {
 func TestChannel(c *gin.Context) {
 	var req TestChannelRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, response.Err(err.Error()))
+		response.AbortBadRequest(c, err.Error())
 		return
 	}
 
@@ -255,7 +255,7 @@ func TestChannel(c *gin.Context) {
 	if req.Name != "" {
 		var channel model.PushChannel
 		if err := db.DB(ctx).Where("name = ?", req.Name).First(&channel).Error; err != nil {
-			c.JSON(http.StatusBadRequest, response.Err("channel not found"))
+			response.AbortBadRequest(c, "channel not found")
 			return
 		}
 		url = channel.URL
@@ -284,7 +284,7 @@ func TestChannel(c *gin.Context) {
 	}
 
 	if err := tempChannel.Validate(); err != nil {
-		c.JSON(http.StatusBadRequest, response.Err(err.Error()))
+		response.AbortBadRequest(c, err.Error())
 		return
 	}
 	url = tempChannel.URL
@@ -342,7 +342,7 @@ func TestChannel(c *gin.Context) {
 	}
 
 	if err := enqueuePushTask(ctx, payload); err != nil {
-		c.JSON(http.StatusInternalServerError, response.Err(err.Error()))
+		response.AbortInternal(c, err.Error())
 		return
 	}
 

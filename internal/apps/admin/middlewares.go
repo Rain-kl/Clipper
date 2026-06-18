@@ -5,8 +5,7 @@
 package admin
 
 import (
-	"net/http"
-
+	"github.com/Rain-kl/Wavelet/internal/common/response"
 	"github.com/Rain-kl/Wavelet/internal/model"
 	"github.com/Rain-kl/Wavelet/internal/util"
 	"github.com/Rain-kl/Wavelet/pkg/logger"
@@ -29,13 +28,13 @@ func LoginAdminRequired() gin.HandlerFunc {
 		if tokenAuth, _ := util.GetFromContext[bool](c, oauth.TokenAuthKey); tokenAuth {
 			tokenAdmin, _ := util.GetFromContext[bool](c, oauth.TokenAdminKey)
 			if !tokenAdmin {
-				c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error_msg": TokenAdminRequired, "data": nil})
+				response.AbortNotFound(c, TokenAdminRequired)
 				return
 			}
 		}
 
 		if !user.IsAdmin {
-			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error_msg": AdminRequired, "data": nil})
+			response.AbortNotFound(c, AdminRequired)
 			return
 		}
 

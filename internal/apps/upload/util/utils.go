@@ -2,7 +2,8 @@
 // Copyright 2026 Arctel.net
 // SPDX-License-Identifier: Apache-2.0
 
-package upload
+// Package util provides upload media helpers and image utilities.
+package util
 
 import (
 	"bytes"
@@ -15,28 +16,27 @@ import (
 	"io"
 	"strings"
 
+	"github.com/Rain-kl/Wavelet/internal/apps/upload/shared"
 	"github.com/deepteams/webp"
 	_ "golang.org/x/image/webp" // Register WebP decoder for image.Decode
 )
 
-const maxS3KeyLength = 1024
-
 // ValidateS3Key validates an S3 object key for safety.
 func ValidateS3Key(key string) error {
 	if key == "" {
-		return errors.New(ErrS3KeyRequired)
+		return errors.New(shared.ErrS3KeyRequired)
 	}
 
-	if len(key) > maxS3KeyLength {
-		return fmt.Errorf(ErrS3KeyTooLongFormat, maxS3KeyLength)
+	if len(key) > shared.MaxS3KeyLength {
+		return fmt.Errorf(shared.ErrS3KeyTooLongFormat, shared.MaxS3KeyLength)
 	}
 
 	if strings.HasPrefix(key, "/") {
-		return errors.New(ErrS3KeyStartsWithSlash)
+		return errors.New(shared.ErrS3KeyStartsWithSlash)
 	}
 
 	if strings.Contains(key, "\x00") {
-		return errors.New(ErrS3KeyContainsNullBytes)
+		return errors.New(shared.ErrS3KeyContainsNullBytes)
 	}
 
 	return nil
@@ -45,30 +45,27 @@ func ValidateS3Key(key string) error {
 // CompressImageToWebP decodes an image from srcReader and encodes it into WebP format
 // using the specified quality (low -> 60, medium -> 75, high -> 85).
 func CompressImageToWebP(srcReader io.Reader, quality string) ([]byte, error) {
-	// Decode the image
 	img, format, err := image.Decode(srcReader)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode image (format: %s): %w", format, err)
 	}
 
-	// Determine quality
 	var qualityScore float32
 	switch strings.ToLower(quality) {
-	case imageQualityLow:
+	case shared.ImageQualityLow:
 		qualityScore = 60
-	case imageQualityMedium:
+	case shared.ImageQualityMedium:
 		qualityScore = 75
-	case imageQualityHigh, "":
+	case shared.ImageQualityHigh, "":
 		qualityScore = 85
 	default:
 		qualityScore = 85
 	}
 
-	// Encode to WebP
 	var buf bytes.Buffer
 	err = webp.Encode(&buf, img, &webp.EncoderOptions{
 		Quality: qualityScore,
-		Method:  4, // Default method
+		Method:  4,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to encode WebP: %w", err)

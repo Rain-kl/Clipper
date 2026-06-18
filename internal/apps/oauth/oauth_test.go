@@ -35,6 +35,7 @@ import (
 	"github.com/Rain-kl/Wavelet/internal/config"
 	"github.com/Rain-kl/Wavelet/internal/db"
 	"github.com/Rain-kl/Wavelet/internal/model"
+	"github.com/Rain-kl/Wavelet/internal/testhelper"
 	"github.com/Rain-kl/Wavelet/internal/util"
 )
 
@@ -125,6 +126,12 @@ func (m *mockRedisClient) HGet(ctx context.Context, key string, field string) *r
 		cmd.SetVal(val)
 	}
 	return cmd
+}
+
+func (m *mockRedisClient) Subscribe(ctx context.Context, channels ...string) *redis.PubSub {
+	return redis.NewClient(&redis.Options{
+		Addr: "127.0.0.1:0",
+	}).Subscribe(ctx, channels...)
 }
 
 type mockRoundTripper struct {
@@ -332,9 +339,7 @@ func mockContextMiddleware(mockClient *http.Client) gin.HandlerFunc {
 }
 
 func setupTestRouter(dbConn *gorm.DB, mockRedis *mockRedisClient, mockClient *http.Client) *gin.Engine {
-	gin.SetMode(gin.TestMode)
-	r := gin.New()
-	r.Use(gin.Recovery())
+	r := testhelper.NewTestGinEngine(gin.Recovery())
 
 	// Inject context mock middleware
 	r.Use(mockContextMiddleware(mockClient))
@@ -1199,7 +1204,7 @@ func TestSystemUserBlockedByMiddleware(t *testing.T) {
 
 	// 3. 设置全局测试数据库连接并构建测试路由组
 	db.SetDB(dbConn)
-	rProtected := gin.New()
+	rProtected := testhelper.NewTestGinEngine()
 	store := cookie.NewStore([]byte("secret"))
 	rProtected.Use(sessions.Sessions("mysession", store))
 	rProtected.Use(LoginRequired())
