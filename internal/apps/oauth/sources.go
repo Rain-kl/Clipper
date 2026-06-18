@@ -14,11 +14,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Rain-kl/Wavelet/internal/apps/admin/push/custom_events"
 	"github.com/Rain-kl/Wavelet/internal/common"
 	"github.com/Rain-kl/Wavelet/internal/common/response"
 	"github.com/Rain-kl/Wavelet/internal/config"
 	"github.com/Rain-kl/Wavelet/internal/db"
+	"github.com/Rain-kl/Wavelet/internal/listener"
 	"github.com/Rain-kl/Wavelet/internal/model"
 	"github.com/Rain-kl/Wavelet/pkg/logger"
 	"github.com/coreos/go-oidc/v3/oidc"
@@ -678,7 +678,7 @@ func handleCallbackLogin(ctx context.Context, c *gin.Context, source *model.Auth
 
 	logger.InfoF(ctx, "[LoginAudit] successful OAuth login via source: %s, external ID: %s, user: %s, ID: %d, IP: %s", source.Name, userInfo.Sub, user.Username, user.ID, c.ClientIP())
 
-	custom_events.TriggerAdminLoginEvent(ctx, &user, c.ClientIP())
+	listener.EmitAdminLoggedIn(ctx, &user, c.ClientIP())
 
 	c.JSON(http.StatusOK, response.OK(buildCallbackResult(&user, "logged_in")))
 }

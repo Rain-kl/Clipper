@@ -15,8 +15,9 @@ import (
 	"github.com/Rain-kl/Wavelet/pkg/logger"
 )
 
-func init() {
-	task.OnTaskCompleted = handleTaskCompleted
+// RegisterTaskListeners subscribes push notification handlers to task completion events.
+func RegisterTaskListeners() {
+	task.OnTaskCompleted(handleTaskCompleted)
 }
 
 // handleTaskCompleted handles task completions and triggers appropriate push events.
