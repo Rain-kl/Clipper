@@ -40,6 +40,7 @@ var rootCmd = &cobra.Command{
 	},
 	PreRun: func(_ *cobra.Command, _ []string) {
 		migrator.Migrate()
+		migrator.MigrateClickHouse()
 	},
 	PersistentPostRun: func(_ *cobra.Command, _ []string) {
 		shutdownTraceProvider()

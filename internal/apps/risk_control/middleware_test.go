@@ -13,6 +13,7 @@ import (
 	"github.com/Rain-kl/Wavelet/internal/apps/oauth"
 	"github.com/Rain-kl/Wavelet/internal/config"
 	"github.com/Rain-kl/Wavelet/internal/model"
+	"github.com/Rain-kl/Wavelet/internal/model/analytics"
 	"github.com/Rain-kl/Wavelet/internal/testhelper"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
@@ -40,7 +41,7 @@ func TestRiskControlMiddleware(t *testing.T) {
 
 	t.Run("ClickHouse enabled - Normal Authenticated Request", func(t *testing.T) {
 		config.Config.ClickHouse.Enabled = true
-		logChan = make(chan *UserAccessLog, defaultQueueSize)
+		logChan = make(chan *analytics.UserAccessLog, defaultQueueSize)
 		defer func() {
 			config.Config.ClickHouse.Enabled = false
 			logChan = nil
@@ -84,7 +85,7 @@ func TestRiskControlMiddleware(t *testing.T) {
 
 	t.Run("ClickHouse enabled - Unauthenticated Request", func(t *testing.T) {
 		config.Config.ClickHouse.Enabled = true
-		logChan = make(chan *UserAccessLog, defaultQueueSize)
+		logChan = make(chan *analytics.UserAccessLog, defaultQueueSize)
 		defer func() {
 			config.Config.ClickHouse.Enabled = false
 			logChan = nil
@@ -113,7 +114,7 @@ func TestRiskControlMiddleware(t *testing.T) {
 
 	t.Run("ClickHouse enabled - Buffer Full Rate Limiting", func(t *testing.T) {
 		config.Config.ClickHouse.Enabled = true
-		logChan = make(chan *UserAccessLog, 2) // small capacity for quick fill
+		logChan = make(chan *analytics.UserAccessLog, 2) // small capacity for quick fill
 		defer func() {
 			config.Config.ClickHouse.Enabled = false
 			logChan = nil
@@ -121,7 +122,7 @@ func TestRiskControlMiddleware(t *testing.T) {
 
 		// fill logChan up to cap to simulate buffer full
 		for len(logChan) < cap(logChan) {
-			logChan <- &UserAccessLog{}
+			logChan <- &analytics.UserAccessLog{}
 		}
 
 		r := testhelper.NewTestGinEngine(RiskControlMiddleware())

@@ -1,7 +1,4 @@
-CREATE DATABASE IF NOT EXISTS wavelet;
-
-USE wavelet;
-
+-- +goose Up
 CREATE TABLE IF NOT EXISTS w_user_access_logs
 (
     id          UInt64,
@@ -19,3 +16,6 @@ ENGINE = MergeTree()
 PARTITION BY toYYYYMM(created_at)
 ORDER BY (created_at, ip, user_id)
 SETTINGS index_granularity = 8192;
+
+-- +goose Down
+DROP TABLE IF EXISTS w_user_access_logs;

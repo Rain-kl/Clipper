@@ -8,11 +8,12 @@ import (
 	"time"
 
 	"github.com/Rain-kl/Wavelet/internal/config"
-	"github.com/Rain-kl/Wavelet/internal/db"
+	"github.com/Rain-kl/Wavelet/internal/model/analytics"
+	analyticsrepo "github.com/Rain-kl/Wavelet/internal/repository/analytics"
 	"github.com/Rain-kl/Wavelet/pkg/logger"
 )
 
-var logChan chan *UserAccessLog
+var logChan chan *analytics.UserAccessLog
 
 const (
 	defaultQueueSize = 10000
@@ -26,7 +27,7 @@ func InitLogWriter(ctx context.Context) {
 		return
 	}
 
-	logChan = make(chan *UserAccessLog, defaultQueueSize)
+	logChan = make(chan *analytics.UserAccessLog, defaultQueueSize)
 	go startBatchWorker(context.WithoutCancel(ctx))
 }
 
@@ -40,7 +41,7 @@ func IsBufferFull() bool {
 }
 
 // QueueAccessLog 异步非阻塞地将日志推入缓冲队列
-func QueueAccessLog(logItem *UserAccessLog) {
+func QueueAccessLog(logItem *analytics.UserAccessLog) {
 	if !config.Config.ClickHouse.Enabled || logChan == nil {
 		return
 	}
@@ -56,43 +57,18 @@ func startBatchWorker(ctx context.Context) {
 	ticker := time.NewTicker(flushInterval)
 	defer ticker.Stop()
 
-	var batch []*UserAccessLog
+	var batch []*analytics.UserAccessLog
 
 	flush := func() {
 		if len(batch) == 0 {
 			return
 		}
-		if db.ChConn == nil {
-			batch = nil
-			return
-		}
 
-		b, err := db.ChConn.PrepareBatch(ctx, "INSERT INTO w_user_access_logs (id, user_id, path, method, ip, user_agent, headers, status, latency, created_at)")
-		if err != nil {
-			logger.ErrorF(ctx, "[RiskControl] Prepare ClickHouse batch failed: %v", err)
-			batch = nil
-			return
+		items := make([]analytics.UserAccessLog, len(batch))
+		for i, item := range batch {
+			items[i] = *item
 		}
-
-		for _, item := range batch {
-			err = b.Append(
-				item.ID,
-				item.UserID,
-				item.Path,
-				item.Method,
-				item.IP,
-				item.UserAgent,
-				item.Headers,
-				item.Status,
-				item.Latency,
-				item.CreatedAt,
-			)
-			if err != nil {
-				logger.ErrorF(ctx, "[RiskControl] Append item to ClickHouse batch failed: %v", err)
-			}
-		}
-
-		if err := b.Send(); err != nil {
+		if err := analyticsrepo.BatchInsert(ctx, items); err != nil {
 			logger.ErrorF(ctx, "[RiskControl] Send ClickHouse batch failed: %v", err)
 		}
 		batch = nil
