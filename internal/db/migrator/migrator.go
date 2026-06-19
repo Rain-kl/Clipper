@@ -29,11 +29,17 @@ func dbType() string {
 	return "PostgreSQL"
 }
 
+const (
+	dialectSqlite   = "sqlite3"
+	dialectPostgres = "postgres"
+	cascadeSuffix   = " CASCADE"
+)
+
 func gooseDialect() string {
 	if !config.Config.Database.Enabled {
-		return "sqlite3"
+		return dialectSqlite
 	}
-	return "postgres"
+	return dialectPostgres
 }
 
 func migrationDir() string {
