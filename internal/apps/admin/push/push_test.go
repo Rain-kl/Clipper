@@ -3,7 +3,8 @@
 
 package push
 
-import ("bytes"
+import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"net/http"
@@ -13,7 +14,10 @@ import ("bytes"
 	"testing"
 	"time"
 
+	"github.com/Rain-kl/Wavelet/internal/apps/oauth"
+	"github.com/Rain-kl/Wavelet/internal/common/response"
 	"github.com/Rain-kl/Wavelet/internal/model"
+	"github.com/Rain-kl/Wavelet/internal/repository"
 	"github.com/Rain-kl/Wavelet/internal/task"
 	"github.com/Rain-kl/Wavelet/internal/testhelper"
 	pkgpush "github.com/Rain-kl/Wavelet/pkg/push"
@@ -23,8 +27,7 @@ import ("bytes"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
-
-	"github.com/Rain-kl/Wavelet/internal/common/response")
+)
 
 var adminLoginEvent = EventMetadata{
 	Key:  "admin_login",
@@ -187,7 +190,7 @@ func TestEventTrigger(t *testing.T) {
 		event.Enabled = true
 		event.Channels = []string{"mock_channel"}
 		event.Targets = []string{"admin_user"}
-		err = dbConn.Save(&event).Error
+		err = repository.SavePushEvent(context.Background(), &event)
 		require.NoError(t, err)
 
 		// Trigger
@@ -244,8 +247,8 @@ func TestEventTrigger(t *testing.T) {
 
 		event.Enabled = true
 		event.Channels = []string{"mock_channel"}
-		event.Targets = []string{"user.username"} // 动态目标
-		err = dbConn.Save(&event).Error
+		event.Targets = []string{"user.username"}
+		err = repository.SavePushEvent(context.Background(), &event)
 		require.NoError(t, err)
 
 		// Trigger with empty body (simulates cron scheduler triggering)
@@ -369,7 +372,7 @@ func TestPushRouters(t *testing.T) {
 
 		// 2. 为该事件关联渠道后，再切换开启，应当成功
 		event.Channels = []string{"email"}
-		dbConn.Save(&event)
+		_ = repository.SavePushEvent(context.Background(), &event)
 
 		req2, _ := http.NewRequest("POST", "/api/v1/admin/push/events/"+strconv.FormatUint(event.ID, 10)+"/toggle", nil)
 		w2 := httptest.NewRecorder()

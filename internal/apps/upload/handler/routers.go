@@ -7,6 +7,7 @@ package handler
 
 import (
 	"archive/zip"
+	"bufio"
 	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
@@ -247,8 +248,12 @@ func BatchDownloadFiles(c *gin.Context) {
 	c.Header("Content-Type", "application/zip")
 	c.Header("Content-Disposition", "attachment; filename=\"batch_download.zip\"")
 
-	zipWriter := zip.NewWriter(c.Writer)
-	defer func() { _ = zipWriter.Close() }()
+	bufferedWriter := bufio.NewWriter(c.Writer)
+	zipWriter := zip.NewWriter(bufferedWriter)
+	defer func() {
+		_ = zipWriter.Close()
+		_ = bufferedWriter.Flush()
+	}()
 
 	usedNames := make(map[string]int)
 
@@ -326,4 +331,3 @@ func detectMimeType(buf *bytes.Buffer, header *multipart.FileHeader, size int64)
 	}
 	return mimeType
 }
-
