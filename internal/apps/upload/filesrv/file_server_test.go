@@ -34,6 +34,10 @@ import (
 	"gorm.io/gorm"
 )
 
+func init() {
+	testhelper.RegisterCleanup(cache.ResetUploadMetaCacheForTest)
+}
+
 func TestServeFileByIDAccessControl(t *testing.T) {
 	dbConn, _, cleanup := testhelper.SetupTestEnvironment(t)
 	defer cleanup()

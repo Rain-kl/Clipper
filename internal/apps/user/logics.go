@@ -362,6 +362,7 @@ func createAccessTokenLogic(ctx context.Context, record *model.AccessToken) erro
 	if err := db.DB(ctx).Create(record).Error; err != nil {
 		return errors.New("创建令牌失败，请稍后再试")
 	}
+	oauth.SetCachedToken(ctx, record.TokenHash, record)
 	return nil
 }
 
@@ -404,6 +405,8 @@ func rotateAccessTokenLogic(ctx context.Context, id, userID uint64) (string, *mo
 	if err := db.DB(ctx).Save(&tokenRecord).Error; err != nil {
 		return "", nil, errors.New("轮换令牌失败，请稍后再试")
 	}
+
+	oauth.SetCachedToken(ctx, tokenRecord.TokenHash, &tokenRecord)
 
 	return newTokenStr, &tokenRecord, nil
 }

@@ -22,7 +22,6 @@ import (
 	"github.com/Rain-kl/Wavelet/internal/apps/upload/util"
 	"github.com/Rain-kl/Wavelet/internal/common"
 	"github.com/Rain-kl/Wavelet/internal/common/response"
-	"github.com/Rain-kl/Wavelet/internal/db"
 	"github.com/Rain-kl/Wavelet/internal/diskcache"
 	"github.com/Rain-kl/Wavelet/internal/model"
 
@@ -96,10 +95,8 @@ func GetUploadRecordByID(c *gin.Context) (*model.Upload, error) {
 		return nil, err
 	}
 
-	var upload model.Upload
-	if err := db.DB(c.Request.Context()).
-		Where("id = ? AND status IN (?, ?)", uploadID, model.UploadStatusPending, model.UploadStatusUsed).
-		First(&upload).Error; err != nil {
+	upload, err := cache.GetUploadByID(c.Request.Context(), uploadID)
+	if err != nil {
 		return nil, err
 	}
 

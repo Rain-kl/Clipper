@@ -168,6 +168,8 @@ func Login(c *gin.Context) {
 		return
 	}
 
+	oauth.SetCachedUser(ctx, user.ID, user)
+
 	logger.InfoF(ctx, "[LoginAudit] successful login for user: %s, ID: %d, IP: %s", user.Username, user.ID, c.ClientIP())
 
 	listener.EmitAdminLoggedIn(ctx, user, c.ClientIP())
