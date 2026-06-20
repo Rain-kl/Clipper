@@ -170,7 +170,7 @@ func DownloadFile(c *gin.Context) {
 	upload, err := filesrv.GetUploadRecordByID(c)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.AbortWithStatus(http.StatusNotFound)
+			response.AbortNotFound(c, "文件记录未找到")
 			return
 		}
 		if _, ok := err.(*strconv.NumError); ok {

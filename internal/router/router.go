@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/Rain-kl/Wavelet/internal/apps/risk_control"
+	"github.com/Rain-kl/Wavelet/internal/bootstrap"
 	router_root "github.com/Rain-kl/Wavelet/internal/router/root"
 	v1 "github.com/Rain-kl/Wavelet/internal/router/v1"
 
@@ -99,9 +100,11 @@ func Serve() {
 
 	if err := srv.Shutdown(shutdownCtx); err != nil {
 		log.Printf("[API] server forced to shutdown: %v\n", err)
+		bootstrap.Stop(shutdownCtx)
 		cancel()
 		os.Exit(1)
 	}
+	bootstrap.Stop(shutdownCtx)
 	cancel()
 
 	log.Println("[API] server exited")
