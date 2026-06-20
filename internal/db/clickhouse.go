@@ -41,6 +41,10 @@ func init() {
 	}
 
 	cfg := config.Config.ClickHouse
+	if cfg.Database == "" {
+		log.Fatalf("[ClickHouse] database name is required (expected: wavelet)\n")
+	}
+
 	opts := buildClickHouseOptions()
 
 	var err error

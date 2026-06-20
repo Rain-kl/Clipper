@@ -18,7 +18,8 @@ DDL 与表结构变更见 `database-migration` 技能；本技能只覆盖**运�
 | Model | `internal/model/analytics/` | 列定义、`TableName()`、`BatchInsertSQL()`（及可选 `InsertColumns()`） |
 | Repository | `internal/repository/analytics/` | `BatchInsert*` / `BatchInsertNodeAccessLogs` 等；`PrepareBatch` + 多行 `Append` + 一次 `Send` |
 | Apps | `internal/apps/<domain>/` | 采集、入队、背压；`FlushFunc` 只调 repository，不写 SQL、不 `PrepareBatch` |
-| 装配 | `internal/bootstrap/bootstrap.go` | 进程启动时 `Writer.Start`、停机时 `Writer.Stop`（与 `risk_control.InitLogWriter` 同级） |
+| 装配 | `internal/bootstrap/bootstrap.go` | 进程启动时调用 `Writer.Start`；初始化时需调用 `lifecycle.OnShutdown` 挂载停机钩子 |
+| 生命周期 | `internal/lifecycle/lifecycle.go` | 统一协调全局并发优雅停机，业务包无需在 `bootstrap.go` 中硬编码 `Stop` 逻辑 |
 
 **禁止**在 Handler / middleware 内直接 `db.ChConn.PrepareBatch`；**禁止**在 repository 内启动 goroutine 或维护全局 channel（队列生命周期由 apps + bootstrap 或专用 writer 包负责）。
 
@@ -58,9 +59,9 @@ writer.Stop(stopCtx)      // close 队列 + drain + 最终 flush
 
 | 域 | 表 | 现状 | 目标形态 |
 | :--- | :--- | :--- | :--- |
-| 管理端审计 | `w_user_access_logs` | `risk_control` 手写 channel worker | 迁移至 `batchwriter` + `analyticsrepo.BatchInsert` |
-| 边缘访问日志 | `of_node_access_logs` | 心跳内 `BatchInsertNodeAccessLogs` | 高 QPS 时增加独立 `batchwriter`；低规模可维持心跳内批量 |
-| 可观测时序 | `of_node_metric_snapshots` 等 5 表 | repository 逐条 `PrepareBatch` + 部分写前 `SELECT count()` | **优先改造**：`batchwriter` 或心跳内按表聚合 + 去掉 exists 查询 |
+| 管理端审计 | `w_user_access_logs` | `risk_control` → `batchwriter` + `analyticsrepo.BatchInsert` | 已接入 |
+| 边缘访问日志 | `of_node_access_logs` | `openflare/chwriter` 异步 flush | 已接入 |
+| 可观测时序 | `of_node_metric_snapshots` 等 5 表 | `openflare/chwriter` 五表独立 writer + 进程内短 TTL 去重 | 已接入 |
 
 **不要**把 audit、access log、observability 并入同一 channel。
 
@@ -69,15 +70,15 @@ writer.Stop(stopCtx)      // close 队列 + drain + 最终 flush
 1. **Model**：在 `internal/model/analytics/` 定义 struct 与 `BatchInsertSQL()`（列顺序与 goose DDL 一致）。
 2. **Goose DDL**：在 `internal/db/migrator/goose/clickhouse/` 新增迁移（见 `database-migration`）。
 3. **Repository**：实现 `BatchInsertX(ctx, []analyticsmodel.X) error`：
-   - `len(items)==0` 直接返回
-   - `db.ChConn == nil` 返回明确错误
-   - 一次 `PrepareBatch` → 循环 `Append` → 一次 `Send`
+    - `len(items)==0` 直接返回
+    - `db.ChConn == nil` 返回明确错误
+    - 一次 `PrepareBatch` → 循环 `Append` → 一次 `Send`
 4. **Writer 胶水**（`internal/apps/<domain>/` 或 `internal/repository/analytics/<domain>_writer.go`）：
-   - `New` + `Start` 在 bootstrap 注册
-   - 业务路径 `TryEnqueue`；HTTP 背压用 `IsFull()`
+    - `New` + `Start`，并在初始化逻辑内通过 `lifecycle.OnShutdown("your_writer_name", Stop)` 注册停机回调
+    - 业务路径 `TryEnqueue`；HTTP 背压用 `IsFull()`
 5. **测试**：
-   - repository：mock `ChConn` 验证 `BatchInsertSQL` 与 append 列数
-   - batchwriter：`go test ./internal/db/batchwriter`
+    - repository：mock `ChConn` 验证 `BatchInsertSQL` 与 append 列数
+    - batchwriter：`go test ./internal/db/batchwriter`
 6. 运行 `make code-check`；有 API 变更时 `make swagger`。
 
 ## 背压与丢弃策略
@@ -134,7 +135,7 @@ func RegisterAPI(ctx context.Context) {
 ```
 
 - `RegisterAPI` / `RegisterAll`：`Start`
-- 进程优雅停机：带超时的 `Stop(ctx)`
+- 进程优雅停机：业务模块在初始化时调用 `lifecycle.OnShutdown` 注册，由 `bootstrap.Stop()` 代理 `lifecycle.Stop()` 并发停机。
 - 使用 `sync.Once` 保证幂等
 
 ## 验证清单
@@ -154,7 +155,9 @@ make code-check
 
 - 框架：`internal/db/batchwriter/{config,writer,errs}.go`
 - 连接：`internal/db/clickhouse.go`
-- 审计写入（待迁移）：`internal/apps/risk_control/logics.go`
-- 节点访问日志：`internal/repository/analytics/node_access_log_writer.go`
-- 可观测写入（待改造）：`internal/repository/analytics/node_observability_writer.go`
+- 审计写入：`internal/apps/risk_control/logics.go`
+- OpenFlare 写入胶水：`internal/apps/openflare/chwriter/writer.go`
+- 节点访问日志 repository：`internal/repository/analytics/node_access_log_writer.go`
+- 可观测 repository：`internal/repository/analytics/node_observability_writer.go`
+- 生命周期管理器：`internal/lifecycle/lifecycle.go`
 - Bootstrap：`internal/bootstrap/bootstrap.go`

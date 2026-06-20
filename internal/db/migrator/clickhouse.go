@@ -15,7 +15,6 @@ import (
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/Rain-kl/Wavelet/internal/config"
 	"github.com/pressly/goose/v3"
-	"github.com/pressly/goose/v3/database"
 )
 
 const (
@@ -64,17 +63,11 @@ func MigrateClickHouse() {
 		log.Fatalf("[ClickHouse] get sub fs failed: %v\n", err)
 	}
 
-	store, err := database.NewStore(database.DialectClickHouse, clickhouseGooseVersionTable)
-	if err != nil {
-		closeClickHouseDB(sqlDB)
-		log.Fatalf("[ClickHouse] create goose store failed: %v\n", err)
-	}
-
 	provider, err := goose.NewProvider(
 		"clickhouse",
 		sqlDB,
 		subFS,
-		goose.WithStore(store),
+		goose.WithTableName(clickhouseGooseVersionTable),
 		goose.WithDisableGlobalRegistry(true),
 	)
 	if err != nil {
