@@ -75,7 +75,7 @@ flowchart LR
 
 1. **前端**：~~全局认证瀑布流~~ ✅ 已改为 layout 即时渲染 + 子页面 `RequireAuth` 自行处理未登录态；~~Admin 重模块无 `dynamic()` 分割~~ ✅ database/logs/settings 已懒加载子模块。其余路由 `page.tsx` 仍为 `"use client"`（静态导出下 RSC 收益有限，待逐步薄壳化）。
 2. **后端**：文件服务路径（`/f/{id}`）仍是最高频热点；~~磁盘缓存全局互斥锁~~ ✅ 已改为 `RWMutex` + `singleflight`，但 WebP miss 仍在请求线程内同步编码，部署预热与异步回退原图尚未落地。
-3. **参数中心**：~~`GetByKey` 每次直打 Redis~~ ✅ 已加 Otter v2 进程内缓存（`pkg/cache/ram`），读路径为 RAM → Redis → DB；管理员写配置后统一失效 RAM + Redis，并通过 pub/sub 同步多节点本地缓存。
+3. **参数中心**：~~`GetByKey` 每次直打 Redis~~ ✅ 已统一使用底层的进程内缓存库（`pkg/cache/store`），读路径直接为 RAM → DB（无 Redis 数据缓存）；管理员写配置后通过 Redis pub/sub 进行广播（`system:config_broadcast`），多节点本地触发全量预热/刷新，实现最终一致性。
 
 ---
 
@@ -395,8 +395,8 @@ if (loading || !user) {
 
 | # | 设计 | 位置 |
 |---|------|------|
-| 1 | 系统配置三层缓存 RAM → Redis → DB | `pkg/cache/ram`, `system_config_cache.go`, `GetByKey` |
-| 2 | 系统配置统一失效 + 多节点 pub/sub | `InvalidateSystemConfigCache`, `InvalidateAllSystemConfigCaches` |
+| 1 | 系统配置两层缓存 RAM → DB | `pkg/cache/store`, `system_config_cache.go`, `GetByKey` |
+| 2 | 系统配置统一刷新 + 多节点 pub/sub 预热广播 | `InvalidateSystemConfigCache`, `InvalidateAllSystemConfigCaches` |
 | 3 | Storage Backend 单例 + 5s TTL + pub/sub 失效 | `internal/storage/storage.go` — `Active()` |
 | 4 | 推送事件/渠道 24h Redis 缓存 + GORM hook 失效 | `internal/model/push_event.go`, `push_channel.go` |
 | 5 | 风控日志异步批写 ClickHouse（1 万缓冲 + 1000 条/1s + 429 背压） | `internal/apps/risk_control/` |
