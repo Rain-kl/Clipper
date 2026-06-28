@@ -1,9 +1,9 @@
 import * as React from "react";
 import Link from "next/link";
-import { motion } from "motion/react";
-import { ArrowRight, Zap, Shield, Globe, CreditCard } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
+import {motion} from "motion/react";
+import {ArrowRight, CreditCard, Globe, Shield, Zap} from "lucide-react";
+import {cn} from "@/lib/utils";
+import {Button} from "@/components/ui/button";
 
 export interface HeroSectionProps {
   className?: string;
@@ -37,9 +37,9 @@ export const HeroSection = React.memo(function HeroSection({ className }: HeroSe
               transition={{ duration: 0.6, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
               className="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.1] mb-6 text-foreground"
             >
-              Modern Platform <br />
+               Wavelet<br />
               <span className="bg-clip-text text-primary">
-                为二次开发而生
+                Modern Platform
               </span>
             </motion.h1>
 
@@ -52,7 +52,7 @@ export const HeroSection = React.memo(function HeroSection({ className }: HeroSe
             >
               通用的、现代化的后台管理系统脚手架
               <br className="hidden md:block" />
-              开箱即用、完整基建、极易扩展，助您快速构建企业级应用。
+              开箱即用、完整基建、极易扩展，助您快速构建应用。
             </motion.p>
 
             <motion.div
