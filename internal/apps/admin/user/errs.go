@@ -15,7 +15,9 @@ const (
 	usernameExists   = "用户名已存在"
 	usernameRequired = "用户名不能为空"
 	passwordTooShort = "密码长度不能少于 8 位" //nolint:gosec // false positive: this is an error message, not hardcoded credentials
-	createUserFailed = "创建用户失败"
-	emailRequired    = "邮箱不能为空"
-	emailExists      = "邮箱已被注册"
+	createUserFailed      = "创建用户失败"
+	emailRequired         = "邮箱不能为空"
+	emailExists           = "邮箱已被注册"
+	cannotRevokeSelfAdmin = "不能撤销当前登录用户的管理员权限"
+	updateUserInfoFailed  = "更新用户信息失败"
 )

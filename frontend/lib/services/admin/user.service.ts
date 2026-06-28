@@ -5,6 +5,7 @@ import type {
   ListUsersRequest,
   ListUsersResponse,
   UpdateUserStatusRequest,
+  UpdateUserRequest,
 } from './types';
 
 export class AdminUserService extends BaseService {
@@ -28,5 +29,9 @@ export class AdminUserService extends BaseService {
 
   static async deleteUser(id: string): Promise<void> {
     return this.delete<void>(`/users/${id}`);
+  }
+
+  static async updateUser(id: string, request: UpdateUserRequest): Promise<void> {
+    return this.put<void>(`/users/${id}`, request);
   }
 }

@@ -327,7 +327,7 @@ export function EventsTab() {
                     <Switch
                       checked={event.enabled}
                       onCheckedChange={() => toggleEventMutation.mutate(event.id)}
-                      className="scale-75 data-[state=checked]:bg-green-600 h-4 w-7"
+                      className="scale-75"
                     />
                   </TableCell>
                   <TableCell className="sticky right-0 text-center bg-background z-10 py-1" onClick={(e) => e.stopPropagation()}>

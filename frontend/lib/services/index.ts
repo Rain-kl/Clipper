@@ -114,6 +114,7 @@ export type {
   ListUsersResponse,
   UpdateUserStatusRequest,
   CreateUserRequest,
+  UpdateUserRequest,
   SystemStatus,
   AppUpdateStatus,
   Schedule,

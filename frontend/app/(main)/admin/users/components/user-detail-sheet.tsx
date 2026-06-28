@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import {Globe, Loader2, Mail, MapPin, ShieldCheck, Smartphone, Trash2, UserCheck,} from "lucide-react"
+import {Globe, Loader2, Mail, MapPin, ShieldCheck, Smartphone, UserCheck,} from "lucide-react"
 
 import {Button} from "@/components/ui/button"
 import {Badge} from "@/components/ui/badge"
@@ -16,7 +16,6 @@ interface UserDetailSheetProps {
   onOpenChange: (open: boolean) => void
   detailLoading: boolean
   onStatusToggle: (user: AdminUser) => Promise<void>
-  onDeleteTarget: (user: AdminUser) => void
 }
 
 export function UserDetailSheet({
@@ -25,7 +24,6 @@ export function UserDetailSheet({
   onOpenChange,
   detailLoading,
   onStatusToggle,
-  onDeleteTarget,
 }: UserDetailSheetProps) {
 
   const displayValue = (value?: string) => value && value.trim() ? value : "-"
@@ -156,7 +154,7 @@ export function UserDetailSheet({
               </div>
 
               {!selectedUser.is_admin && (
-                <div className="p-4 border-t bg-background/80 backdrop-blur-md shrink-0 flex flex-col gap-2">
+                <div className="p-4 border-t bg-background/80 backdrop-blur-md shrink-0">
                   <Button
                     variant={selectedUser.is_active ? "destructive" : "default"}
                     className={cn(
@@ -178,14 +176,6 @@ export function UserDetailSheet({
                         解除封禁
                       </>
                     )}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="w-full h-9 text-xs font-medium"
-                    onClick={() => onDeleteTarget(selectedUser)}
-                  >
-                    <Trash2 className="size-3 mr-1" />
-                    删除用户
                   </Button>
                 </div>
               )}
