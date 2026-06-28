@@ -51,8 +51,8 @@ export function UserFilterBar() {
                 <>
                   <Separator orientation="vertical" className="mx-1" />
                   <Badge
-                    variant="secondary"
-                    className="text-[10px] h-3 px-1 rounded-full bg-primary text-primary-foreground"
+                    variant="default"
+                    className="text-[10px] h-3 px-1 rounded-full"
                   >
                     !
                   </Badge>
@@ -114,8 +114,8 @@ export function UserFilterBar() {
                 <>
                   <Separator orientation="vertical" className="mx-1" />
                   <Badge
-                    variant="secondary"
-                    className="text-[10px] h-3 px-1 rounded-full bg-primary text-primary-foreground"
+                    variant="default"
+                    className="text-[10px] h-3 px-1 rounded-full"
                   >
                     1
                   </Badge>

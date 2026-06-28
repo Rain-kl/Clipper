@@ -8,7 +8,7 @@ import {Badge} from "@/components/ui/badge"
 import {Avatar, AvatarFallback, AvatarImage} from "@/components/ui/avatar"
 import {Sheet, SheetContent, SheetTitle} from "@/components/ui/sheet"
 import type {AdminUser} from "@/lib/services/admin"
-import {cn, formatDateTime} from "@/lib/utils"
+import {formatDateTime} from "@/lib/utils"
 
 interface UserDetailSheetProps {
   selectedUser: AdminUser | null
@@ -54,7 +54,7 @@ export function UserDetailSheet({
                           UID: {selectedUser.id}
                         </Badge>
                         {selectedUser.is_admin && (
-                          <Badge className="h-4.5 px-1.5 text-[9px] uppercase font-medium bg-primary text-primary-foreground">
+                          <Badge className="h-4.5 px-1.5 text-[9px] uppercase font-medium">
                             Admin
                           </Badge>
                         )}
@@ -157,12 +157,7 @@ export function UserDetailSheet({
                 <div className="p-4 border-t bg-background/80 backdrop-blur-md shrink-0">
                   <Button
                     variant={selectedUser.is_active ? "destructive" : "default"}
-                    className={cn(
-                      "w-full h-9 text-xs font-medium transition-all active:scale-[0.98]",
-                      selectedUser.is_active
-                        ? "bg-red-500 hover:bg-red-600 text-white"
-                        : "bg-primary text-primary-foreground hover:bg-primary/90"
-                    )}
+                    className="w-full h-9 text-xs font-medium transition-all active:scale-[0.98]"
                     onClick={() => onStatusToggle(selectedUser)}
                   >
                     {selectedUser.is_active ? (
