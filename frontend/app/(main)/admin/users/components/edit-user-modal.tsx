@@ -263,7 +263,6 @@ export function EditUserModal({
           <AlertDialogFooter>
             <AlertDialogCancel disabled={saving}>取消</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={(e) => {
                 e.preventDefault()
                 handleDelete()
