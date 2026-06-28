@@ -63,6 +63,7 @@ jobs:
             exit 1
           fi
 
+          echo "IMAGE=ghcr.io/${OWNER}/${IMAGE_NAME}" >> "$GITHUB_ENV"
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
           echo "BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> "$GITHUB_ENV"
 
@@ -145,6 +146,7 @@ jobs:
             exit 1
           fi
 
+          echo "IMAGE=ghcr.io/${OWNER}/${IMAGE_NAME}" >> "$GITHUB_ENV"
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
 
       - name: Download digests
