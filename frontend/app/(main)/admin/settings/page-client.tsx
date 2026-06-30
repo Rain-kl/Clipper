@@ -7,7 +7,7 @@ import dynamic from "next/dynamic"
 import {useEffect, useMemo} from "react"
 import {useQuery} from "@tanstack/react-query"
 import {Loader2, Settings} from "lucide-react"
-import {useRouter} from "next/navigation"
+import {useRouter, useSearchParams} from "next/navigation"
 import {motion} from "motion/react"
 
 import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs"
@@ -59,6 +59,17 @@ function systemConfigMap(configs: SystemConfig[]) {
 export function AdminSettingsPageClient() {
   const { user, loading } = useAuth()
   const router = useRouter()
+  const searchParams = useSearchParams()
+
+  const activeTab = useMemo(() => {
+    const rawTab = searchParams.get("tab")
+    const validTabs = ["security", "operation", "system", "other", "status", "info"]
+    return rawTab && validTabs.includes(rawTab) ? rawTab : "security"
+  }, [searchParams])
+
+  const handleTabChange = (value: string) => {
+    router.push(`/admin/settings?tab=${value}`)
+  }
 
   const systemConfigsQuery = useQuery({
     queryKey: ["admin", "system-configs"],
@@ -98,7 +109,7 @@ export function AdminSettingsPageClient() {
           <h1 className="text-2xl font-semibold tracking-tight">系统设置</h1>
         </div>
       </div>
-      <Tabs defaultValue="security" className="w-full">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
         <TabsList variant="line" className="w-fit inline-flex gap-8 mb-6">
           <TabsTrigger value="security" className="px-0 pb-2 text-xs font-semibold">
             安全设置
