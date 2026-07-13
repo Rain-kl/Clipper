@@ -5,12 +5,12 @@ import { InternalAxiosRequestConfig } from 'axios';
 /**
  * 服务基类
  * 提供通用的 HTTP 方法封装
- * 
+ *
  * @example
  * ```typescript
  * class UserService extends BaseService {
  *   protected static readonly basePath = '/api/v1/users';
- *   
+ *
  *   static async getAll() {
  *     return this.get<User[]>('/');
  *   }
@@ -30,7 +30,7 @@ export class BaseService {
    * @returns 完整路径
    */
   protected static getFullPath(path: string): string {
-    return `${ this.basePath }${ path }`;
+    return `${this.basePath}${path}`;
   }
 
   /**
@@ -150,18 +150,14 @@ export class BaseService {
    * @param url - 完整 URL
    * @param params - 查询参数
    * @returns 响应数据（不经过 response.data.data 解包）
-   * 
+   *
    * @remarks
    * 仅用于不遵循标准响应格式的特殊端点（如 /api.php）
    */
-  protected static async rawGet<T>(
-    url: string,
-    params?: unknown,
-  ): Promise<T> {
-    const response = await apiClient.get<T>(
-      url,
-      { params } as InternalAxiosRequestConfig,
-    );
+  protected static async rawGet<T>(url: string, params?: unknown): Promise<T> {
+    const response = await apiClient.get<T>(url, {
+      params,
+    } as InternalAxiosRequestConfig);
     return response.data;
   }
 
@@ -172,7 +168,7 @@ export class BaseService {
    * @param data - 请求数据
    * @param config - 额外的请求配置
    * @returns 响应数据（不经过 response.data.data 解包）
-   * 
+   *
    * @remarks
    * 仅用于不遵循标准响应格式的特殊端点（如 /api.php）
    */
@@ -185,4 +181,3 @@ export class BaseService {
     return response.data;
   }
 }
-

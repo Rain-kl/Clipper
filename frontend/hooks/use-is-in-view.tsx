@@ -9,7 +9,7 @@ interface UseIsInViewOptions {
 
 /**
  * 检测元素是否在视图中
- * 
+ *
  * @example
  * ```tsx
  * const { ref, isInView } = useIsInView({ inViewOnce: true })

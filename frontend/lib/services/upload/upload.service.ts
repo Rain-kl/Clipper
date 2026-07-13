@@ -1,7 +1,7 @@
-import type {InternalAxiosRequestConfig} from 'axios';
+import type { InternalAxiosRequestConfig } from 'axios';
 
-import {BaseService} from '../core/base.service';
-import type {ListUploadsResponse, Upload, UploadImageResponse} from './types';
+import { BaseService } from '../core/base.service';
+import type { ListUploadsResponse, Upload, UploadImageResponse } from './types';
 
 export class UploadService extends BaseService {
   protected static readonly basePath = '/api/v1/upload';
@@ -48,7 +48,10 @@ export class UploadService extends BaseService {
     type?: string,
     extension?: string,
   ): Promise<ListUploadsResponse> {
-    const params: Record<string, string | number> = { page, page_size: pageSize };
+    const params: Record<string, string | number> = {
+      page,
+      page_size: pageSize,
+    };
     if (keyword) params.keyword = keyword;
     if (type) params.type = type;
     if (extension) params.extension = extension;
@@ -59,7 +62,11 @@ export class UploadService extends BaseService {
     return this.delete<void>(`/${id}`);
   }
 
-  static async updateMyFile(id: string, fileName: string, accessMode?: number): Promise<Upload> {
+  static async updateMyFile(
+    id: string,
+    fileName: string,
+    accessMode?: number,
+  ): Promise<Upload> {
     return this.put<Upload>(`/${id}`, {
       file_name: fileName,
       access_mode: accessMode,

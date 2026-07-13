@@ -4,11 +4,13 @@
 // Package custom provides custom business handlers
 package custom
 
-import ("net/http"
+import (
+	"net/http"
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/Rain-kl/Wavelet/internal/common/response")
+	"github.com/Rain-kl/Wavelet/internal/common/response"
+)
 
 // Hello is a sample handler for custom business logic
 // @Summary Sample Hello API

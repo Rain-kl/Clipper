@@ -1,6 +1,11 @@
-import axios, {AxiosError, AxiosResponse, CancelTokenSource, InternalAxiosRequestConfig} from 'axios';
-import {toast} from 'sonner';
-import {apiConfig} from './config';
+import axios, {
+  AxiosError,
+  AxiosResponse,
+  CancelTokenSource,
+  InternalAxiosRequestConfig,
+} from 'axios';
+import { toast } from 'sonner';
+import { apiConfig } from './config';
 import {
   ApiErrorBase,
   ForbiddenError,
@@ -11,7 +16,7 @@ import {
   UnauthorizedError,
   ValidationError,
 } from './errors';
-import {ApiError, ApiResponse} from './types';
+import { ApiError, ApiResponse } from './types';
 
 /**
  * API 客户端实例
@@ -37,20 +42,22 @@ const cancelTokens = new Map<string, CancelTokenSource>();
  */
 const pendingRequests = new Map<string, Promise<AxiosResponse<ApiResponse>>>();
 
-
-
 /**
  * 生成请求的唯一键
  * 包含方法、URL 和请求数据的哈希，确保不同参数的请求不会被误取消
  */
-function getRequestKey(config: { method?: string; url?: string; data?: unknown }): string {
-  const baseKey = `${ config.method?.toUpperCase() }_${ config.url }`;
+function getRequestKey(config: {
+  method?: string;
+  url?: string;
+  data?: unknown;
+}): string {
+  const baseKey = `${config.method?.toUpperCase()}_${config.url}`;
 
   /* 序列化加入键中 */
   if (config.data) {
     try {
       const dataHash = JSON.stringify(config.data);
-      return `${ baseKey }_${ dataHash }`;
+      return `${baseKey}_${dataHash}`;
     } catch {
       // 失败使用基础键
       return baseKey;
@@ -92,7 +99,7 @@ function initiateLogin(currentPath: string): Promise<never> {
     window.location.href = loginUrl.toString();
   }
 
-  return new Promise<never>(() => { });
+  return new Promise<never>(() => {});
 }
 
 /**
@@ -121,7 +128,9 @@ apiClient.interceptors.response.use(
 
     /* 请求被取消时静默处理 */
     if (axios.isCancel(error)) {
-      const cancelError = new Error(error.message || '请求已被取消') as Error & { __CANCEL__?: boolean };
+      const cancelError = new Error(
+        error.message || '请求已被取消',
+      ) as Error & { __CANCEL__?: boolean };
       cancelError.__CANCEL__ = true;
       return Promise.reject(cancelError);
     }
@@ -134,7 +143,11 @@ apiClient.interceptors.response.use(
     /* 403 权限不足错误 */
     if (error.response?.status === 403) {
       return Promise.reject(
-        new ForbiddenError(error.response.data?.error_msg || '权限不足，请过盾后重试', error.response.data?.error_code, error.response.data?.details),
+        new ForbiddenError(
+          error.response.data?.error_msg || '权限不足，请过盾后重试',
+          error.response.data?.error_code,
+          error.response.data?.details,
+        ),
       );
     }
 
@@ -158,17 +171,16 @@ apiClient.interceptors.response.use(
     /* 429 速率限制错误 */
     if (error.response?.status === 429) {
       const retryAfter = error.response.headers?.['retry-after'];
-      const message = error.response.data?.error_msg ||
-        `请求过于频繁，请 ${ retryAfter || '稍后' } 秒后重试`;
+      const message =
+        error.response.data?.error_msg ||
+        `请求过于频繁，请 ${retryAfter || '稍后'} 秒后重试`;
 
       toast.error('请求频率限制', {
         description: message,
         id: 'rate-limit-error',
       });
 
-      return Promise.reject(
-        new ApiErrorBase(message, 'RATE_LIMITED', 429),
-      );
+      return Promise.reject(new ApiErrorBase(message, 'RATE_LIMITED', 429));
     }
 
     /* 5xx 服务器错误 */
@@ -212,9 +224,7 @@ apiClient.interceptors.response.use(
     }
 
     /* 兜底错误 */
-    return Promise.reject(
-      new ApiErrorBase(error.message || '网络请求失败'),
-    );
+    return Promise.reject(new ApiErrorBase(error.message || '网络请求失败'));
   },
 );
 
@@ -224,7 +234,7 @@ apiClient.interceptors.response.use(
  * @param url - 请求 URL
  */
 export function cancelRequest(method: string, url: string): void {
-  const requestKey = `${ method.toUpperCase() }_${ url }`;
+  const requestKey = `${method.toUpperCase()}_${url}`;
   const source = cancelTokens.get(requestKey);
   if (source) {
     source.cancel('请求已被手动取消');
@@ -249,18 +259,29 @@ export function cancelAllRequests(): void {
  */
 function createRequestMethod(
   method: 'get' | 'post' | 'put' | 'patch' | 'delete',
-  hasBody: boolean
+  hasBody: boolean,
 ) {
   if (hasBody) {
-    return <T = ApiResponse>(url: string, data?: unknown, config?: InternalAxiosRequestConfig) => {
-      const requestKey = getRequestKey({ method: method.toUpperCase(), url, data });
+    return <T = ApiResponse>(
+      url: string,
+      data?: unknown,
+      config?: InternalAxiosRequestConfig,
+    ) => {
+      const requestKey = getRequestKey({
+        method: method.toUpperCase(),
+        url,
+        data,
+      });
 
       if (pendingRequests.has(requestKey)) {
         return pendingRequests.get(requestKey) as Promise<AxiosResponse<T>>;
       }
 
       const promise = apiClient[method]<T>(url, data, config);
-      pendingRequests.set(requestKey, promise as Promise<AxiosResponse<ApiResponse>>);
+      pendingRequests.set(
+        requestKey,
+        promise as Promise<AxiosResponse<ApiResponse>>,
+      );
 
       promise.then(
         () => pendingRequests.delete(requestKey),
@@ -271,15 +292,25 @@ function createRequestMethod(
     };
   }
 
-  return <T = ApiResponse>(url: string, config?: InternalAxiosRequestConfig) => {
-    const requestKey = getRequestKey({ method: method.toUpperCase(), url, data: config?.params });
+  return <T = ApiResponse>(
+    url: string,
+    config?: InternalAxiosRequestConfig,
+  ) => {
+    const requestKey = getRequestKey({
+      method: method.toUpperCase(),
+      url,
+      data: config?.params,
+    });
 
     if (pendingRequests.has(requestKey)) {
       return pendingRequests.get(requestKey) as Promise<AxiosResponse<T>>;
     }
 
     const promise = apiClient[method]<T>(url, config);
-    pendingRequests.set(requestKey, promise as Promise<AxiosResponse<ApiResponse>>);
+    pendingRequests.set(
+      requestKey,
+      promise as Promise<AxiosResponse<ApiResponse>>,
+    );
 
     promise.then(
       () => pendingRequests.delete(requestKey),
@@ -295,11 +326,29 @@ function createRequestMethod(
  * 在原有 axios 实例基础上添加请求缓存功能
  */
 const wrappedApiClient = {
-  get: createRequestMethod('get', false) as <T = ApiResponse>(url: string, config?: InternalAxiosRequestConfig) => Promise<AxiosResponse<T>>,
-  post: createRequestMethod('post', true) as <T = ApiResponse>(url: string, data?: unknown, config?: InternalAxiosRequestConfig) => Promise<AxiosResponse<T>>,
-  put: createRequestMethod('put', true) as <T = ApiResponse>(url: string, data?: unknown, config?: InternalAxiosRequestConfig) => Promise<AxiosResponse<T>>,
-  patch: createRequestMethod('patch', true) as <T = ApiResponse>(url: string, data?: unknown, config?: InternalAxiosRequestConfig) => Promise<AxiosResponse<T>>,
-  delete: createRequestMethod('delete', false) as <T = ApiResponse>(url: string, config?: InternalAxiosRequestConfig) => Promise<AxiosResponse<T>>,
+  get: createRequestMethod('get', false) as <T = ApiResponse>(
+    url: string,
+    config?: InternalAxiosRequestConfig,
+  ) => Promise<AxiosResponse<T>>,
+  post: createRequestMethod('post', true) as <T = ApiResponse>(
+    url: string,
+    data?: unknown,
+    config?: InternalAxiosRequestConfig,
+  ) => Promise<AxiosResponse<T>>,
+  put: createRequestMethod('put', true) as <T = ApiResponse>(
+    url: string,
+    data?: unknown,
+    config?: InternalAxiosRequestConfig,
+  ) => Promise<AxiosResponse<T>>,
+  patch: createRequestMethod('patch', true) as <T = ApiResponse>(
+    url: string,
+    data?: unknown,
+    config?: InternalAxiosRequestConfig,
+  ) => Promise<AxiosResponse<T>>,
+  delete: createRequestMethod('delete', false) as <T = ApiResponse>(
+    url: string,
+    config?: InternalAxiosRequestConfig,
+  ) => Promise<AxiosResponse<T>>,
 };
 
 export default wrappedApiClient;

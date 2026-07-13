@@ -4,7 +4,8 @@
 
 package config
 
-import ("encoding/json"
+import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -13,7 +14,8 @@ import ("encoding/json"
 	"github.com/Rain-kl/Wavelet/internal/testhelper"
 	"github.com/gin-gonic/gin"
 
-	"github.com/Rain-kl/Wavelet/internal/common/response")
+	"github.com/Rain-kl/Wavelet/internal/common/response"
+)
 
 func TestGetPublicConfigUsesVisibility(t *testing.T) {
 	dbConn, _, cleanup := testhelper.SetupTestEnvironment(t)

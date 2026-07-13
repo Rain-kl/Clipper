@@ -19,7 +19,6 @@ func TestSystemConfigRAMCacheServesUntilInvalidated(t *testing.T) {
 	defer cleanup()
 	ctx := context.Background()
 
-
 	repository.ResetSystemConfigRAMCacheForTest()
 	if err := repository.InvalidateAllSystemConfigCaches(ctx); err != nil {
 		t.Fatalf("InvalidateAllSystemConfigCaches() error = %v", err)
@@ -71,7 +70,6 @@ func TestInvalidateSystemConfigCacheBroadcast(t *testing.T) {
 	dbConn, _, cleanup := testhelper.SetupTestEnvironment(t)
 	defer cleanup()
 	ctx := context.Background()
-
 
 	repository.ResetSystemConfigRAMCacheForTest()
 

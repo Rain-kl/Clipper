@@ -5,11 +5,13 @@
 // Package health 提供健康检查端点
 package health
 
-import ("net/http"
+import (
+	"net/http"
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/Rain-kl/Wavelet/internal/common/response")
+	"github.com/Rain-kl/Wavelet/internal/common/response"
+)
 
 // Health 健康检查
 // @Summary 健康检查

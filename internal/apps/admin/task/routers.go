@@ -4,7 +4,8 @@
 
 package task
 
-import ("fmt"
+import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -18,7 +19,8 @@ import ("fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/robfig/cron/v3"
 
-	"github.com/Rain-kl/Wavelet/internal/common/response")
+	"github.com/Rain-kl/Wavelet/internal/common/response"
+)
 
 // ListTaskTypes 获取支持的任务类型列表
 // @Summary 获取支持的任务类型

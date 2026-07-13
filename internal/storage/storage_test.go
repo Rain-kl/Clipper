@@ -4,16 +4,16 @@
 package storage
 
 import (
-    "context"
-    "encoding/json"
-    "io"
-    "sync"
-    "testing"
-    "time"
+	"context"
+	"encoding/json"
+	"io"
+	"sync"
+	"testing"
+	"time"
 
-    "github.com/Rain-kl/Wavelet/internal/db"
-    "github.com/alicebob/miniredis/v2"
-    "github.com/redis/go-redis/v9"
+	"github.com/Rain-kl/Wavelet/internal/db"
+	"github.com/alicebob/miniredis/v2"
+	"github.com/redis/go-redis/v9"
 )
 
 func TestStorageCache(t *testing.T) {

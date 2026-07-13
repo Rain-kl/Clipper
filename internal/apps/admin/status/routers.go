@@ -5,7 +5,8 @@
 // Package status 提供系统状态查询接口
 package status
 
-import ("context"
+import (
+	"context"
 	"fmt"
 	"log"
 	"math"
@@ -19,7 +20,8 @@ import ("context"
 	"github.com/Rain-kl/Wavelet/internal/db"
 	"github.com/gin-gonic/gin"
 
-	"github.com/Rain-kl/Wavelet/internal/common/response")
+	"github.com/Rain-kl/Wavelet/internal/common/response"
+)
 
 // startTime 记录服务启动时间
 var startTime = time.Now()

@@ -60,16 +60,16 @@ func TestMigrationHandlerExecute(t *testing.T) {
 	}
 
 	upload := model.Upload{
-		ID:            99101,
-		UserID:        1,
-		FileName:      "test.txt",
-		FilePath:      "uploads/test.txt",
-		FileSize:      int64(len(content)),
-		MimeType:      "text/plain",
-		Extension:     "txt",
-		Hash:          "hash",
-		Type:          "attachment",
-		Status:        model.UploadStatusUsed,
+		ID:        99101,
+		UserID:    1,
+		FileName:  "test.txt",
+		FilePath:  "uploads/test.txt",
+		FileSize:  int64(len(content)),
+		MimeType:  "text/plain",
+		Extension: "txt",
+		Hash:      "hash",
+		Type:      "attachment",
+		Status:    model.UploadStatusUsed,
 	}
 	if err := dbConn.Create(&upload).Error; err != nil {
 		t.Fatalf("Create(upload) returned error: %v", err)
@@ -157,16 +157,16 @@ func TestMigrationHandlerExecuteWithHashValidation(t *testing.T) {
 
 	// Case 1: Incorrect Hash (should fail validation)
 	uploadIncorrect := model.Upload{
-		ID:            99102,
-		UserID:        1,
-		FileName:      "test-hash.txt",
-		FilePath:      "uploads/test-hash.txt",
-		FileSize:      int64(len(content)),
-		MimeType:      "text/plain",
-		Extension:     "txt",
-		Hash:          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", // Invalid hash
-		Type:          "attachment",
-		Status:        model.UploadStatusUsed,
+		ID:        99102,
+		UserID:    1,
+		FileName:  "test-hash.txt",
+		FilePath:  "uploads/test-hash.txt",
+		FileSize:  int64(len(content)),
+		MimeType:  "text/plain",
+		Extension: "txt",
+		Hash:      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", // Invalid hash
+		Type:      "attachment",
+		Status:    model.UploadStatusUsed,
 	}
 	if err := dbConn.Create(&uploadIncorrect).Error; err != nil {
 		t.Fatalf("Create(uploadIncorrect) returned error: %v", err)

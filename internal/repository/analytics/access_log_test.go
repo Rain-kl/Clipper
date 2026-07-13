@@ -141,10 +141,10 @@ func TestBatchInsert_UsesModelBatchSQL(t *testing.T) {
 }
 
 type mockConn struct {
-	batch          driver.Batch
-	batchQuery     string
-	prepareCalled  bool
-	preparedQuery  string
+	batch         driver.Batch
+	batchQuery    string
+	prepareCalled bool
+	preparedQuery string
 }
 
 func (m *mockConn) Contributors() []string { return nil }

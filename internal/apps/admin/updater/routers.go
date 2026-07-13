@@ -3,14 +3,16 @@
 
 package updater
 
-import ("context"
+import (
+	"context"
 	"net/http"
 	"time"
 
 	"github.com/Rain-kl/Wavelet/pkg/logger"
 	"github.com/gin-gonic/gin"
 
-	"github.com/Rain-kl/Wavelet/internal/common/response")
+	"github.com/Rain-kl/Wavelet/internal/common/response"
+)
 
 // GetUpdateStatus 获取应用更新状态
 // @Summary 获取应用更新状态

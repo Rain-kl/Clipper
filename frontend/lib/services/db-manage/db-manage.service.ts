@@ -1,8 +1,12 @@
-import type {InternalAxiosRequestConfig} from 'axios';
+import type { InternalAxiosRequestConfig } from 'axios';
 
 import apiClient from '@/lib/services/core/api-client';
-import {BaseService} from '@/lib/services/core';
-import type {DBOverview, ExecuteSQLResponse, TableDataResponse} from './types';
+import { BaseService } from '@/lib/services/core';
+import type {
+  DBOverview,
+  ExecuteSQLResponse,
+  TableDataResponse,
+} from './types';
 
 /**
  * 数据库管理服务类
@@ -32,7 +36,10 @@ export class DbManageService extends BaseService {
     page: number;
     pageSize: number;
   }): Promise<TableDataResponse> {
-    return this.get<TableDataResponse>('/table-data', params as unknown as Record<string, unknown>);
+    return this.get<TableDataResponse>(
+      '/table-data',
+      params as unknown as Record<string, unknown>,
+    );
   }
 
   /**
@@ -51,7 +58,8 @@ export class DbManageService extends BaseService {
       responseType: 'blob',
     } as InternalAxiosRequestConfig);
 
-    const disposition = response.headers['content-disposition'] as string | undefined;
+    const disposition = response.headers['content-disposition'] as
+      string | undefined;
     let filename = 'wavelet_export';
     if (disposition) {
       const match = disposition.match(/filename="?([^";]+)"?/);

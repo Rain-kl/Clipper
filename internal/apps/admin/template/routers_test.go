@@ -3,7 +3,8 @@
 
 package template
 
-import ("bytes"
+import (
+	"bytes"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -14,7 +15,8 @@ import ("bytes"
 	"github.com/Rain-kl/Wavelet/internal/testhelper"
 	"github.com/gin-gonic/gin"
 
-	"github.com/Rain-kl/Wavelet/internal/common/response")
+	"github.com/Rain-kl/Wavelet/internal/common/response"
+)
 
 func setupTestRouter(authUser *model.User) *gin.Engine {
 	r := testhelper.NewTestGinEngine()

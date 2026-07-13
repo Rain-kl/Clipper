@@ -35,8 +35,8 @@ type Loader interface {
 }
 
 type cacheEntry struct {
-	item      CacheItem
-	expireAt  time.Time
+	item     CacheItem
+	expireAt time.Time
 }
 
 func init() {

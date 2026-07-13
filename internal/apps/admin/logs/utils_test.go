@@ -49,10 +49,10 @@ func TestWebSocketCheckOrigin(t *testing.T) {
 	}
 
 	tests := []struct {
-		name    string
-		origin  string
-		host    string
-		wantOK  bool
+		name   string
+		origin string
+		host   string
+		wantOK bool
 	}{
 		{
 			name:   "empty origin (non-browser clients)",

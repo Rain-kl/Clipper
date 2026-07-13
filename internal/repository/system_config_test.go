@@ -56,7 +56,6 @@ func setupSystemConfigTest(t *testing.T) (*gorm.DB, func()) {
 	db.SetDB(sqliteDB)
 	db.Redis = redisClient
 
-
 	cleanup := func() {
 		StopSystemConfigCacheListener()
 		ResetSystemConfigRAMCacheForTest()

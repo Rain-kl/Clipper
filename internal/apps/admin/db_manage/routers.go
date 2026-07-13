@@ -6,7 +6,8 @@
 // overview information, and executing custom SQL queries.
 package db_manage
 
-import ("database/sql"
+import (
+	"database/sql"
 	"fmt"
 	"math"
 	"net/http"
@@ -19,7 +20,8 @@ import ("database/sql"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 
-	"github.com/Rain-kl/Wavelet/internal/common/response")
+	"github.com/Rain-kl/Wavelet/internal/common/response"
+)
 
 const (
 	binaryKB        = 0

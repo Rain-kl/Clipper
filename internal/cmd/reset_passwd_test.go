@@ -51,7 +51,7 @@ func TestResetPasswdCmd_WithUserAndPassword(t *testing.T) {
 
 	// Execute command with args
 	rootCmd.SetArgs([]string{"reset-passwd", "--user", "testuser1", "--password", "newpassword123"})
-	
+
 	// Capture output
 	oldStdout := os.Stdout
 	r, w, _ := os.Pipe()
@@ -225,4 +225,3 @@ func TestResetPasswdCmd_InteractiveMode(t *testing.T) {
 		t.Errorf("expected password to change, but it matches the old one")
 	}
 }
-

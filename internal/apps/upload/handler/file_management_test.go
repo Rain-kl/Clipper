@@ -22,15 +22,15 @@ func TestGetDistinctUploadTypes(t *testing.T) {
 	dbConn.Create(&user)
 
 	customUpload := model.Upload{
-		ID:            9001,
-		UserID:        user.ID,
-		FileName:      "custom.txt",
-		FilePath:      "uploads/custom.txt",
-		FileSize:      10,
-		MimeType:      "text/plain",
-		Extension:     "txt",
-		Type:          "custom_type_xyz",
-		Status:        model.UploadStatusUsed,
+		ID:        9001,
+		UserID:    user.ID,
+		FileName:  "custom.txt",
+		FilePath:  "uploads/custom.txt",
+		FileSize:  10,
+		MimeType:  "text/plain",
+		Extension: "txt",
+		Type:      "custom_type_xyz",
+		Status:    model.UploadStatusUsed,
 	}
 	dbConn.Create(&customUpload)
 

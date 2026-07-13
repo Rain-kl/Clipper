@@ -4,7 +4,8 @@
 
 package task
 
-import ("bytes"
+import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -25,7 +26,8 @@ import ("bytes"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/Rain-kl/Wavelet/internal/common/response")
+	"github.com/Rain-kl/Wavelet/internal/common/response"
+)
 
 func setupTaskTestEnvironment(t *testing.T) func() {
 	_, mr, cleanup := testhelper.SetupTestEnvironment(t)

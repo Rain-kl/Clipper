@@ -1,36 +1,36 @@
-"use client"
+'use client';
 
-import {useQuery} from '@tanstack/react-query'
-import {useEffect} from 'react'
-import {ConfigService} from '@/lib/services/config'
-import {usePathname} from 'next/navigation'
+import { useQuery } from '@tanstack/react-query';
+import { useEffect } from 'react';
+import { ConfigService } from '@/lib/services/config';
+import { usePathname } from 'next/navigation';
 
 export function SiteTitleUpdater() {
-  const pathname = usePathname()
+  const pathname = usePathname();
   const publicConfigQuery = useQuery({
-    queryKey: ["public-config"],
+    queryKey: ['public-config'],
     queryFn: () => ConfigService.getPublicConfig(),
-  })
+  });
 
   useEffect(() => {
-    const siteName = publicConfigQuery.data?.site_name || "Wavelet Platform"
+    const siteName = publicConfigQuery.data?.site_name || 'Wavelet Platform';
 
     // Determine the page suffix based on path
-    let suffix = ""
-    if (pathname === "/login") {
-      suffix = " - 登录"
-    } else if (pathname === "/register") {
-      suffix = " - 注册"
-    } else if (pathname.startsWith("/admin")) {
-      suffix = " - 后台管理"
-    } else if (pathname === "/home") {
-      suffix = " - 控制台"
-    } else if (pathname === "/") {
-      suffix = ""
+    let suffix = '';
+    if (pathname === '/login') {
+      suffix = ' - 登录';
+    } else if (pathname === '/register') {
+      suffix = ' - 注册';
+    } else if (pathname.startsWith('/admin')) {
+      suffix = ' - 后台管理';
+    } else if (pathname === '/home') {
+      suffix = ' - 控制台';
+    } else if (pathname === '/') {
+      suffix = '';
     }
 
-    document.title = `${siteName}${suffix}`
-  }, [publicConfigQuery.data?.site_name, pathname])
+    document.title = `${siteName}${suffix}`;
+  }, [publicConfigQuery.data?.site_name, pathname]);
 
-  return null
+  return null;
 }

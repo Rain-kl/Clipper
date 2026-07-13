@@ -1,7 +1,7 @@
-import type {InternalAxiosRequestConfig} from 'axios';
+import type { InternalAxiosRequestConfig } from 'axios';
 
-import {BaseService} from '../core/base.service';
-import type {FileStatsResponse, ListUploadsResponse} from './types';
+import { BaseService } from '../core/base.service';
+import type { FileStatsResponse, ListUploadsResponse } from './types';
 
 export class AdminUploadService extends BaseService {
   protected static readonly basePath = '/api/v1/admin/uploads';
@@ -13,7 +13,10 @@ export class AdminUploadService extends BaseService {
     type?: string,
     extension?: string,
   ): Promise<ListUploadsResponse> {
-    const params: Record<string, string | number> = { page, page_size: pageSize };
+    const params: Record<string, string | number> = {
+      page,
+      page_size: pageSize,
+    };
     if (keyword) params.keyword = keyword;
     if (type) params.type = type;
     if (extension) params.extension = extension;

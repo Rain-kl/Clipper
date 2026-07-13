@@ -21,10 +21,10 @@ import (
 const (
 	configTypeSystem                = "system"
 	errDatabaseNotInitialized       = "database not initialized"
-	errConfigIntParseFailed           = "配置 %s 的值 '%s' 无法转换为整数: %w"
-	errConfigDecimalParseFailed       = "配置 %s 的值 '%s' 无法转换为decimal: %w"
-	errConfigBoolParseFailed          = "配置 %s 的值 '%s' 无法转换为布尔值: %w"
-	errParseMenuDisplayConfigFailed   = "解析目录显示配置失败: %w"
+	errConfigIntParseFailed         = "配置 %s 的值 '%s' 无法转换为整数: %w"
+	errConfigDecimalParseFailed     = "配置 %s 的值 '%s' 无法转换为decimal: %w"
+	errConfigBoolParseFailed        = "配置 %s 的值 '%s' 无法转换为布尔值: %w"
+	errParseMenuDisplayConfigFailed = "解析目录显示配置失败: %w"
 )
 
 // PreheatSystemConfigs loads all system configs from database.
@@ -197,7 +197,6 @@ func ListVisibleSystemConfigs(ctx context.Context) ([]model.SystemConfig, error)
 
 	return configs, nil
 }
-
 
 // GetIntByKey queries config and converts to int.
 func GetIntByKey(ctx context.Context, key string) (int, error) {

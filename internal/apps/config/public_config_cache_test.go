@@ -18,7 +18,6 @@ func TestListVisibleSystemConfigsUsesStoreCache(t *testing.T) {
 	defer cleanup()
 	ctx := context.Background()
 
-
 	repository.ResetSystemConfigRAMCacheForTest()
 	if err := repository.InvalidateVisibleSystemConfigsCache(ctx); err != nil {
 		t.Fatalf("InvalidateVisibleSystemConfigsCache() error = %v", err)
