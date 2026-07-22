@@ -1,4 +1,4 @@
-.PHONY: swagger license license-check build-embedded build-test cross-build code-check prettier
+.PHONY: swagger license license-check build-embedded build-test cross-build code-check format
 
 VERSION ?= dev
 BUILD_DATE ?= $(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
@@ -13,7 +13,7 @@ license:
 license-check:
 	scripts/update_go_license.sh --check
 
-prettier:
+format:
 	@echo "==> Formatting backend Go source..."
 	gofmt -w $$(find . -type f -name '*.go' -not -path './.git/*' -not -path './frontend/*')
 	@echo "==> Formatting frontend source..."

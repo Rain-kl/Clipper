@@ -10,7 +10,8 @@
     "build:embed": "NEXT_STANDALONE_EXPORT=true next build",
     "start": "next start -p 3010",
     "lint": "eslint",
-    "format": "prettier --write ."
+    "format": "biome format --write .",
+    "format:check": "biome format ."
   },
   "dependencies": {
     "@codemirror/lang-sql": "^6.10.0",
@@ -59,7 +60,6 @@
     "next": "16.2.7",
     "next-themes": "^0.4.6",
     "pinyin-match": "^1.2.10",
-    "prettier": "^3.9.5",
     "radix-ui": "^1.4.3",
     "react": "19.2.3",
     "react-day-picker": "^9.11.1",
@@ -79,6 +79,7 @@
     "zod": "^4.1.12"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.5.5",
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
     "@tailwindcss/typography": "^0.5.19",
