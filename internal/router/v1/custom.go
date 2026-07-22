@@ -9,7 +9,9 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// RegisterCustomRoutes registers custom business routes to keep routing clean and stable.
+// RegisterCustomRoutes is a scaffold SAMPLE only (demo: GET /api/v1/custom/hello).
+// Real product APIs belong in apps/<domain>/ with semantic paths and a dedicated
+// Register*Routes file (e.g. channel.go), not piled into this package. See skill new-api.
 func RegisterCustomRoutes(apiV1Router *gin.RouterGroup) {
 	customRouter := apiV1Router.Group("/custom")
 	{

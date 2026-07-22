@@ -8,7 +8,9 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// RegisterCustomRootRoutes registers custom business routes that belong to the root path.
+// RegisterCustomRootRoutes is a scaffold SAMPLE placeholder for root-path routes
+// (webhooks, short links). Prefer semantic paths and/or a dedicated root file;
+// do not treat this as the only place for all product APIs. See skill new-api.
 func RegisterCustomRootRoutes(_ *gin.Engine) {
-	// Add custom root routes here
+	// Sample only — add root-path demos here if needed
 }

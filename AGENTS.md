@@ -23,7 +23,7 @@
 
 | Skill | 何时使用 |
 | :--- | :--- |
-| `new-api` | 添加或修改自定义业务 API、Handler、服务层逻辑、自定义路由注册 |
+| `new-api` | 添加或修改业务 API、Handler、服务层逻辑、路由注册（含 apps 包划分；勿把业务堆进 custom 示例） |
 | `new-async-task` | 添加或修改 Asynq 任务、定时任务、TaskHandler、任务元数据 |
 | `new-setting` | 添加或修改系统/业务/公开设置、`/admin/system` 参数或 `/admin/settings` 图形化设置 |
 | `database-migration` | 数据库表结构变更、goose SQL 迁移（PG/SQLite/ClickHouse）、seed 数据 |
@@ -40,7 +40,7 @@
 - 切勿删除 `frontend/node_modules`
 - 保持 `internal/util/` 绝对纯净且不引入任何框架。禁止从 `internal/util/` 及其子包中导入 Gin、GORM、sessions 等 HTTP/Web/数据库相关框架包（例如，Web 会话选项已收敛至 `internal/apps/oauth/session.go`）。
 - 编写测试用例时，禁止使用硬编码的相对路径（如 `"uploads/test_cache"`）在源码目录下创建临时测试目录，必须统一使用 Go 内置的 `t.TempDir()` 以避免污染源码目录。
-- 所有 HTTP 路由仅在 `internal/router/router.go` 中注册。
+- 所有 HTTP 路由经 `internal/router/` 注册（`router.go` 高层委派；业务挂载见 `new-api` skill）。禁止在 `router.go` 内直接挂业务 Handler。
 - 当 API Handler 发生变化时，更新 Swagger 文档（运行 `make swagger`）。
 - 在完成代码开发后必须运行 `make code-check`, 并修复报错。
 - 在完成代码开发后/git 提交前必须运行 `make format`进行格式化。
@@ -83,7 +83,9 @@
 - `internal/bootstrap/`：应用装配根（composition root）。集中注册任务 Handler、推送域事件订阅、任务完成监听器，并执行 `SyncEvents`、ClickHouse 访问日志写入等进程级初始化；所有注册函数使用 `sync.Once` 保证幂等。
 - `internal/config/`：Viper 加载和配置结构体。运行时代码应使用 `config.Config.<Section>.<Field>`。
 - `internal/router/`：唯一的 HTTP 路由注册点。
-- `internal/apps/`：按功能（Feature-based）组织的 HTTP Handler、中间件、内部服务与模块逻辑。移除全局 service 层，模块内部业务逻辑（如验证码业务逻辑管理器 `internal/apps/cap/manager.go`）均收敛于各自模块中；管理端模块位于 `internal/apps/admin/`。
+- `internal/apps/`：按**业务能力/限界上下文**（Feature-based）组织的 HTTP Handler、中间件与模块逻辑；包与包**平级**（如 `oauth`、`user`、`upload` 与产品域 `channel` 等同级）。管理端位于 `internal/apps/admin/`。
+  - **脚手架 vs 产品化**：本仓库是通用脚手架。基于它做具体产品时，仓库即该产品——业务模块直接建在 `apps/<domain>/`，**禁止**再建 `apps/<产品名>/` 伞包再嵌套子模块（错误：`apps/message/channel`；正确：`apps/channel`）。
+  - **`apps/custom` 与 `router/*/custom.go` 仅为示例占位**（如 `GET /api/v1/custom/hello`），不是真实业务的默认落点；产品 API 使用语义路径与独立 `apps/<domain>` + `router/v1/<domain>.go`（详见 `new-api` skill）。
 - `internal/apps/upload/`：上传记录、文件访问控制、本地/S3 文件响应、下载及图片 WebP 压缩。业务应复用 `upload.Ingest` / `upload.Remove` 与 `GET /f/:id` 文件服务，不直接操作底层 storage 或旁路写 `w_uploads`。
 - `internal/model/`：GORM 实体和模型级业务方法。
 - `internal/db/`：PostgreSQL、Redis、ClickHouse、GORM 日志、ID 生成和 goose SQL 迁移的布线。
@@ -253,7 +255,9 @@ func doSomething(c *gin.Context) { response.AbortBadRequest(c, "...") }
 路由与模块：
 
 - 仅在 `internal/router/router.go` 中作为统一高层入口进行路由分发委派，不允许在 `router.go` 中直接挂载业务 Handler。
-- 关于所有的路由归属划分、接口开发隔离防线以及详细的注册和开发步骤，请直接阅读并严格遵循 [new-api](file:///Users/ryan/DEV/Go/Wavelet/.claude/skills/new-api/SKILL.md) 技能。
+- 产品业务：新建 `internal/apps/<domain>/`（与平台包平级）+ `internal/router/v1/<domain>.go`，并在 `v1.go` 调用注册函数；路径用语义化前缀（如 `/api/v1/channels`）。
+- **禁止**把真实业务堆进 `internal/apps/custom` 或 `internal/router/v1/custom.go`（二者是脚手架示例）；**禁止** `apps/<产品伞包>/<子域>` 两层品牌结构。
+- 关于路由归属、包划分、Handler/logics 分层与质量门禁，请严格遵循 [new-api](file:///Users/ryan/DEV/Go/Wavelet/.claude/skills/new-api/SKILL.md) 技能。
 
 应用装配与跨模块集成：
 

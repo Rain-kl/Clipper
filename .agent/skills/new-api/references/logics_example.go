@@ -12,21 +12,27 @@ import (
 	"go.uber.org/zap"
 )
 
-// ProcessLocalBusiness 示例的模块内部闭环业务逻辑
-// 1. 存放在 apps/custom/logics.go 下，遵循纯 Go 规范，不强依赖 gin.Context，以便逻辑清晰和便于单元测试。
-// 2. 用于当前应用模块内的简单业务或通用过程。
-func ProcessLocalBusiness(ctx context.Context, userID int64, param string) (string, error) {
-	if param == "" {
-		return "", errors.New("param cannot be empty")
+// channelCreated 示例 logics 返回值（真实代码可用 model 或专用 DTO）
+type channelCreated struct {
+	ID   int64
+	Name string
+}
+
+// CreateChannelLogic 示例：模块内闭环业务（放在 apps/channel/logics.go）
+// 接收 context.Context，不依赖 gin.Context，便于单测与 Worker 复用。
+func CreateChannelLogic(ctx context.Context, userID int64, name string) (*channelCreated, error) {
+	if name == "" {
+		return nil, errors.New("name cannot be empty")
 	}
 
-	logger.Info(ctx, "processing local business inside apps/custom/logics",
+	logger.Info(ctx, "creating channel",
 		zap.Int64("user_id", userID),
-		zap.String("param", param),
+		zap.String("name", name),
 	)
 
-	// 执行轻量级、无需跨模块/多入口复用的本地计算或模型操作
-	result := fmt.Sprintf("Processed local logic for user %d: %s", userID, param)
-
-	return result, nil
+	// 轻量级本地逻辑；复杂持久化可进 model/repository
+	return &channelCreated{
+		ID:   1,
+		Name: fmt.Sprintf("%s (by %d)", name, userID),
+	}, nil
 }

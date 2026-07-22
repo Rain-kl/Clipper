@@ -16,6 +16,7 @@ func RegisterV1Routes(apiV1Router *gin.RouterGroup, apiGroup *gin.RouterGroup) {
 	// 2. Admin routes
 	RegisterAdminRoutes(apiV1Router)
 
-	// 3. Register custom business routes
+	// 3. Product domain routes: RegisterXxxRoutes(apiV1Router) — see skill new-api
+	// 4. Scaffold sample only (optional demo under /api/v1/custom)
 	RegisterCustomRoutes(apiV1Router)
 }
