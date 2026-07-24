@@ -114,7 +114,7 @@ export function RegisterForm() {
       toast.error(t('closed'));
       router.replace('/login');
     }
-  }, [publicConfigQuery.isSuccess, registrationEnabled, router]);
+  }, [publicConfigQuery.isSuccess, registrationEnabled, router, t]);
 
   const registerMutation = useMutation({
     mutationFn: (req: RegisterRequest) => {

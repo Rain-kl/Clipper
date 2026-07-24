@@ -16,6 +16,7 @@ import type {
 } from '@/lib/services/admin';
 import services from '@/lib/services';
 import { handleContextError } from '@/lib/utils/error-handling';
+import { useTranslations } from 'next-intl';
 
 /** Admin 上下文状态接口 */
 export interface AdminContextState {
@@ -45,6 +46,7 @@ const AdminContext = createContext<AdminContextState | null>(null);
  */
 export function AdminProvider({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient();
+  const t = useTranslations('contexts.admin');
   const [systemConfigs, setSystemConfigs] = useState<SystemConfig[]>([]);
   const [systemConfigsLoading, setSystemConfigsLoading] = useState(false);
   const [systemConfigsError, setSystemConfigsError] = useState<Error | null>(
@@ -78,14 +80,14 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
           return;
         }
 
-        const errorObject = handleContextError(error, '加载系统配置失败', {
+        const errorObject = handleContextError(error, t('loadConfigFailed'), {
           logError: true,
         });
         setSystemConfigsError(errorObject);
         setSystemConfigsLoading(false);
       }
     },
-    [],
+    [t],
   );
 
   /** 更新系统配置 */
@@ -96,11 +98,11 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
         await queryClient.invalidateQueries({ queryKey: ['public-config'] });
         await refetchSystemConfigs(lastConfigTypeRef.current);
       } catch (error) {
-        handleContextError(error, '更新系统配置失败');
+        handleContextError(error, t('updateConfigFailed'));
         throw error;
       }
     },
-    [queryClient, refetchSystemConfigs],
+    [queryClient, refetchSystemConfigs, t],
   );
 
   const value: AdminContextState = {

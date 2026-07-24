@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { motion } from 'motion/react';
 import { ArrowLeft, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useTranslations } from 'next-intl';
 
 /**
  * 404 Not Found Page
@@ -12,6 +13,7 @@ import { Button } from '@/components/ui/button';
  */
 export default function NotFound() {
   const router = useRouter();
+  const t = useTranslations('notFound');
 
   return (
     <div className='relative min-h-screen w-full flex flex-col items-center justify-center bg-background overflow-hidden selection:bg-primary/20'>
@@ -43,9 +45,7 @@ export default function NotFound() {
           className='space-y-8'
         >
           <p className='text-muted-foreground max-w-[400px] mx-auto text-sm leading-relaxed'>
-            抱歉，您访问的页面似已迷失在数字星云中。
-            <br />
-            请检查路径或返回安全地带。
+            {t('description')}
           </p>
 
           <div className='flex justify-center gap-4'>
@@ -56,7 +56,7 @@ export default function NotFound() {
               className='rounded-full w-24 text-xs border-foreground/10 hover:bg-foreground/10 transition-all duration-300'
             >
               <ArrowLeft className='size-3 opacity-70' />
-              上一页
+              {t('previousPage')}
             </Button>
 
             <Link href='/'>
@@ -66,7 +66,7 @@ export default function NotFound() {
                 className='rounded-full w-24 text-xs hover:bg-primary/80 transition-all duration-300'
               >
                 <Home className='size-3' />
-                首页
+                {t('home')}
               </Button>
             </Link>
           </div>

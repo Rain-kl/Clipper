@@ -57,6 +57,8 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 
+import { useTranslations } from 'next-intl';
+
 import { ErrorInline } from '@/components/layout/error';
 import { LoadingStateWithBorder } from '@/components/layout/loading';
 import { EmptyStateWithBorder } from '@/components/layout/empty';
@@ -70,6 +72,7 @@ import type {
 import { PushService } from '@/lib/services/push';
 
 export function EventsTab() {
+  const t = useTranslations('admin.push.events');
   const queryClient = useQueryClient();
 
   // --- 获取所有自定义消息通道 ---
@@ -107,12 +110,12 @@ export function EventsTab() {
     mutationFn: ({ id, data }: { id: number; data: UpdatePushEventRequest }) =>
       PushService.updateEvent(id, data),
     onSuccess: () => {
-      toast.success('事件更新成功');
+      toast.success(t('eventUpdateSuccess'));
       queryClient.invalidateQueries({ queryKey: ['admin', 'push-events'] });
       setEditEventOpen(false);
     },
     onError: (err: unknown) => {
-      toast.error('事件更新失败: ' + (err as Error).message);
+      toast.error(t('eventUpdateFailed') + ': ' + (err as Error).message);
     },
   });
 
@@ -122,14 +125,14 @@ export function EventsTab() {
       queryClient.invalidateQueries({ queryKey: ['admin', 'push-events'] });
     },
     onError: (err: unknown) => {
-      toast.error('操作失败: ' + (err as Error).message);
+      toast.error(t('operationFailed') + ': ' + (err as Error).message);
     },
   });
 
   const createEventMutation = useMutation({
     mutationFn: (data: CreatePushEventRequest) => PushService.createEvent(data),
     onSuccess: () => {
-      toast.success('事件创建成功');
+      toast.success(t('eventCreateSuccess'));
       queryClient.invalidateQueries({ queryKey: ['admin', 'push-events'] });
       setCreateEventOpen(false);
       setNewEventKey('');
@@ -139,18 +142,18 @@ export function EventsTab() {
       setNewEventEnabled(true);
     },
     onError: (err: unknown) => {
-      toast.error('事件创建失败: ' + (err as Error).message);
+      toast.error(t('eventCreateFailed') + ': ' + (err as Error).message);
     },
   });
 
   const deleteEventMutation = useMutation({
     mutationFn: (id: number) => PushService.deleteEvent(id),
     onSuccess: () => {
-      toast.success('配置删除成功');
+      toast.success(t('configDeleteSuccess'));
       queryClient.invalidateQueries({ queryKey: ['admin', 'push-events'] });
     },
     onError: (err: unknown) => {
-      toast.error('配置删除失败: ' + (err as Error).message);
+      toast.error(t('configDeleteFailed') + ': ' + (err as Error).message);
     },
   });
 
@@ -198,7 +201,7 @@ export function EventsTab() {
     try {
       JSON.parse(eventTemplate);
     } catch {
-      toast.error('消息模板不是合法的 JSON 格式');
+      toast.error(t('templateInvalidJson'));
       return;
     }
 
@@ -258,11 +261,11 @@ export function EventsTab() {
 
   const handleCreateEvent = () => {
     if (newEventType === 'builtin' && !newEventKey) {
-      toast.error('请选择系统事件');
+      toast.error(t('selectSystemEvent'));
       return;
     }
     if (newEventType === 'task' && !newEventTaskType) {
-      toast.error('请选择异步任务');
+      toast.error(t('selectAsyncTask'));
       return;
     }
 
@@ -270,7 +273,7 @@ export function EventsTab() {
       try {
         JSON.parse(newEventTemplate);
       } catch {
-        toast.error('内容渲染模板不是合法的 JSON 格式');
+        toast.error(t('templateInvalidJson'));
         return;
       }
     }
@@ -295,11 +298,14 @@ export function EventsTab() {
       <div className='flex justify-end'>
         <Button size='sm' onClick={handleCreateEventClick} className='text-xs'>
           <Plus className='size-3.5 mr-1' />
-          新增通知事件
+          {t('addEvent')}
         </Button>
       </div>
       {eventsQuery.isLoading ? (
-        <LoadingStateWithBorder icon={Layers} description='加载通知事件中...' />
+        <LoadingStateWithBorder
+          icon={Layers}
+          description={t('loadingEvents')}
+        />
       ) : eventsQuery.isError ? (
         <div className='p-8 border border-dashed rounded-xl bg-card'>
           <ErrorInline
@@ -309,10 +315,7 @@ export function EventsTab() {
           />
         </div>
       ) : (eventsQuery.data ?? []).length === 0 ? (
-        <EmptyStateWithBorder
-          icon={Layers}
-          description='暂无通知配置事件，请点击右上角新增'
-        />
+        <EmptyStateWithBorder icon={Layers} description={t('noEvents')} />
       ) : (
         <div className='border border-dashed shadow-none rounded-lg overflow-hidden'>
           <Table className='w-full caption-bottom text-sm min-w-full'>
@@ -322,19 +325,19 @@ export function EventsTab() {
                   ID
                 </TableHead>
                 <TableHead className='w-[180px] whitespace-nowrap py-2 h-8'>
-                  通知事件
+                  {t('colEvent')}
                 </TableHead>
                 <TableHead className='w-[200px] whitespace-nowrap py-2 h-8'>
-                  关联渠道
+                  {t('colChannels')}
                 </TableHead>
                 <TableHead className='whitespace-nowrap py-2 h-8'>
-                  推送目标
+                  {t('colTargets')}
                 </TableHead>
                 <TableHead className='w-[80px] text-center whitespace-nowrap py-2 h-8'>
-                  状态
+                  {t('colStatus')}
                 </TableHead>
                 <TableHead className='sticky right-0 text-center bg-background z-10 w-[110px] py-2 h-8'>
-                  操作
+                  {t('colActions')}
                 </TableHead>
               </TableRow>
             </TableHeader>
@@ -362,7 +365,7 @@ export function EventsTab() {
                             variant='outline'
                             className='text-[8px] h-3.5 px-1 bg-blue-50/50 text-blue-600 border-blue-200'
                           >
-                            任务
+                            {t('taskBadge')}
                           </Badge>
                         )}
                       </div>
@@ -375,7 +378,7 @@ export function EventsTab() {
                     <div className='flex flex-wrap gap-1'>
                       {(event.channels ?? []).length === 0 ? (
                         <span className='text-xs text-muted-foreground italic'>
-                          未指定渠道
+                          {t('noChannelSpecified')}
                         </span>
                       ) : (
                         event.channels.map((ch) => (
@@ -384,7 +387,7 @@ export function EventsTab() {
                             variant='secondary'
                             className='text-[10px] py-0 px-1.5 h-4.5'
                           >
-                            {ch === 'email' ? '邮件' : ch}
+                            {ch === 'email' ? t('emailChannel') : ch}
                           </Badge>
                         ))
                       )}
@@ -439,7 +442,7 @@ export function EventsTab() {
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent side='top' className='text-xs'>
-                            配置
+                            {t('configure')}
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
@@ -453,7 +456,7 @@ export function EventsTab() {
                               className='h-6 w-6 text-muted-foreground hover:text-destructive hover:bg-destructive/10'
                               disabled={deleteEventMutation.isPending}
                               onClick={() => {
-                                if (confirm('确定要删除该通知事件配置吗？')) {
+                                if (confirm(t('deleteEventConfirm'))) {
                                   deleteEventMutation.mutate(event.id);
                                 }
                               }}
@@ -462,7 +465,7 @@ export function EventsTab() {
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent side='top' className='text-xs'>
-                            删除
+                            {t('delete')}
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
@@ -479,15 +482,13 @@ export function EventsTab() {
       <Dialog open={createEventOpen} onOpenChange={setCreateEventOpen}>
         <DialogContent className='sm:max-w-[550px] max-h-[85vh] overflow-y-auto'>
           <DialogHeader>
-            <DialogTitle>新增通知事件</DialogTitle>
-            <DialogDescription>
-              选择系统内置的事件并绑定推送渠道，创建后即可开始生效
-            </DialogDescription>
+            <DialogTitle>{t('addEventDialogTitle')}</DialogTitle>
+            <DialogDescription>{t('addEventDialogDesc')}</DialogDescription>
           </DialogHeader>
 
           <div className='space-y-4 py-4'>
             <div className='space-y-1.5'>
-              <Label className='text-xs font-semibold'>事件类型</Label>
+              <Label className='text-xs font-semibold'>{t('eventType')}</Label>
               <div className='flex gap-4 p-1.5 border rounded-md bg-muted/20'>
                 <label className='flex items-center gap-1.5 text-xs cursor-pointer font-medium'>
                   <input
@@ -501,7 +502,7 @@ export function EventsTab() {
                     }}
                     className='scale-90'
                   />
-                  <span>系统内置事件</span>
+                  <span>{t('builtinEventType')}</span>
                 </label>
                 <label className='flex items-center gap-1.5 text-xs cursor-pointer font-medium'>
                   <input
@@ -515,22 +516,24 @@ export function EventsTab() {
                     }}
                     className='scale-90'
                   />
-                  <span>任务完成事件</span>
+                  <span>{t('taskEventType')}</span>
                 </label>
               </div>
             </div>
 
             {newEventType === 'builtin' ? (
               <div className='space-y-1.5'>
-                <Label className='text-xs font-semibold'>系统事件</Label>
+                <Label className='text-xs font-semibold'>
+                  {t('systemEvent')}
+                </Label>
                 {builtInEventsQuery.isLoading ? (
                   <div className='flex items-center gap-2 text-xs text-muted-foreground'>
                     <Loader2 className='size-3.5 animate-spin' />
-                    <span>加载系统事件中...</span>
+                    <span>{t('loadingSystemEvents')}</span>
                   </div>
                 ) : availableBuiltInEvents.length === 0 ? (
                   <div className='text-xs text-muted-foreground italic border p-2.5 rounded bg-muted/20'>
-                    所有内置事件都已配置，没有可新增的事件。
+                    {t('allBuiltinEventsConfigured')}
                   </div>
                 ) : (
                   <Select
@@ -538,7 +541,9 @@ export function EventsTab() {
                     onValueChange={handleNewEventKeyChange}
                   >
                     <SelectTrigger className='text-xs h-9'>
-                      <SelectValue placeholder='请选择系统事件' />
+                      <SelectValue
+                        placeholder={t('selectSystemEventPlaceholder')}
+                      />
                     </SelectTrigger>
                     <SelectContent>
                       {availableBuiltInEvents.map((ev) => (
@@ -556,15 +561,17 @@ export function EventsTab() {
               </div>
             ) : (
               <div className='space-y-1.5'>
-                <Label className='text-xs font-semibold'>系统异步任务</Label>
+                <Label className='text-xs font-semibold'>
+                  {t('systemAsyncTask')}
+                </Label>
                 {taskTypesQuery.isLoading ? (
                   <div className='flex items-center gap-2 text-xs text-muted-foreground'>
                     <Loader2 className='size-3.5 animate-spin' />
-                    <span>加载异步任务中...</span>
+                    <span>{t('loadingAsyncTasks')}</span>
                   </div>
                 ) : (taskTypesQuery.data ?? []).length === 0 ? (
                   <div className='text-xs text-muted-foreground italic border p-2.5 rounded bg-muted/20'>
-                    暂无可用的系统任务。
+                    {t('noAvailableTasks')}
                   </div>
                 ) : (
                   <Select
@@ -572,7 +579,9 @@ export function EventsTab() {
                     onValueChange={handleNewEventTaskTypeChange}
                   >
                     <SelectTrigger className='text-xs h-9'>
-                      <SelectValue placeholder='请选择异步任务' />
+                      <SelectValue
+                        placeholder={t('selectAsyncTaskPlaceholder')}
+                      />
                     </SelectTrigger>
                     <SelectContent>
                       {(taskTypesQuery.data ?? []).map((taskMeta) => (
@@ -593,11 +602,11 @@ export function EventsTab() {
             {newEventType === 'builtin' && newEventKey && (
               <div className='text-[11px] bg-muted/30 p-2.5 rounded border text-muted-foreground space-y-1'>
                 <span className='font-semibold text-foreground'>
-                  事件说明：
+                  {t('eventDescription')}
                 </span>
                 <span>
                   {availableBuiltInEvents.find((e) => e.key === newEventKey)
-                    ?.description || '无描述信息'}
+                    ?.description || t('noDescription')}
                 </span>
               </div>
             )}
@@ -605,18 +614,20 @@ export function EventsTab() {
             {newEventType === 'task' && newEventTaskType && (
               <div className='text-[11px] bg-muted/30 p-2.5 rounded border text-muted-foreground space-y-1'>
                 <span className='font-semibold text-foreground'>
-                  任务说明：
+                  {t('taskDescription')}
                 </span>
                 <span>
                   {(taskTypesQuery.data ?? []).find(
                     (t) => t.asynq_task === newEventTaskType,
-                  )?.description || '无描述信息'}
+                  )?.description || t('noDescription')}
                 </span>
               </div>
             )}
 
             <div className='space-y-1.5'>
-              <Label className='text-xs font-semibold'>推送渠道 (可多选)</Label>
+              <Label className='text-xs font-semibold'>
+                {t('pushChannelsMulti')}
+              </Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
@@ -661,7 +672,7 @@ export function EventsTab() {
                     ))}
                     {availableChannels.length === 0 && (
                       <div className='text-[11px] text-muted-foreground italic p-1'>
-                        暂无可用渠道，请先在“通道管理与设置”中创建或启用。
+                        {t('noAvailableChannels')}
                       </div>
                     )}
                   </div>
@@ -671,7 +682,7 @@ export function EventsTab() {
 
             <div className='space-y-1.5'>
               <Label className='text-xs font-semibold'>
-                推送目标 (仅邮件等渠道需要)
+                {t('pushTargets')}
               </Label>
               <Input
                 type='text'
@@ -685,12 +696,12 @@ export function EventsTab() {
             <div className='space-y-1.5'>
               <div className='flex justify-between items-center'>
                 <Label className='text-xs font-semibold'>
-                  内容渲染模板 (JSON 格式)
+                  {t('contentTemplate')}
                 </Label>
                 <span className='text-[10px] text-muted-foreground font-mono flex items-center'>
                   {newEventType === 'task'
-                    ? '支持变量：{{task_name}}, {{task_status}}, {{task_duration}}, {{user.username}}'
-                    : '支持变量：{{user.username}}, {{ip}}, {{time}}'}
+                    ? t('taskTemplateVars')
+                    : t('eventTemplateVars')}
                 </span>
               </div>
               <Textarea
@@ -704,9 +715,11 @@ export function EventsTab() {
 
             <div className='flex items-center justify-between p-3 border rounded-lg bg-muted/10'>
               <div className='space-y-0.5'>
-                <Label className='text-xs font-semibold'>启用状态</Label>
+                <Label className='text-xs font-semibold'>
+                  {t('enableStatus')}
+                </Label>
                 <div className='text-[10px] text-muted-foreground'>
-                  创建后是否立即开始接收此事件的通知
+                  {t('enableStatusDesc')}
                 </div>
               </div>
               <Switch
@@ -723,7 +736,7 @@ export function EventsTab() {
               onClick={() => setCreateEventOpen(false)}
               className='h-9 text-xs'
             >
-              取消
+              {t('cancel')}
             </Button>
             <Button
               variant='default'
@@ -739,7 +752,7 @@ export function EventsTab() {
               {createEventMutation.isPending && (
                 <Loader2 className='size-3 animate-spin mr-1' />
               )}
-              启用保存
+              {t('enableSave')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -749,10 +762,8 @@ export function EventsTab() {
       <Dialog open={editEventOpen} onOpenChange={setEditEventOpen}>
         <DialogContent className='sm:max-w-[550px] max-h-[85vh] overflow-y-auto'>
           <DialogHeader>
-            <DialogTitle>事件通知渠道配置</DialogTitle>
-            <DialogDescription>
-              自定义本事件触发时，需要异步推送的渠道以及接收人邮箱等配置
-            </DialogDescription>
+            <DialogTitle>{t('editEventDialogTitle')}</DialogTitle>
+            <DialogDescription>{t('editEventDialogDesc')}</DialogDescription>
           </DialogHeader>
 
           {selectedEvent && (
@@ -760,7 +771,7 @@ export function EventsTab() {
               <div className='grid grid-cols-2 gap-4'>
                 <div className='space-y-1.5'>
                   <Label className='text-xs font-semibold text-muted-foreground'>
-                    事件名称
+                    {t('eventName')}
                   </Label>
                   <Input
                     value={selectedEvent.name}
@@ -770,7 +781,7 @@ export function EventsTab() {
                 </div>
                 <div className='space-y-1.5'>
                   <Label className='text-xs font-semibold text-muted-foreground'>
-                    事件键 (Key)
+                    {t('eventKey')}
                   </Label>
                   <Input
                     value={selectedEvent.event_key}
@@ -783,7 +794,7 @@ export function EventsTab() {
               {selectedEvent.task_type && (
                 <div className='space-y-1.5'>
                   <Label className='text-xs font-semibold text-muted-foreground'>
-                    关联异步任务
+                    {t('relatedAsyncTask')}
                   </Label>
                   <Input
                     value={`${(taskTypesQuery.data ?? []).find((t) => t.asynq_task === selectedEvent.task_type)?.name || selectedEvent.task_type} (${selectedEvent.task_type})`}
@@ -795,7 +806,7 @@ export function EventsTab() {
 
               <div className='space-y-1.5'>
                 <Label className='text-xs font-semibold'>
-                  推送渠道 (可多选)
+                  {t('pushChannelsMulti')}
                 </Label>
                 <Popover>
                   <PopoverTrigger asChild>
@@ -806,11 +817,11 @@ export function EventsTab() {
                       {eventChannels.length > 0
                         ? eventChannels
                             .map((ch) => {
-                              if (ch === 'email') return '邮件';
+                              if (ch === 'email') return t('emailChannel');
                               return ch;
                             })
                             .join(', ')
-                        : '选择已配置推送渠道'}
+                        : t('selectConfiguredChannels')}
                       <ChevronDown className='ml-2 size-4 shrink-0 opacity-50' />
                     </Button>
                   </PopoverTrigger>
@@ -836,12 +847,12 @@ export function EventsTab() {
                               }
                             }}
                           />
-                          <span>{ch === 'email' ? '邮件推送' : ch}</span>
+                          <span>{ch === 'email' ? t('emailPush') : ch}</span>
                         </label>
                       ))}
                       {availableChannels.length === 0 && (
                         <div className='text-[11px] text-muted-foreground italic p-1'>
-                          暂无可用渠道，请先在“通道管理与设置”中创建并启用。
+                          {t('noAvailableChannelsEdit')}
                         </div>
                       )}
                     </div>
@@ -851,11 +862,11 @@ export function EventsTab() {
 
               <div className='space-y-1.5'>
                 <Label className='text-xs font-semibold'>
-                  推送目标 (仅邮件等渠道需要)
+                  {t('pushTargets')}
                 </Label>
                 <Input
                   type='text'
-                  placeholder='多个目标用英文逗号分隔，例如：user1@test.com, user2@test.com'
+                  placeholder={t('pushTargetsPlaceholder')}
                   value={eventTargets}
                   onChange={(e) => setEventTargets(e.target.value)}
                   className='text-xs h-9'
@@ -865,12 +876,12 @@ export function EventsTab() {
               <div className='space-y-1.5'>
                 <div className='flex justify-between items-center'>
                   <Label className='text-xs font-semibold'>
-                    内容渲染模板 (JSON 格式)
+                    {t('contentTemplate')}
                   </Label>
                   <span className='text-[10px] text-muted-foreground font-mono flex items-center'>
                     {selectedEvent.task_type
-                      ? '支持变量：{{task_name}}, {{task_status}}, {{task_duration}}, {{user.username}}'
-                      : '支持变量：{{user.username}}, {{ip}}, {{time}}'}
+                      ? t('taskTemplateVars')
+                      : t('eventTemplateVars')}
                   </span>
                 </div>
                 <Textarea
@@ -891,7 +902,7 @@ export function EventsTab() {
               onClick={() => setEditEventOpen(false)}
               className='h-9 text-xs'
             >
-              取消
+              {t('cancel')}
             </Button>
             <Button
               variant='default'
@@ -903,7 +914,7 @@ export function EventsTab() {
               {updateEventMutation.isPending && (
                 <Loader2 className='size-3 animate-spin mr-1' />
               )}
-              保存修改
+              {t('saveChanges')}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -17,12 +17,13 @@ function flatten(obj, prefix = '') {
   return keys;
 }
 
-const zh = JSON.parse(readFileSync(resolve(root, 'messages/zh-CN.json'), 'utf8'));
+const zh = JSON.parse(
+  readFileSync(resolve(root, 'messages/zh-CN.json'), 'utf8'),
+);
 const en = JSON.parse(readFileSync(resolve(root, 'messages/en.json'), 'utf8'));
 const zhKeys = flatten(zh);
 const enKeys = flatten(en);
 const onlyZh = [...zhKeys].filter((k) => !enKeys.has(k)).sort();
-const onlyEn = [...enKeys].filter((k) => !enKeys.has(k) === false && !zhKeys.has(k)).sort();
 const onlyEnFixed = [...enKeys].filter((k) => !zhKeys.has(k)).sort();
 
 if (onlyZh.length || onlyEnFixed.length) {

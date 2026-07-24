@@ -17,15 +17,17 @@ import {
   User,
 } from 'lucide-react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 
 export function HomeMain() {
   const { user } = useUser();
   const [isBannerVisible, setIsBannerVisible] = React.useState(true);
+  const t = useTranslations('home');
 
   const quickLinks = [
     {
-      title: '个人资料',
-      description: '管理您的个人账户信息及个性化配置',
+      title: t('quickLinks.profile.title'),
+      description: t('quickLinks.profile.description'),
       icon: User,
       url: '/settings/profile',
       color: 'text-blue-500',
@@ -33,8 +35,8 @@ export function HomeMain() {
       borderColor: 'hover:border-blue-500/30',
     },
     {
-      title: '开发接口文档',
-      description: '查看开放平台的 RESTful 接口规格说明',
+      title: t('quickLinks.apiDocs.title'),
+      description: t('quickLinks.apiDocs.description'),
       icon: FileText,
       url: '/docs/api',
       color: 'text-emerald-500',
@@ -43,8 +45,8 @@ export function HomeMain() {
       external: true,
     },
     {
-      title: '使用文档',
-      description: '学习如何集成 API 及日常操作帮助指南',
+      title: t('quickLinks.userDocs.title'),
+      description: t('quickLinks.userDocs.description'),
       icon: HelpCircle,
       url: '/docs/how-to-use',
       color: 'text-purple-500',
@@ -56,8 +58,8 @@ export function HomeMain() {
 
   const adminLinks = [
     {
-      title: '系统设置',
-      description: '管理登录注册开关与认证源安全策略',
+      title: t('adminLinks.settings.title'),
+      description: t('adminLinks.settings.description'),
       icon: Shield,
       url: '/admin/settings',
       color: 'text-amber-500',
@@ -65,8 +67,8 @@ export function HomeMain() {
       borderColor: 'hover:border-amber-500/30',
     },
     {
-      title: '全局系统配置',
-      description: '动态管理平台运行时核心配置参数',
+      title: t('adminLinks.systemConfig.title'),
+      description: t('adminLinks.systemConfig.description'),
       icon: ShieldCheck,
       url: '/admin/system',
       color: 'text-indigo-500',
@@ -74,8 +76,8 @@ export function HomeMain() {
       borderColor: 'hover:border-indigo-500/30',
     },
     {
-      title: '用户权限管理',
-      description: '集中查询并管理系统注册用户的启用状态',
+      title: t('adminLinks.userManagement.title'),
+      description: t('adminLinks.userManagement.description'),
       icon: User,
       url: '/admin/users',
       color: 'text-rose-500',
@@ -83,8 +85,8 @@ export function HomeMain() {
       borderColor: 'hover:border-rose-500/30',
     },
     {
-      title: '后台任务调度',
-      description: '分发与观测系统异步定时任务的执行情况',
+      title: t('adminLinks.tasks.title'),
+      description: t('adminLinks.tasks.description'),
       icon: Layers,
       url: '/admin/tasks',
       color: 'text-teal-500',
@@ -92,8 +94,8 @@ export function HomeMain() {
       borderColor: 'hover:border-teal-500/30',
     },
     {
-      title: '系统日志',
-      description: '查看异步任务执行日志与系统运行状态详情',
+      title: t('adminLinks.logs.title'),
+      description: t('adminLinks.logs.description'),
       icon: Terminal,
       url: '/admin/logs',
       color: 'text-cyan-500',
@@ -104,7 +106,6 @@ export function HomeMain() {
 
   return (
     <div className='py-6 space-y-8 max-w-6xl mx-auto'>
-      {/* 积分收益提示 banner */}
       <AnimatePresence>
         {isBannerVisible && (
           <motion.div
@@ -120,8 +121,7 @@ export function HomeMain() {
                   Modern Platform
                 </h3>
                 <p className='text-xs text-muted-foreground leading-relaxed'>
-                  通用的、现代化的后台管理系统脚手架,
-                  开箱即用、完整基建、极易扩展，助您快速构建企业级应用。
+                  {t('banner.description')}
                 </p>
                 <div className='flex gap-2.5'>
                   <Button
@@ -129,7 +129,7 @@ export function HomeMain() {
                     className='bg-indigo-600 hover:bg-indigo-700 text-xs font-semibold px-4 shadow-sm h-7'
                     asChild
                   >
-                    <Link href='/home'>开始使用</Link>
+                    <Link href='/home'>{t('banner.getStarted')}</Link>
                   </Button>
                   <Button
                     size='sm'
@@ -137,7 +137,7 @@ export function HomeMain() {
                     className='text-xs font-medium hover:bg-black/5 dark:hover:bg-white/5 h-7'
                     onClick={() => setIsBannerVisible(false)}
                   >
-                    隐藏提示
+                    {t('banner.hideHint')}
                   </Button>
                 </div>
               </div>
@@ -146,9 +146,10 @@ export function HomeMain() {
         )}
       </AnimatePresence>
 
-      {/* 快捷导航 */}
       <div className='space-y-4'>
-        <h2 className='text-lg font-semibold tracking-tight'>常用功能导航</h2>
+        <h2 className='text-lg font-semibold tracking-tight'>
+          {t('navigation.title')}
+        </h2>
         <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
           {quickLinks.map((link, idx) => (
             <motion.div
@@ -190,7 +191,7 @@ export function HomeMain() {
                         target='_blank'
                         rel='noopener noreferrer'
                       >
-                        立即跳转 <ArrowRight className='size-3 ml-1' />
+                        {t('jumpNow')} <ArrowRight className='size-3 ml-1' />
                       </Link>
                     </Button>
                   ) : (
@@ -200,7 +201,7 @@ export function HomeMain() {
                       asChild
                     >
                       <Link href={link.url}>
-                        立即进入 <ArrowRight className='size-3 ml-1' />
+                        {t('enterNow')} <ArrowRight className='size-3 ml-1' />
                       </Link>
                     </Button>
                   )}
@@ -211,12 +212,11 @@ export function HomeMain() {
         </div>
       </div>
 
-      {/* 管理面板 (仅管理员可见) */}
       {user?.is_admin && (
         <div className='space-y-4 pt-2'>
           <h2 className='text-lg font-semibold tracking-tight text-rose-500 flex items-center gap-1.5'>
             <Shield className='size-5' />
-            后台管理控制台
+            {t('adminConsole')}
           </h2>
           <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
             {adminLinks.map((link, idx) => (
@@ -251,7 +251,7 @@ export function HomeMain() {
                       asChild
                     >
                       <Link href={link.url}>
-                        立即进入 <ArrowRight className='size-3 ml-1' />
+                        {t('enterNow')} <ArrowRight className='size-3 ml-1' />
                       </Link>
                     </Button>
                   </div>

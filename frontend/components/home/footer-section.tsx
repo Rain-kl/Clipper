@@ -2,17 +2,17 @@ import * as React from 'react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { Github, LucideIcon, WavesIcon } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 export interface FooterSectionProps {
   className?: string;
 }
 
-/**
- * Footer Section - 页脚
- */
 export const FooterSection = React.memo(function FooterSection({
   className,
 }: FooterSectionProps) {
+  const t = useTranslations('home.footer');
+
   return (
     <footer
       className={cn(
@@ -32,8 +32,7 @@ export const FooterSection = React.memo(function FooterSection({
               </span>
             </Link>
             <p className='text-muted-foreground text-base leading-relaxed max-w-sm'>
-              通用的、现代化的后台管理系统脚手架。基于 Go + React
-              构建，开箱即用、完整基建、极易扩展。
+              {t('description')}
             </p>
             <div className='flex gap-4 pt-2'>
               <SocialLink
@@ -44,36 +43,46 @@ export const FooterSection = React.memo(function FooterSection({
           </div>
 
           <div className='lg:col-span-1'>
-            <h3 className='font-semibold text-foreground mb-6'>产品</h3>
+            <h3 className='font-semibold text-foreground mb-6'>
+              {t('product')}
+            </h3>
             <ul className='space-y-4 text-sm text-muted-foreground'>
               <li>
-                <FooterLink href='/home'>仪表盘</FooterLink>
+                <FooterLink href='/home'>{t('dashboard')}</FooterLink>
               </li>
               <li>
-                <FooterLink href='/settings'>个人设置</FooterLink>
-              </li>
-            </ul>
-          </div>
-
-          <div className='lg:col-span-1'>
-            <h3 className='font-semibold text-foreground mb-6'>开发</h3>
-            <ul className='space-y-4 text-sm text-muted-foreground'>
-              <li>
-                <FooterLink href='/docs/how-to-use'>快速开始</FooterLink>
-              </li>
-              <li>
-                <FooterLink href='/docs/api'>API 文档</FooterLink>
-              </li>
-              <li>
-                <FooterLink href='https://github.com/Rain-kl/Wavelet'>
-                  源代码
+                <FooterLink href='/settings'>
+                  {t('personalSettings')}
                 </FooterLink>
               </li>
             </ul>
           </div>
 
           <div className='lg:col-span-1'>
-            <h3 className='font-semibold text-foreground mb-6'>社区</h3>
+            <h3 className='font-semibold text-foreground mb-6'>
+              {t('development')}
+            </h3>
+            <ul className='space-y-4 text-sm text-muted-foreground'>
+              <li>
+                <FooterLink href='/docs/how-to-use'>
+                  {t('quickStart')}
+                </FooterLink>
+              </li>
+              <li>
+                <FooterLink href='/docs/api'>{t('apiDocs')}</FooterLink>
+              </li>
+              <li>
+                <FooterLink href='https://github.com/Rain-kl/Wavelet'>
+                  {t('sourceCode')}
+                </FooterLink>
+              </li>
+            </ul>
+          </div>
+
+          <div className='lg:col-span-1'>
+            <h3 className='font-semibold text-foreground mb-6'>
+              {t('community')}
+            </h3>
             <ul className='space-y-4 text-sm text-muted-foreground'>
               <li>
                 <FooterLink href='https://github.com/Rain-kl/Wavelet/issues'>
@@ -82,7 +91,7 @@ export const FooterSection = React.memo(function FooterSection({
               </li>
               <li>
                 <FooterLink href='https://github.com/Rain-kl/Wavelet/discussions'>
-                  讨论
+                  {t('discussions')}
                 </FooterLink>
               </li>
             </ul>
@@ -96,13 +105,13 @@ export const FooterSection = React.memo(function FooterSection({
               href='/docs/privacy-policy'
               className='hover:text-foreground transition-colors'
             >
-              隐私政策
+              {t('privacyPolicy')}
             </Link>
             <Link
               href='/docs/terms-of-service'
               className='hover:text-foreground transition-colors'
             >
-              服务条款
+              {t('termsOfService')}
             </Link>
           </div>
         </div>

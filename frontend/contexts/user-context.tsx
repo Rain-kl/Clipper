@@ -12,6 +12,7 @@ import {
 
 import { AuthService } from '@/lib/services/auth';
 import { User } from '@/lib/services/auth/types';
+import { useTranslations } from 'next-intl';
 
 /** 用户状态接口 */
 interface UserState {
@@ -52,6 +53,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
   });
 
   const isMountedRef = useRef(true);
+  const t = useTranslations('contexts.user');
 
   /** 获取用户信息 */
   const fetchUser = useCallback(async () => {
@@ -68,10 +70,10 @@ export function UserProvider({ children }: { children: ReactNode }) {
       setState({
         user: null,
         loading: false,
-        error: error instanceof Error ? error.message : '获取用户信息失败',
+        error: error instanceof Error ? error.message : t('getUserInfoFailed'),
       });
     }
-  }, []);
+  }, [t]);
 
   /** 重新获取用户信息 */
   const refetch = useCallback(async () => {
@@ -97,14 +99,15 @@ export function UserProvider({ children }: { children: ReactNode }) {
         throw error;
       }
 
-      const errorMessage = error instanceof Error ? error.message : '登出失败';
+      const errorMessage =
+        error instanceof Error ? error.message : t('logoutFailed');
       setState((prev) => ({
         ...prev,
         error: errorMessage,
       }));
       throw new Error(errorMessage);
     }
-  }, []);
+  }, [t]);
 
   /** 组件挂载时获取用户信息（登录/注册页跳过，避免无意义请求） */
   useEffect(() => {

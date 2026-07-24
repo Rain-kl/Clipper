@@ -4,17 +4,17 @@ import { motion } from 'motion/react';
 import { ArrowRight, CreditCard, Globe, Shield, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { useTranslations } from 'next-intl';
 
 export interface HeroSectionProps {
   className?: string;
 }
 
-/**
- * Hero Section - 首页 Hero 展示
- */
 export const HeroSection = React.memo(function HeroSection({
   className,
 }: HeroSectionProps) {
+  const t = useTranslations('home.hero');
+
   return (
     <section className={cn('w-full', className)}>
       <motion.div
@@ -57,9 +57,9 @@ export const HeroSection = React.memo(function HeroSection({
               }}
               className='text-sm md:text-base text-muted-foreground max-w-xl leading-relaxed mb-10'
             >
-              通用的、现代化的后台管理系统脚手架
+              {t('subtitle')}
               <br className='hidden md:block' />
-              开箱即用、完整基建、极易扩展，助您快速构建应用。
+              {t('subtitleLine2')}
             </motion.p>
 
             <motion.div
@@ -78,7 +78,7 @@ export const HeroSection = React.memo(function HeroSection({
                   size='lg'
                   className='w-full rounded-full bg-primary hover:bg-primary/90 font-medium transition-all active:scale-95'
                 >
-                  立即开始
+                  {t('getStarted')}
                   <ArrowRight className='size-4' />
                 </Button>
               </Link>
@@ -89,7 +89,7 @@ export const HeroSection = React.memo(function HeroSection({
                   size='lg'
                   className='w-full rounded-full font-medium active:scale-95'
                 >
-                  了解更多
+                  {t('learnMore')}
                 </Button>
               </Link>
             </motion.div>
@@ -103,15 +103,15 @@ export const HeroSection = React.memo(function HeroSection({
             >
               <div className='flex items-center gap-2'>
                 <Zap className='w-5 h-5 text-yellow-500' />
-                <span>开箱即用</span>
+                <span>{t('features.readyToUse')}</span>
               </div>
               <div className='flex items-center gap-2'>
                 <Globe className='w-5 h-5 text-blue-500' />
-                <span>高度可扩展</span>
+                <span>{t('features.highlyExtensible')}</span>
               </div>
               <div className='flex items-center gap-2'>
                 <Shield className='w-5 h-5 text-green-500' />
-                <span>工业级基建</span>
+                <span>{t('features.industrialGrade')}</span>
               </div>
             </motion.div>
           </div>

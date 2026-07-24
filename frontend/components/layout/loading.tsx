@@ -2,6 +2,7 @@ import * as React from 'react';
 import { motion } from 'motion/react';
 import { cn } from '@/lib/utils';
 import { FileTextIcon } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 /**
  * 加载页面组件
@@ -88,12 +89,15 @@ interface LoadingStateProps extends React.ComponentProps<'div'> {
  * 用于统一显示加载中的状态
  */
 export function LoadingState({
-  title = '加载中',
-  description = '正在获取活动数据...',
+  title,
+  description,
   icon: Icon = FileTextIcon,
   className,
   iconSize = 'md',
 }: LoadingStateProps) {
+  const t = useTranslations('layout.loading');
+  const displayTitle = title ?? t('loading');
+  const displayDescription = description ?? t('loadingDesc');
   const iconSizes = { sm: 'size-8', md: 'size-10', lg: 'size-14' };
   const iconInnerSizes = { sm: 'size-4', md: 'size-5', lg: 'size-7' };
 
@@ -115,13 +119,15 @@ export function LoadingState({
         />
       </div>
 
-      {title && (
-        <h3 className='text-sm font-medium mb-1 animate-pulse'>{title}</h3>
+      {displayTitle && (
+        <h3 className='text-sm font-medium mb-1 animate-pulse'>
+          {displayTitle}
+        </h3>
       )}
 
-      {description && (
+      {displayDescription && (
         <p className='text-xs text-muted-foreground max-w-md animate-pulse'>
-          {description}
+          {displayDescription}
         </p>
       )}
     </div>

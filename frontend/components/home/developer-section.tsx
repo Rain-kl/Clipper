@@ -4,20 +4,19 @@ import { cn } from '@/lib/utils';
 import { motion } from 'motion/react';
 import { Button } from '@/components/ui/button';
 import { Book, Check, Copy, Terminal } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 export interface DeveloperSectionProps {
   className?: string;
 }
 
-/**
- * Developer Section - 开发者体验展示
- */
 export const DeveloperSection = React.memo(function DeveloperSection({
   className,
 }: DeveloperSectionProps) {
   const [copied, setCopied] = React.useState(false);
+  const t = useTranslations('home.developerSection');
 
-  const codeContent = `# 注册用户
+  const codeContent = `# ${t('codeComment')}
 curl -X POST https://api.example.com/api/v1/auth/register \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -32,7 +31,6 @@ curl -X POST https://api.example.com/api/v1/auth/register \\
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      // Fallback for older browsers
       const textArea = document.createElement('textarea');
       textArea.value = codeContent;
       textArea.style.position = 'fixed';
@@ -97,7 +95,9 @@ curl -X POST https://api.example.com/api/v1/auth/register \\
               </div>
               <pre className='text-xs sm:text-sm font-mono text-neutral-300 leading-relaxed whitespace-pre-wrap break-all sm:whitespace-pre sm:break-normal overflow-x-auto'>
                 <code className='block'>
-                  <span className='text-green-400'># 快速开始</span>
+                  <span className='text-green-400'>
+                    # {t('codeQuickStart')}
+                  </span>
                   {'\n'}
                   <span className='text-purple-400'>curl</span> -X{' '}
                   <span className='text-yellow-400'>POST</span>{' '}
@@ -130,22 +130,18 @@ curl -X POST https://api.example.com/api/v1/auth/register \\
             transition={{ duration: 0.8 }}
           >
             <h2 className='text-3xl md:text-5xl font-bold tracking-tight text-foreground leading-[1.1] mb-6'>
-              开发者友好，
-              <br />
-              极速集成上手
+              {t('heading')}
             </h2>
             <p className='text-muted-foreground text-lg leading-relaxed mb-8'>
-              标准化的 RESTful API 接口，完整的 TypeScript
-              类型定义，详细的文档和 Swagger
-              UI。无论使用什么编程语言，只需几行代码，即可快速集成。
+              {t('description')}
             </p>
 
             <ul className='space-y-4 mb-8'>
               {[
-                'RESTful API，语义清晰，易于理解',
-                'OpenAPI / Swagger 接口文档',
-                'TypeScript 类型定义，开发友好',
-                '丰富的代码示例和集成指南',
+                t('features.restful'),
+                t('features.swagger'),
+                t('features.typescript'),
+                t('features.examples'),
               ].map((item, i) => (
                 <li
                   key={i}
@@ -166,7 +162,7 @@ curl -X POST https://api.example.com/api/v1/auth/register \\
                   className='rounded-full text-xs hover:bg-muted-foreground/10'
                 >
                   <Book className='w-3 h-3' />
-                  API 文档
+                  {t('apiDocs')}
                 </Button>
               </Link>
             </div>

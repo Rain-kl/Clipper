@@ -30,6 +30,7 @@ import { Switch } from '@/components/ui/switch';
 import services from '@/lib/services';
 import type { SystemConfig } from '@/lib/services/admin';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 
 interface MenuItem {
   path: string;
@@ -147,6 +148,7 @@ interface OtherTabProps {
 
 export function OtherTab({ configs }: OtherTabProps) {
   const queryClient = useQueryClient();
+  const t = useTranslations('settings.other');
 
   const menuDisplayConfig = useMemo(() => {
     const raw = configs['menu_display_config']?.value;
@@ -183,10 +185,10 @@ export function OtherTab({ configs }: OtherTabProps) {
         queryKey: ['admin', 'system-configs'],
       });
       await queryClient.invalidateQueries({ queryKey: ['public-config'] });
-      toast.success('目录显示配置已更新');
+      toast.success(t('menuDisplayUpdated'));
     },
     onError: (error: Error) => {
-      toast.error(error.message || '更新配置失败');
+      toast.error(error.message || t('updateConfigFailed'));
     },
   });
 
@@ -203,10 +205,10 @@ export function OtherTab({ configs }: OtherTabProps) {
           </div>
           <div>
             <CardTitle className='text-base font-semibold'>
-              目录显示管理
+              {t('menuDisplayManagement')}
             </CardTitle>
             <CardDescription className='text-xs'>
-              配置系统左侧菜单的显示与隐藏状态，适用于所有登录用户。
+              {t('menuDisplayManagementDesc')}
             </CardDescription>
           </div>
         </div>
@@ -241,7 +243,7 @@ export function OtherTab({ configs }: OtherTabProps) {
                         </span>
                         {isReadOnly && (
                           <span className='text-[9px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground border shrink-0'>
-                            不可隐藏
+                            {t('notHideable')}
                           </span>
                         )}
                       </div>
@@ -270,8 +272,10 @@ export function OtherTab({ configs }: OtherTabProps) {
         <div className='p-3.5 rounded-lg border border-dashed border-primary/20 bg-primary/5 flex items-start gap-2.5'>
           <Info className='size-4 text-primary shrink-0 mt-0.5' />
           <div className='text-xs text-muted-foreground leading-relaxed'>
-            <span className='font-semibold text-foreground'>安全提示：</span>
-            为了防止管理员在关闭“系统设置”后导致无法重新访问此配置页，系统限制了“系统设置”的关闭权限。其它所有菜单均可自由开关，隐藏后对应的分组标题在为空时也会自动隐藏。
+            <span className='font-semibold text-foreground'>
+              {t('securityTipTitle')}
+            </span>
+            {t('securityTipDesc')}
           </div>
         </div>
       </CardContent>

@@ -27,6 +27,7 @@ import services from '@/lib/services';
 import type { SystemConfig } from '@/lib/services/admin';
 import { TemplatesManager } from './templates';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 
 interface OperationTabProps {
   configs: Record<string, SystemConfig>;
@@ -38,6 +39,7 @@ export function OperationTab({
   systemConfigsQuery,
 }: OperationTabProps) {
   const queryClient = useQueryClient();
+  const t = useTranslations('settings.operation');
 
   const uploadTypesQuery = useQuery({
     queryKey: ['admin', 'upload-types'],
@@ -63,10 +65,10 @@ export function OperationTab({
         queryKey: ['admin', 'system-configs'],
       });
       await queryClient.invalidateQueries({ queryKey: ['public-config'] });
-      toast.success('文件访问白名单已更新');
+      toast.success(t('whitelistUpdated'));
     },
     onError: (error: Error) => {
-      toast.error(error.message || '更新白名单失败');
+      toast.error(error.message || t('updateWhitelistFailed'));
     },
   });
 
@@ -120,10 +122,10 @@ export function OperationTab({
             </div>
             <div>
               <CardTitle className='text-base font-semibold'>
-                文件访问权限控制
+                {t('fileAccessControl')}
               </CardTitle>
               <CardDescription className='text-xs'>
-                配置免登录直接访问的文件业务类型。不在白名单内的文件将要求登录鉴权。
+                {t('fileAccessControlDesc')}
               </CardDescription>
             </div>
           </div>
@@ -132,7 +134,7 @@ export function OperationTab({
           <div className='flex flex-col gap-4'>
             <div className='flex items-center gap-3'>
               <span className='text-sm font-medium text-muted-foreground'>
-                添加免鉴权类型:
+                {t('addAuthFreeType')}
               </span>
               <Select
                 value=''
@@ -144,7 +146,7 @@ export function OperationTab({
                 }
               >
                 <SelectTrigger className='w-[200px]' size='sm'>
-                  <SelectValue placeholder='选择业务类型...' />
+                  <SelectValue placeholder={t('selectBusinessType')} />
                 </SelectTrigger>
                 <SelectContent>
                   {availableTypes
@@ -158,7 +160,7 @@ export function OperationTab({
                     (t) => !currentWhitelist.includes(t.value),
                   ).length === 0 && (
                     <div className='text-xs text-muted-foreground p-2 text-center'>
-                      所有类型已添加
+                      {t('allTypesAdded')}
                     </div>
                   )}
                 </SelectContent>
@@ -170,7 +172,7 @@ export function OperationTab({
               <div className='flex items-center gap-2'>
                 <ShieldAlert className='size-4 text-primary' />
                 <span className='font-medium text-sm text-foreground'>
-                  当前免鉴权列表
+                  {t('currentAuthFreeList')}
                 </span>
               </div>
 
@@ -200,7 +202,7 @@ export function OperationTab({
                 </div>
               ) : (
                 <p className='text-xs text-muted-foreground'>
-                  白名单已空，所有类型文件的访问都将需要登录。
+                  {t('whitelistEmpty')}
                 </p>
               )}
             </div>

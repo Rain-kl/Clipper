@@ -24,6 +24,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { useTranslations } from 'next-intl';
 
 interface ManagePageProps<T> {
   title: string;
@@ -78,11 +79,12 @@ export function ManagePage<T>({
   columns,
   renderDetail,
   emptyIcon = Layers,
-  emptyDescription = '暂无数据',
-  loadingDescription = '加载中',
+  emptyDescription,
+  loadingDescription,
   getId,
   headerExtra,
 }: ManagePageProps<T>) {
+  const t = useTranslations('general.manage');
   /** 悬停状态 */
   const [hoveredItem, setHoveredItem] = useState<T | null>(null);
   const [selectedItem, setSelectedItem] = useState<T | null>(null);
@@ -125,10 +127,10 @@ export function ManagePage<T>({
     try {
       setSaving(true);
       await onSave(selectedItem, editData);
-      toast.success('保存成功');
+      toast.success(t('saveSuccess'));
     } catch (error) {
-      toast.error('保存失败', {
-        description: error instanceof Error ? error.message : '未知错误',
+      toast.error(t('saveFailed'), {
+        description: error instanceof Error ? error.message : t('unknownError'),
       });
     } finally {
       setSaving(false);
@@ -144,7 +146,7 @@ export function ManagePage<T>({
     if (!deletingItem || !onDelete) return;
     try {
       await onDelete(deletingItem);
-      toast.success('删除成功');
+      toast.success(t('deleteSuccess'));
       setDeletingItem(null);
       // 如果删除的是当前选中的项，清除选中状态
       if (selectedItem && getId(selectedItem) === getId(deletingItem)) {
@@ -152,8 +154,8 @@ export function ManagePage<T>({
         setEditData({});
       }
     } catch (error) {
-      toast.error('删除失败', {
-        description: error instanceof Error ? error.message : '未知错误',
+      toast.error(t('deleteFailed'), {
+        description: error instanceof Error ? error.message : t('unknownError'),
       });
     }
   };
@@ -164,7 +166,7 @@ export function ManagePage<T>({
       return (
         <LoadingStateWithBorder
           icon={ListRestart}
-          description={loadingDescription}
+          description={loadingDescription ?? t('loading')}
         />
       );
     }
@@ -183,7 +185,10 @@ export function ManagePage<T>({
 
     if (!data || data.length === 0) {
       return (
-        <EmptyStateWithBorder icon={emptyIcon} description={emptyDescription} />
+        <EmptyStateWithBorder
+          icon={emptyIcon}
+          description={emptyDescription ?? t('noData')}
+        />
       );
     }
 
@@ -216,7 +221,7 @@ export function ManagePage<T>({
       <div className='space-y-6'>
         <div>
           <div className='mb-4'>
-            <div className='font-semibold'>配置列表</div>
+            <div className='font-semibold'>{t('configList')}</div>
           </div>
           {renderContent()}
         </div>
@@ -239,18 +244,18 @@ export function ManagePage<T>({
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>确认删除?</AlertDialogTitle>
+            <AlertDialogTitle>{t('confirmDelete')}</AlertDialogTitle>
             <AlertDialogDescription>
-              此操作无法撤销。这将永久删除该配置。
+              {t('confirmDeleteDesc')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleConfirmDelete}
               className='bg-red-600 hover:bg-red-700'
             >
-              确认删除
+              {t('confirmDeleteAction')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -271,18 +276,24 @@ interface ManageDetailPanelProps {
 
 /** 详情面板 */
 export function ManageDetailPanel({
-  title = '配置信息',
+  title,
   isEmpty,
-  emptyDescription = '请选择配置查看详情',
+  emptyDescription,
   onSave,
   saving = false,
   children,
 }: ManageDetailPanelProps) {
+  const t = useTranslations('general.manage');
+  const displayTitle = title ?? t('configInfo');
+  const displayEmptyDescription = emptyDescription ?? t('selectConfigToView');
   if (isEmpty) {
     return (
       <div className='space-y-4'>
-        <div className='font-semibold mb-4'>{title}</div>
-        <EmptyStateWithBorder icon={Layers} description={emptyDescription} />
+        <div className='font-semibold mb-4'>{displayTitle}</div>
+        <EmptyStateWithBorder
+          icon={Layers}
+          description={displayEmptyDescription}
+        />
       </div>
     );
   }
@@ -291,7 +302,7 @@ export function ManageDetailPanel({
     <div className='space-y-4 sticky top-6'>
       <div>
         <div className='flex items-center justify-between mb-4'>
-          <div className='font-semibold'>{title}</div>
+          <div className='font-semibold'>{displayTitle}</div>
           {onSave && (
             <Button
               onClick={onSave}
@@ -301,10 +312,10 @@ export function ManageDetailPanel({
             >
               {saving ? (
                 <>
-                  <Spinner /> 更新中
+                  <Spinner /> {t('updating')}
                 </>
               ) : (
-                '更新'
+                t('update')
               )}
             </Button>
           )}
@@ -341,6 +352,7 @@ export function ManageTable<T>({
   onDelete?: (item: T) => void;
   getId: (item: T) => string | number;
 }) {
+  const t = useTranslations('general.manage');
   return (
     <div className='border border-dashed shadow-none rounded-lg overflow-hidden'>
       <ScrollArea className='w-full'>
@@ -358,7 +370,7 @@ export function ManageTable<T>({
                 ))}
                 {onDelete && (
                   <TableHead className='whitespace-nowrap text-center w-[120px]'>
-                    操作
+                    {t('actions')}
                   </TableHead>
                 )}
               </TableRow>

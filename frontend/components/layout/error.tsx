@@ -3,6 +3,7 @@ import { AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 import { cn } from '@/lib/utils';
+import { useTranslations } from 'next-intl';
 
 /**
  * 错误展示组件属性
@@ -48,16 +49,19 @@ export interface ErrorDisplayProps {
  * @returns {React.ReactNode} 错误展示组件
  */
 export function ErrorDisplay({
-  title = '加载失败',
+  title,
   message,
   error,
   onRetry,
-  retryText = '重试',
+  retryText,
   icon: Icon = AlertCircle,
   className,
   showStack = false,
 }: ErrorDisplayProps) {
-  const errorMessage = message || error?.message || '发生未知错误，请稍后重试';
+  const t = useTranslations('layout.error');
+  const displayTitle = title ?? t('loadFailed');
+  const displayRetryText = retryText ?? t('retry');
+  const errorMessage = message || error?.message || t('unknownError');
 
   return (
     <div
@@ -70,7 +74,7 @@ export function ErrorDisplay({
         <Icon className='size-6 text-red-600 dark:text-red-400' />
       </div>
 
-      <h3 className='text-lg font-semibold mb-2'>{title}</h3>
+      <h3 className='text-lg font-semibold mb-2'>{displayTitle}</h3>
 
       <p className='text-sm text-muted-foreground max-w-md mb-4'>
         {errorMessage}
@@ -78,14 +82,14 @@ export function ErrorDisplay({
 
       {onRetry && (
         <Button onClick={onRetry} variant='outline' className='mt-2'>
-          {retryText}
+          {displayRetryText}
         </Button>
       )}
 
       {showStack && error?.stack && process.env.NODE_ENV === 'development' && (
         <details className='mt-6 text-left max-w-2xl w-full'>
           <summary className='cursor-pointer text-xs text-muted-foreground hover:text-foreground'>
-            查看详细错误信息
+            {t('viewDetails')}
           </summary>
           <pre className='mt-2 p-4 bg-muted rounded-lg text-xs overflow-auto'>
             {error.stack}
@@ -115,7 +119,8 @@ export function ErrorInline({
   onRetry,
   className,
 }: Omit<ErrorDisplayProps, 'title' | 'icon' | 'showStack'>) {
-  const errorMessage = message || error?.message || '发生未知错误';
+  const t = useTranslations('layout.error');
+  const errorMessage = message || error?.message || t('unknownErrorShort');
 
   return (
     <div
@@ -133,7 +138,7 @@ export function ErrorInline({
           size='sm'
           className='h-6 px-4 text-xs'
         >
-          重试
+          {t('retry')}
         </Button>
       )}
     </div>

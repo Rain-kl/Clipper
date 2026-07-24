@@ -1,16 +1,19 @@
+import { getTranslations } from 'next-intl/server';
 import { LegalPageLayout } from '@/components/common/docs/legal-page-layout';
 import {
   TERMS_LAST_UPDATED,
-  termsSections,
+  getTermsSections,
 } from '@/components/common/docs/terms';
 
-export default function TermsOfServicePage() {
+export default async function TermsOfServicePage() {
+  const t = await getTranslations('docs');
+
   return (
     <LegalPageLayout
-      title='服务协议 (Terms)'
+      title={t('terms.title')}
       lastUpdated={TERMS_LAST_UPDATED}
-      sections={termsSections}
-      description={<span>为了保障您的合法权益，请您仔细阅读以下条款。</span>}
+      sections={getTermsSections(t)}
+      description={<span>{t('terms.description')}</span>}
     />
   );
 }

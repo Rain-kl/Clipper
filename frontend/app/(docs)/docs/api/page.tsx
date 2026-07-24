@@ -1,17 +1,21 @@
+import { getTranslations } from 'next-intl/server';
 import { LegalPageLayout } from '@/components/common/docs/legal-page-layout';
-import { apiSections, DOCS_LAST_UPDATED } from '@/components/common/docs/api';
+import {
+  getApiSections,
+  DOCS_LAST_UPDATED,
+} from '@/components/common/docs/api';
 
-export default function ApiDocPage() {
+export default async function ApiDocPage() {
+  const t = await getTranslations('docs');
+
   return (
     <LegalPageLayout
-      title='API 接口文档'
+      title={t('api.title')}
       lastUpdated={DOCS_LAST_UPDATED}
-      sections={apiSections}
+      sections={getApiSections(t)}
       description={
         <p className='text-muted-foreground text-sm leading-relaxed'>
-          Wavelet 提供简单、强大的 API
-          接口，支持多种编程语言和开发环境。通过标准化的 RESTful
-          接口，您可以轻松地与后端服务进行集成与二次开发。
+          {t('api.description')}
         </p>
       }
     />
