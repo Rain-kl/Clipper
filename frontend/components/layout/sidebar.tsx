@@ -62,36 +62,43 @@ import {
   UserRound,
 } from 'lucide-react';
 
+import { useTranslations } from 'next-intl';
 import { useUser } from '@/contexts/user-context';
 import { usePublicConfig } from '@/hooks/use-public-config';
 
-/* 导航数据 */
-const data = {
-  navMain: [
-    { title: '首页', url: '/home', icon: Home },
-    { title: '我的文件', url: '/files', icon: FolderOpen },
-  ],
-  admin: [
-    { title: '用户管理', url: '/admin/users', icon: UserRound },
-    { title: '任务管理', url: '/admin/tasks', icon: Layers },
-    { title: '存储管理', url: '/admin/files', icon: FolderOpen },
-    { title: '数据管理', url: '/admin/database', icon: Database },
-    { title: '通知推送', url: '/admin/push', icon: Bell },
-    { title: '系统日志', url: '/admin/logs', icon: Terminal },
-    { title: '系统配置', url: '/admin/system', icon: ShieldCheck },
-    { title: '系统设置', url: '/admin/settings', icon: Settings },
-  ],
-  document: [
-    { title: '规范示例', url: '/admin/demo', icon: Code },
-    { title: '接口文档', url: '/docs/api', icon: CreditCard, external: true },
-    {
-      title: '使用文档',
-      url: '/docs/how-to-use',
-      icon: FileText,
-      external: true,
-    },
-  ],
+type NavItem = {
+  titleKey: string;
+  url: string;
+  icon: React.ComponentType;
+  external?: boolean;
 };
+
+const navMainItems: NavItem[] = [
+  { titleKey: 'home', url: '/home', icon: Home },
+  { titleKey: 'myFiles', url: '/files', icon: FolderOpen },
+];
+
+const adminItems: NavItem[] = [
+  { titleKey: 'users', url: '/admin/users', icon: UserRound },
+  { titleKey: 'tasks', url: '/admin/tasks', icon: Layers },
+  { titleKey: 'storage', url: '/admin/files', icon: FolderOpen },
+  { titleKey: 'database', url: '/admin/database', icon: Database },
+  { titleKey: 'push', url: '/admin/push', icon: Bell },
+  { titleKey: 'logs', url: '/admin/logs', icon: Terminal },
+  { titleKey: 'system', url: '/admin/system', icon: ShieldCheck },
+  { titleKey: 'adminSettings', url: '/admin/settings', icon: Settings },
+];
+
+const documentItems: NavItem[] = [
+  { titleKey: 'demo', url: '/admin/demo', icon: Code },
+  { titleKey: 'apiDocs', url: '/docs/api', icon: CreditCard, external: true },
+  {
+    titleKey: 'usageDocs',
+    url: '/docs/how-to-use',
+    icon: FileText,
+    external: true,
+  },
+];
 
 function parseMenuDisplayConfig(
   raw: string | undefined,
@@ -130,6 +137,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { toggleSidebar, state, isMobile, setOpenMobile } = useSidebar();
   const { user, logout, loading: userLoading } = useUser();
   const { config } = usePublicConfig();
+  const t = useTranslations('layout');
+  const tCommon = useTranslations('common');
   const [showLogoutDialog, setShowLogoutDialog] = React.useState(false);
   const [isLoggingOut, setIsLoggingOut] = React.useState(false);
   const pathname = usePathname();
@@ -169,9 +178,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       await logout();
       setShowLogoutDialog(false);
     } catch (error) {
-      toast.error('登出失败', {
+      toast.error(t('logoutDialog.failed'), {
         description:
-          error instanceof Error ? error.message : '登出时发生错误，请重试',
+          error instanceof Error
+            ? error.message
+            : t('logoutDialog.failedDescription'),
       });
       setIsLoggingOut(false);
     }
@@ -179,17 +190,17 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   const navMainFiltered = React.useMemo(() => {
     const displayConfig = parseMenuDisplayConfig(config?.menu_display_config);
-    return data.navMain.filter((item) => displayConfig[item.url] !== false);
+    return navMainItems.filter((item) => displayConfig[item.url] !== false);
   }, [config]);
 
   const adminFiltered = React.useMemo(() => {
     const displayConfig = parseMenuDisplayConfig(config?.menu_display_config);
-    return data.admin.filter((item) => displayConfig[item.url] !== false);
+    return adminItems.filter((item) => displayConfig[item.url] !== false);
   }, [config]);
 
   const documentFiltered = React.useMemo(() => {
     const displayConfig = parseMenuDisplayConfig(config?.menu_display_config);
-    return data.document.filter((item) => displayConfig[item.url] !== false);
+    return documentItems.filter((item) => displayConfig[item.url] !== false);
   }, [config]);
 
   return (
@@ -248,7 +259,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     {user?.nickname || user?.username || 'Unknown User'}
                   </span>
                   <span className='text-[11px] font-medium text-muted-foreground/100 truncate w-full text-left ml-2'>
-                    {user?.is_admin ? '系统管理员' : '普通用户'}
+                    {user?.is_admin ? t('user.adminRole') : t('user.userRole')}
                   </span>
                 </div>
                 <ChevronDown className='size-4 text-muted-foreground ml-auto group-data-[collapsible=icon]:hidden' />
@@ -299,15 +310,17 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   </div>
                   <span className='text-base font-semibold truncate mt-2'>
                     {userLoading
-                      ? '加载中...'
-                      : user?.nickname || user?.username || '未登录'}
+                      ? tCommon('loading')
+                      : user?.nickname ||
+                        user?.username ||
+                        t('user.notLoggedIn')}
                   </span>
                   <span className='text-xs font-base text-muted-foreground'>
                     {userLoading
-                      ? '正在同步账户'
+                      ? t('user.syncing')
                       : user?.is_admin
-                        ? '系统管理员'
-                        : '普通用户'}
+                        ? t('user.adminRole')
+                        : t('user.userRole')}
                   </span>
                 </div>
               </DropdownMenuLabel>
@@ -318,7 +331,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 }}
               >
                 <UserRound className='mr-2 size-4' />
-                <span>我的资料</span>
+                <span>{t('user.profile')}</span>
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => {
@@ -327,7 +340,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 }}
               >
                 <Settings className='mr-2 size-4' />
-                <span>设置</span>
+                <span>{t('user.settings')}</span>
               </DropdownMenuItem>
               <DropdownMenuSeparator className='my-2' />
               <DropdownMenuItem
@@ -337,14 +350,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 }}
               >
                 <FileQuestionMark className='mr-2 size-4' />
-                <span>使用帮助</span>
+                <span>{t('user.help')}</span>
               </DropdownMenuItem>
               <DropdownMenuItem
                 className='text-destructive hover:bg-destructive/50'
                 onClick={() => setShowLogoutDialog(true)}
               >
                 <LogOut className='mr-2 size-4 text-destructive' />
-                <span>退出登录</span>
+                <span>{t('user.logout')}</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -354,20 +367,23 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             <SidebarGroup className='py-0'>
               <SidebarGroupContent className='py-1'>
                 <SidebarMenu className='gap-1'>
-                  {navMainFiltered.map((item) => (
-                    <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton
-                        tooltip={item.title}
-                        isActive={pathname === item.url}
-                        asChild
-                      >
-                        <Link href={item.url} onClick={handleCloseSidebar}>
-                          {item.icon && <item.icon />}
-                          <span>{item.title}</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
+                  {navMainFiltered.map((item) => {
+                    const title = t(`nav.${item.titleKey}`);
+                    return (
+                      <SidebarMenuItem key={item.url}>
+                        <SidebarMenuButton
+                          tooltip={title}
+                          isActive={pathname === item.url}
+                          asChild
+                        >
+                          <Link href={item.url} onClick={handleCloseSidebar}>
+                            {item.icon && <item.icon />}
+                            <span>{title}</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    );
+                  })}
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
@@ -376,27 +392,30 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           {user?.is_admin && adminFiltered.length > 0 && (
             <SidebarGroup className='py-0 pt-4'>
               <SidebarGroupLabel className='text-xs font-normal text-muted-foreground'>
-                管理
+                {t('groups.admin')}
               </SidebarGroupLabel>
               <SidebarGroupContent className='py-1'>
                 <SidebarMenu className='gap-1'>
-                  {adminFiltered.map((item) => (
-                    <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton
-                        tooltip={item.title}
-                        isActive={
-                          pathname === item.url ||
-                          pathname.startsWith(`${item.url}/`)
-                        }
-                        asChild
-                      >
-                        <Link href={item.url} onClick={handleCloseSidebar}>
-                          {item.icon && <item.icon />}
-                          <span>{item.title}</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
+                  {adminFiltered.map((item) => {
+                    const title = t(`nav.${item.titleKey}`);
+                    return (
+                      <SidebarMenuItem key={item.url}>
+                        <SidebarMenuButton
+                          tooltip={title}
+                          isActive={
+                            pathname === item.url ||
+                            pathname.startsWith(`${item.url}/`)
+                          }
+                          asChild
+                        >
+                          <Link href={item.url} onClick={handleCloseSidebar}>
+                            {item.icon && <item.icon />}
+                            <span>{title}</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    );
+                  })}
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
@@ -405,37 +424,40 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           {documentFiltered.length > 0 && (
             <SidebarGroup className='py-0 pt-4'>
               <SidebarGroupLabel className='text-xs font-normal text-muted-foreground'>
-                文档库
+                {t('groups.docs')}
               </SidebarGroupLabel>
               <SidebarGroupContent className='py-1'>
                 <SidebarMenu className='gap-1'>
-                  {documentFiltered.map((item) => (
-                    <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton
-                        tooltip={item.title}
-                        isActive={pathname === item.url}
-                        asChild
-                      >
-                        {item.external ? (
-                          <Link
-                            href={item.url}
-                            target='_blank'
-                            rel='noopener noreferrer'
-                            onClick={handleCloseSidebar}
-                          >
-                            {item.icon && <item.icon />}
-                            <span className='flex-1'>{item.title}</span>
-                            <ArrowUpRight className='size-3 text-muted-foreground' />
-                          </Link>
-                        ) : (
-                          <Link href={item.url} onClick={handleCloseSidebar}>
-                            {item.icon && <item.icon />}
-                            <span className='flex-1'>{item.title}</span>
-                          </Link>
-                        )}
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
+                  {documentFiltered.map((item) => {
+                    const title = t(`nav.${item.titleKey}`);
+                    return (
+                      <SidebarMenuItem key={item.url}>
+                        <SidebarMenuButton
+                          tooltip={title}
+                          isActive={pathname === item.url}
+                          asChild
+                        >
+                          {item.external ? (
+                            <Link
+                              href={item.url}
+                              target='_blank'
+                              rel='noopener noreferrer'
+                              onClick={handleCloseSidebar}
+                            >
+                              {item.icon && <item.icon />}
+                              <span className='flex-1'>{title}</span>
+                              <ArrowUpRight className='size-3 text-muted-foreground' />
+                            </Link>
+                          ) : (
+                            <Link href={item.url} onClick={handleCloseSidebar}>
+                              {item.icon && <item.icon />}
+                              <span className='flex-1'>{title}</span>
+                            </Link>
+                          )}
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    );
+                  })}
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
@@ -455,18 +477,22 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>确认登出</AlertDialogTitle>
+            <AlertDialogTitle>{t('logoutDialog.title')}</AlertDialogTitle>
             <AlertDialogDescription>
               {isLoggingOut
-                ? '正在登出，请稍候...'
-                : '您确定要登出当前账户吗？'}
+                ? t('logoutDialog.loggingOut')
+                : t('logoutDialog.description')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isLoggingOut}>取消</AlertDialogCancel>
+            <AlertDialogCancel disabled={isLoggingOut}>
+              {tCommon('cancel')}
+            </AlertDialogCancel>
             <AlertDialogAction onClick={handleLogout} disabled={isLoggingOut}>
               {isLoggingOut && <Spinner className='mr-2' />}
-              {isLoggingOut ? '登出中...' : '确认登出'}
+              {isLoggingOut
+                ? t('logoutDialog.inProgress')
+                : t('logoutDialog.confirm')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

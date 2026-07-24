@@ -92,6 +92,8 @@
 - `frontend/components/layout/`：Header / Sidebar / Footer 页面框架组件。
 - `frontend/components/<feature>/`：特定业务域的 UI 组件（如 `auth/`、`home/`）。
 - `frontend/lib/services/`：基于 `BaseService` 继承的类型化前端 API 服务。
+- `frontend/i18n/`：前端国际化配置（locale 解析、cookie、request config）。
+- `frontend/messages/`：i18n 文案目录（`zh-CN.json` / `en.json`）。
 - `frontend/contexts/` / `hooks/` / `lib/` / `types/` / `public/`：全局状态、Hook、客户端工具、TS 类型定义与静态资源。
 
 ## 后端开发规范
@@ -123,3 +125,14 @@
 - **样式与服务**：
     - 优先使用 shadcn/ui 的 `variant` 和全局 CSS 变量，不要在业务代码中硬编码颜色/背景。
     - 前端请求统一在 `frontend/lib/services/<name>/` 中继承 `BaseService` 编写并在 `index.ts` 注册。
+- **国际化 (i18n)**：
+    - 使用 `next-intl`（**无 URL locale 前缀** / non-routing provider 模式），兼容 `NEXT_STANDALONE_EXPORT` 静态导出。
+    - 支持语言：`zh-CN`、`en`；默认 `zh-CN`。
+    - 解析优先级：cookie `NEXT_LOCALE`（用户显式选择）→ 浏览器语言 → 默认 `zh-CN`。
+    - 文案统一放在 `frontend/messages/{locale}.json`，按命名空间嵌套（`common` / `layout` / `auth` / `settings` / 业务域）。
+    - 组件内用户可见文案必须通过 `useTranslations()` / `getTranslations()` 读取；**禁止**新增中英硬编码 UI 字符串（后端返回的 `error_msg`、日志、调试信息除外）。
+    - key 使用 camelCase 分层（如 `auth.login.submit`）；完整短语作为 value，禁止在组件内拼接句子。
+    - 新增或修改文案时必须**同步**更新 `zh-CN.json` 与 `en.json`，保持 key 树一致。
+    - 语言选项展示用自称：`中文` / `English`（不随当前 UI 语言翻译）。
+    - 日期/数字格式化使用 locale 感知 helper（如 `formatDateTime`），禁止写死 `'zh-CN'` / `date-fns` 的 `zhCN`（除非该路径尚未迁移且不在本次改动范围）。
+    - 设计说明见 `docs/superpowers/specs/2026-07-24-frontend-i18n-design.md`。
