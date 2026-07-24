@@ -42,7 +42,10 @@ export default async function RootLayout({
       className={`hide-scrollbar font-sans ${inter.variable}`}
       suppressHydrationWarning
     >
-      <body className='hide-scrollbar font-sans antialiased'>
+      <body
+        className='hide-scrollbar font-sans antialiased'
+        suppressHydrationWarning
+      >
         <ThemeProvider
           attribute='class'
           defaultTheme='system'
