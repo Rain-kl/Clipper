@@ -14,10 +14,10 @@ import (
 	"github.com/Rain-kl/Wavelet/internal/apps/upload/shared"
 	uploadstats "github.com/Rain-kl/Wavelet/internal/apps/upload/stats"
 	uploadstorage "github.com/Rain-kl/Wavelet/internal/apps/upload/storage"
-	"github.com/Rain-kl/Wavelet/internal/db"
+	"github.com/Rain-kl/Wavelet/internal/infra/objectstore"
+	"github.com/Rain-kl/Wavelet/internal/infra/persistence"
+	"github.com/Rain-kl/Wavelet/internal/infra/task"
 	"github.com/Rain-kl/Wavelet/internal/model"
-	"github.com/Rain-kl/Wavelet/internal/storage"
-	"github.com/Rain-kl/Wavelet/internal/task"
 	"github.com/Rain-kl/Wavelet/pkg/logger"
 	"gorm.io/gorm"
 )
@@ -85,7 +85,7 @@ func (h *SystemCleanupHandler) Execute(ctx context.Context, _ []byte) (*task.Tas
 					return err
 				}
 
-				_, backend, err := storage.Active(ctx)
+				_, backend, err := objectstore.Active(ctx)
 				if err != nil {
 					return err
 				}

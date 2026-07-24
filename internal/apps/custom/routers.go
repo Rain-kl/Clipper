@@ -10,7 +10,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/Rain-kl/Wavelet/internal/common/response"
+	"github.com/Rain-kl/Wavelet/internal/shared/response"
 )
 
 // Hello is a sample handler only — do not grow real product logic in this package.

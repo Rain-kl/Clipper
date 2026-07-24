@@ -6,7 +6,7 @@ package references
 import (
 	"net/http"
 
-	"github.com/Rain-kl/Wavelet/internal/common/response"
+	"github.com/Rain-kl/Wavelet/internal/shared/response"
 	"github.com/gin-gonic/gin"
 )
 

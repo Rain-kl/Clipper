@@ -14,7 +14,7 @@
 | `new-async-task` | 添加或修改 Asynq 任务、定时任务、TaskHandler、任务元数据 |
 | `new-setting` | 添加或修改系统/业务/公开设置、`/admin/system` 参数或 `/admin/settings` 图形化设置 |
 | `database-migration` | 数据库表结构变更、goose SQL 迁移（PG/SQLite/ClickHouse）、seed 数据 |
-| `clickhouse-batchwriter` | ClickHouse 批量写入、`internal/db/batchwriter` 接入、分析表异步 flush、背压与写入路径改造 |
+| `clickhouse-batchwriter` | ClickHouse 批量写入、`internal/infra/persistence/batchwriter` 接入、分析表异步 flush、背压与写入路径改造 |
 | `file-upload` | 业务上传文件、Worker 程序化摄取、`upload.Ingest` 策略选型、文件访问与 `w_uploads` / 统计排查 |
 | `cache-framework` | 新增或修改业务缓存（RAM/Redis/DB 三层读路径）、缓存失效、多节点 pub/sub 同步、评估高频读是否应接入缓存 |
 | `push-notification` | 系统通知推送事件、统一触发器投递、带消息推送的业务功能 |
@@ -28,8 +28,8 @@
 - 测试用例禁止硬编码相对路径创建临时目录，统一使用 Go 内置 `t.TempDir()`。
 - 所有 HTTP 路由仅在 `internal/router/router.go` 中作为高层分发注册。
 - 修改 API Handler 后运行 `make swagger`，完成代码开发后必须依次运行 `make code-check` 与 `make format`。
-- 业务模块必须复用平台缓存/文件服务：文件摄取统一用 `upload.Ingest`，删除用 `upload.Remove`/`upload.RemoveOwned`；禁止直接写 `w_uploads` 或操作底层 storage。
-- 禁止在 `init()` 中注册跨模块集成（任务 Handler、推送事件、域事件监听器等），统一在 `internal/bootstrap` 显式装配并在 `internal/cmd` 入口调用。
+- 业务模块必须复用平台缓存/文件服务：文件摄取统一用 `upload.Ingest`，删除用 `upload.Remove`/`upload.RemoveOwned`；禁止直接写 `w_uploads` 或绕过 upload 域直接操作 `infra/objectstore`。
+- 禁止在 `init()` 中注册跨模块集成（任务 Handler、推送事件、域事件监听器等），统一在 `internal/platform/bootstrap` 显式装配并在 `internal/cmd` 入口调用。
 - 核心业务模块（`oauth`、`user`）禁止直接 import `push` 或 `custom_events` 触发通知，须通过 `internal/listener` 发射域事件。
 - API 错误响应必须通过 `response.Abort*` 中断请求，由 `ErrorHandlerMiddleware` 统一写出 JSON 并记录 Trace；禁止在 Handler/中间件中直接 `c.JSON(status, response.Err(...))` 或 `200` 返回 `error_msg`。
 
@@ -53,22 +53,27 @@
 
 ### 后端目录 (`internal/`)
 - `internal/cmd/`：Cobra CLI 命令入口（API/Worker/Scheduler）。
-- `internal/bootstrap/`：应用装配根，集中注册 Task、推送订阅、域事件监听器及进程级初始化。
-- `internal/config/`：Viper 配置加载与映射结构体。
+- `internal/platform/`：进程与跨模块装配。
+  - `bootstrap/`：应用装配根，集中注册 Task、推送订阅、域事件监听器及进程级初始化。
+  - `lifecycle/`：进程 shutdown hook。
+- `internal/infra/`：接入外部世界与 Wavelet 运行时配置的实现（非业务用例）。
+  - `config/`：Viper 启动配置加载与映射结构体。
+  - `persistence/`：PostgreSQL/Redis/ClickHouse 连接池、goose 迁移（`migrator/goose/`）、batchwriter、idgen（Go 包名仍为 `db`）。
+  - `objectstore/`：对象存储多后端适配（Local/S3/R2/OSS/WebDAV；原 `internal/storage`）。
+  - `diskcache/`：读 system_config 的磁盘缓存包装（引擎在 `pkg/cache/disk`）。
+  - `task/`：Asynq 运行时、worker/scheduler、任务元数据。
+- `internal/shared/`：跨层无 IO 约定（`response` envelope、通用错误文案等）。
 - `internal/router/`：全局唯一 HTTP 路由注册点。
 - `internal/apps/`：按功能（Feature-based）划分模块的 Handler 与业务逻辑（管理端位于 `admin/`）。
 - `internal/apps/upload/`：文件上传服务、访问控制与 WebP 压缩。
 - `internal/model/`：GORM 数据模型定义与模型层方法。
-- `internal/db/`：PostgreSQL/Redis/ClickHouse 连接池与 goose SQL 迁移文件（`db/migrator/goose/`）。
-- `internal/diskcache/`：平台级磁盘字节缓存（`diskcache.GetGlobalCache()`）。
-- `internal/storage/`：S3 对象存储适配器。
-- `internal/task/`：Asynq 异步任务定义。
-- `internal/common/`：全局共享模型、统一响应（`response`）、绑定助手与通用错误。
+- `internal/repository/`：数据访问（过渡期包级函数；后续接口化）。
 - `internal/util/`：纯底层无框架依赖工具函数。
-- `internal/listener/`：域事件分发层（解耦业务域与运维/推送模块）。
-- `internal/otel_trace/`：OpenTelemetry 链路追踪助手。
+- `internal/listener/`：域事件分发层（解耦业务域与运维/推送模块；过渡）。
 - `internal/testhelper/`：后端测试共享 Helper。
 - `internal/buildinfo/`：编译与构建元数据。
+
+新增技术能力默认放进 `infra/` 或 `platform/` 子树，禁止再在 `internal/` 顶层平铺杂散包。
 
 ### 公共底层包 (`pkg/`)
 - `pkg/cache/disk/`：纯底层磁盘缓存引擎。
@@ -94,14 +99,14 @@
 ### API 响应规范
 - **统一信封**：`{ "error_msg": "", "data": ... }`
 - **成功**：HTTP 200，写出 `c.JSON(http.StatusOK, response.OK(data))` 或 `response.OKNil()`。
-- **失败**：使用 `internal/common/response` 的 `Abort*` 系列函数（如 `AbortBadRequest`、`AbortUnauthorized`、`AbortNotFound`、`AbortInternal`）中断请求。
+- **失败**：使用 `internal/shared/response` 的 `Abort*` 系列函数（如 `AbortBadRequest`、`AbortUnauthorized`、`AbortNotFound`、`AbortInternal`）中断请求。
 - **错误文案**：使用模块内 `errs.go` 中的 camelCase 字符串常量（如 `errBindParamsFailed`），禁止暴露底层数据库/系统错误细节给客户端。
 - **Logics 分工**：`logics.go` 只接受 `context.Context`，返回 `(result, error)`，严禁依赖 `*gin.Context` 或调用 `c.JSON`/`Abort*`。
 - **错误日志**：底层错误在 Handler/Logic 边界用 `pkg/logger` 打印日志，禁止使用 `_ = ...` 静默吞掉关键错误。
 
 ### 数据库操作
-- 管理员代码推荐使用 `db.DB(ctx)` 保证 Trace 链路透传。
-- 禁止在 Handler 写复杂 SQL；迁移文件位于 `internal/db/migrator/goose/`（禁止 GORM AutoMigrate）。
+- 管理员代码推荐使用 `db.DB(ctx)`（`internal/infra/persistence`，包名 `db`）保证 Trace 链路透传。
+- 禁止在 Handler 写复杂 SQL；迁移文件位于 `internal/infra/persistence/migrator/goose/`（禁止 GORM AutoMigrate）。
 - 不创建物理外键（显式建索引）；Go 模型零值需与数据库默认值匹配。
 
 ## 前端开发规范

@@ -22,11 +22,11 @@ import (
 	"github.com/Rain-kl/Wavelet/internal/apps/oauth"
 	"github.com/Rain-kl/Wavelet/internal/apps/upload/shared"
 	uploadstats "github.com/Rain-kl/Wavelet/internal/apps/upload/stats"
-	"github.com/Rain-kl/Wavelet/internal/common/response"
-	"github.com/Rain-kl/Wavelet/internal/db"
+	"github.com/Rain-kl/Wavelet/internal/infra/objectstore"
+	"github.com/Rain-kl/Wavelet/internal/infra/persistence"
 	"github.com/Rain-kl/Wavelet/internal/model"
 	"github.com/Rain-kl/Wavelet/internal/repository"
-	"github.com/Rain-kl/Wavelet/internal/storage"
+	"github.com/Rain-kl/Wavelet/internal/shared/response"
 	"github.com/Rain-kl/Wavelet/internal/testhelper"
 	"github.com/gin-gonic/gin"
 )
@@ -113,7 +113,7 @@ func TestUploadFile(t *testing.T) {
 	mockFiles := make(map[string][]byte)
 	var putCount int
 
-	restoreStorage := storage.MockStorage(
+	restoreStorage := objectstore.MockStorage(
 		func(ctx context.Context, key string, body io.Reader, size int64, contentType string) error {
 			data, err := io.ReadAll(body)
 			if err != nil {
@@ -123,12 +123,12 @@ func TestUploadFile(t *testing.T) {
 			putCount++
 			return nil
 		},
-		func(ctx context.Context, key string) (*storage.Object, error) {
+		func(ctx context.Context, key string) (*objectstore.Object, error) {
 			data, ok := mockFiles[key]
 			if !ok {
 				return nil, os.ErrNotExist
 			}
-			return &storage.Object{
+			return &objectstore.Object{
 				Body:          io.NopCloser(bytes.NewReader(data)),
 				ContentLength: int64(len(data)),
 				ContentType:   "application/octet-stream",
@@ -142,9 +142,9 @@ func TestUploadFile(t *testing.T) {
 	defer restoreStorage()
 
 	// 开启 S3 Storage
-	storage.IsEnabledFunc = func() bool { return true }
+	objectstore.IsEnabledFunc = func() bool { return true }
 	defer func() {
-		storage.IsEnabledFunc = func() bool { return false }
+		objectstore.IsEnabledFunc = func() bool { return false }
 	}()
 
 	t.Run("upload allowed image file successfully", func(t *testing.T) {
@@ -286,7 +286,7 @@ func TestUploadFile(t *testing.T) {
 
 	t.Run("upload in local storage fallback mode", func(t *testing.T) {
 		// Turn off S3
-		storage.IsEnabledFunc = func() bool { return false }
+		objectstore.IsEnabledFunc = func() bool { return false }
 
 		// Seed allowed extensions configuration to allow txt files
 		var sc model.SystemConfig

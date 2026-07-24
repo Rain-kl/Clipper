@@ -15,11 +15,11 @@ import (
 	"github.com/Rain-kl/Wavelet/internal/apps/upload/shared"
 	uploadstats "github.com/Rain-kl/Wavelet/internal/apps/upload/stats"
 	uploadstorage "github.com/Rain-kl/Wavelet/internal/apps/upload/storage"
-	"github.com/Rain-kl/Wavelet/internal/db"
-	"github.com/Rain-kl/Wavelet/internal/db/idgen"
+	"github.com/Rain-kl/Wavelet/internal/infra/objectstore"
+	"github.com/Rain-kl/Wavelet/internal/infra/persistence"
+	"github.com/Rain-kl/Wavelet/internal/infra/persistence/idgen"
 	"github.com/Rain-kl/Wavelet/internal/model"
 	"github.com/Rain-kl/Wavelet/internal/repository"
-	"github.com/Rain-kl/Wavelet/internal/storage"
 	"github.com/Rain-kl/Wavelet/pkg/logger"
 	"gorm.io/gorm"
 )
@@ -84,7 +84,7 @@ func storeObject(ctx context.Context, objectKey string, reader io.Reader, size i
 		return "", ErrStorageReadOnly
 	}
 
-	driver, backend, err := storage.Active(ctx)
+	driver, backend, err := objectstore.Active(ctx)
 	if err != nil {
 		logger.ErrorF(ctx, "初始化活动存储失败: %v", err)
 		return "", errors.New(shared.ErrSaveFileFailed)
@@ -102,7 +102,7 @@ func storeObject(ctx context.Context, objectKey string, reader io.Reader, size i
 
 func persistUploadRecord(ctx context.Context, upload *model.Upload, objectKey string) error {
 	if err := createUploadWithStats(ctx, upload); err != nil {
-		_, backend, backendErr := storage.Active(ctx)
+		_, backend, backendErr := objectstore.Active(ctx)
 		if backendErr == nil {
 			if deleteErr := backend.Delete(ctx, objectKey); deleteErr != nil {
 				logger.WarnF(ctx, "清理未写入数据库的上传对象失败: %v", deleteErr)

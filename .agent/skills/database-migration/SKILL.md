@@ -1,17 +1,17 @@
 ---
 name: "database-migration"
-description: "Wavelet 项目专用：当新增或修改数据库表结构、索引、初始化数据、系统配置 seed、模板 seed、默认管理员、goose SQL 迁移、internal/db/migrator、ClickHouse 分析库 DDL 或数据库升级流程时必须使用。本技能指导在 internal/db/migrator/goose 下编写 PostgreSQL/SQLite 双方言 SQL 迁移，以及在 goose/clickhouse 下编写 ClickHouse 单方言分析表迁移，并完成验证。"
+description: "Wavelet 项目专用：当新增或修改数据库表结构、索引、初始化数据、系统配置 seed、模板 seed、默认管理员、goose SQL 迁移、internal/infra/persistence/migrator、ClickHouse 分析库 DDL 或数据库升级流程时必须使用。本技能指导在 internal/infra/persistence/migrator/goose 下编写 PostgreSQL/SQLite 双方言 SQL 迁移，以及在 goose/clickhouse 下编写 ClickHouse 单方言分析表迁移，并完成验证。"
 ---
 
 # Wavelet 数据库升级操作指南
 
-Wavelet 使用 `github.com/pressly/goose/v3` 执行 SQL 迁移。迁移入口是 `internal/db/migrator.Migrate()`，SQL 文件嵌入在二进制中。
+Wavelet 使用 `github.com/pressly/goose/v3` 执行 SQL 迁移。迁移入口是 `internal/infra/persistence/migrator.Migrate()`，SQL 文件嵌入在二进制中。
 
 ## 基本规则
 
 - SQL 迁移文件放在：
-    - `internal/db/migrator/goose/postgres/`
-    - `internal/db/migrator/goose/sqlite/`
+    - `internal/infra/persistence/migrator/goose/postgres/`
+    - `internal/infra/persistence/migrator/goose/sqlite/`
 - PostgreSQL 和 SQLite 必须使用同一个版本号、同一个语义文件名。
 - 迁移文件使用 goose SQL 标记：
 
@@ -51,7 +51,7 @@ Wavelet 使用 `github.com/pressly/goose/v3` 执行 SQL 迁移。迁移入口是
 7. 至少运行：
 
 ```bash
-go test ./internal/db/migrator
+go test ./internal/infra/persistence/migrator
 go test ./internal/model ./internal/apps/config ./internal/apps/admin/system_config
 make code-check
 ```
@@ -89,10 +89,10 @@ ClickHouse 是**辅助 OLAP 存储**，与 PostgreSQL/SQLite 主库**完全独�
 
 | 路径 | 职责 |
 | :--- | :--- |
-| `internal/db/migrator/goose/clickhouse/` | **唯一** ClickHouse DDL 来源（goose SQL，嵌入二进制） |
+| `internal/infra/persistence/migrator/goose/clickhouse/` | **唯一** ClickHouse DDL 来源（goose SQL，嵌入二进制） |
 | `internal/model/analytics/` | 分析表 Go model，列名须与 goose DDL 一致 |
 | `internal/repository/analytics/` | 所有 ClickHouse 读写（批量写入、查询、聚合） |
-| `internal/db/clickhouse.go` | 连接初始化（`ChConn` 原生批量、`chDB` GORM 查询） |
+| `internal/infra/persistence/clickhouse.go` | 连接初始化（`ChConn` 原生批量、`chDB` GORM 查询） |
 
 ### 迁移入口与版本表
 
@@ -116,16 +116,16 @@ ClickHouse 是**辅助 OLAP 存储**，与 PostgreSQL/SQLite 主库**完全独�
 按以下顺序落地，避免列名或类型漂移：
 
 1. **Model**：在 `internal/model/analytics/` 定义 struct，`gorm:"column:..."` 与 DDL 列名一一对应；实现 `TableName()`，批量写入表可提供 `InsertColumns()` / `BatchInsertSQL()`。
-2. **Goose SQL**：在 `internal/db/migrator/goose/clickhouse/` 新增递增版本文件（格式同主库，如 `YYYYMMDDNNNN_create_xxx.sql`），编写 `-- +goose Up` / `-- +goose Down`。
+2. **Goose SQL**：在 `internal/infra/persistence/migrator/goose/clickhouse/` 新增递增版本文件（格式同主库，如 `YYYYMMDDNNNN_create_xxx.sql`），编写 `-- +goose Up` / `-- +goose Down`。
 3. **Repository**：在 `internal/repository/analytics/` 实现 `BatchInsert*`（`db.ChConn` 一次 `PrepareBatch` + 多行 `Append` + 一次 `Send`）与查询（`db.ChDB`）；连接未初始化时返回明确错误，**不要**在 handler 写 SQL，**不要**在 repository 内维护 channel/goroutine。
-4. **Apps**：在 `internal/apps/<domain>/` 编排采集与入队；高频写入通过 `internal/db/batchwriter` 各域独立实例异步 flush（详见 `clickhouse-batchwriter` 技能），`FlushFunc` 只调 repository `BatchInsert*`；管理端统计 API 只读 repository，不触达 DDL。
+4. **Apps**：在 `internal/apps/<domain>/` 编排采集与入队；高频写入通过 `internal/infra/persistence/batchwriter` 各域独立实例异步 flush（详见 `clickhouse-batchwriter` 技能），`FlushFunc` 只调 repository `BatchInsert*`；管理端统计 API 只读 repository，不触达 DDL。
 
 ### ClickHouse 验证
 
 至少运行：
 
 ```bash
-go test ./internal/db/migrator
+go test ./internal/infra/persistence/migrator
 go test ./internal/repository/analytics
 make code-check
 ```

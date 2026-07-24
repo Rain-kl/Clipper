@@ -19,11 +19,11 @@ import (
 
 	"github.com/Rain-kl/Wavelet/internal/apps/upload/filesrv"
 	"github.com/Rain-kl/Wavelet/internal/apps/upload/shared"
-	"github.com/Rain-kl/Wavelet/internal/db"
-	"github.com/Rain-kl/Wavelet/internal/diskcache"
+	"github.com/Rain-kl/Wavelet/internal/infra/diskcache"
+	"github.com/Rain-kl/Wavelet/internal/infra/objectstore"
+	"github.com/Rain-kl/Wavelet/internal/infra/persistence"
+	"github.com/Rain-kl/Wavelet/internal/infra/task"
 	"github.com/Rain-kl/Wavelet/internal/model"
-	"github.com/Rain-kl/Wavelet/internal/storage"
-	"github.com/Rain-kl/Wavelet/internal/task"
 	"github.com/Rain-kl/Wavelet/internal/testhelper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -34,17 +34,17 @@ func TestSystemCleanupHandler_Execute(t *testing.T) {
 	defer cleanup()
 
 	// Mock S3 存储（让 DeleteObject 总是成功）
-	storageMock := storage.MockStorage(
+	storageMock := objectstore.MockStorage(
 		func(ctx context.Context, key string, body io.Reader, size int64, contentType string) error {
 			return nil
 		},
-		func(ctx context.Context, key string) (*storage.Object, error) { return nil, nil },
+		func(ctx context.Context, key string) (*objectstore.Object, error) { return nil, nil },
 		func(ctx context.Context, key string) error { return nil },
 	)
 	defer storageMock()
-	storage.IsEnabledFunc = func() bool { return true }
-	defer func() { storage.IsEnabledFunc = func() bool { return false } }()
-	storage.ResetCache()
+	objectstore.IsEnabledFunc = func() bool { return true }
+	defer func() { objectstore.IsEnabledFunc = func() bool { return false } }()
+	objectstore.ResetCache()
 
 	ctx := context.Background()
 	err := db.DB(ctx).AutoMigrate(&model.PushHistory{})
@@ -169,11 +169,11 @@ func TestSystemCleanupHandler_ExecuteNoFiles(t *testing.T) {
 	defer cleanup()
 
 	// Mock S3 存储
-	storageMock := storage.MockStorage(
+	storageMock := objectstore.MockStorage(
 		func(ctx context.Context, key string, body io.Reader, size int64, contentType string) error {
 			return nil
 		},
-		func(ctx context.Context, key string) (*storage.Object, error) { return nil, nil },
+		func(ctx context.Context, key string) (*objectstore.Object, error) { return nil, nil },
 		func(ctx context.Context, key string) error { return nil },
 	)
 	defer storageMock()
@@ -267,9 +267,9 @@ func TestWarmImageCacheHandlerExecute(t *testing.T) {
 
 	testDir := t.TempDir()
 	ctx := context.Background()
-	active := storage.DefaultConfig()
+	active := objectstore.DefaultConfig()
 	active.Local.Root = testDir
-	if err := storage.SaveActiveConfig(ctx, active); err != nil {
+	if err := objectstore.SaveActiveConfig(ctx, active); err != nil {
 		t.Fatalf("SaveActiveConfig() returned error: %v", err)
 	}
 

@@ -7,7 +7,7 @@ import (
 	"context"
 	"strings"
 
-	"github.com/Rain-kl/Wavelet/internal/db"
+	"github.com/Rain-kl/Wavelet/internal/infra/persistence"
 	"github.com/Rain-kl/Wavelet/internal/model"
 	"gorm.io/gorm"
 )

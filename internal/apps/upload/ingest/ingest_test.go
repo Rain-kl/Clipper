@@ -13,9 +13,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Rain-kl/Wavelet/internal/db"
+	"github.com/Rain-kl/Wavelet/internal/infra/objectstore"
+	"github.com/Rain-kl/Wavelet/internal/infra/persistence"
 	"github.com/Rain-kl/Wavelet/internal/model"
-	"github.com/Rain-kl/Wavelet/internal/storage"
 	"github.com/Rain-kl/Wavelet/internal/testhelper"
 )
 
@@ -291,7 +291,7 @@ func loadTotalStats(ctx context.Context) (totalStatsSnapshot, error) {
 func setupMockStorage(t *testing.T, putCount *int) (restore func(), disable func()) {
 	t.Helper()
 	mockFiles := make(map[string][]byte)
-	restore = storage.MockStorage(
+	restore = objectstore.MockStorage(
 		func(ctx context.Context, key string, body io.Reader, size int64, contentType string) error {
 			data, err := io.ReadAll(body)
 			if err != nil {
@@ -303,12 +303,12 @@ func setupMockStorage(t *testing.T, putCount *int) (restore func(), disable func
 			}
 			return nil
 		},
-		func(ctx context.Context, key string) (*storage.Object, error) {
+		func(ctx context.Context, key string) (*objectstore.Object, error) {
 			data, ok := mockFiles[key]
 			if !ok {
 				return nil, os.ErrNotExist
 			}
-			return &storage.Object{
+			return &objectstore.Object{
 				Body:          io.NopCloser(bytes.NewReader(data)),
 				ContentLength: int64(len(data)),
 				ContentType:   "application/octet-stream",
@@ -319,11 +319,11 @@ func setupMockStorage(t *testing.T, putCount *int) (restore func(), disable func
 			return nil
 		},
 	)
-	storage.IsEnabledFunc = func() bool { return true }
-	storage.ResetCache()
+	objectstore.IsEnabledFunc = func() bool { return true }
+	objectstore.ResetCache()
 	disable = func() {
-		storage.IsEnabledFunc = func() bool { return false }
-		storage.ResetCache()
+		objectstore.IsEnabledFunc = func() bool { return false }
+		objectstore.ResetCache()
 	}
 	return restore, disable
 }

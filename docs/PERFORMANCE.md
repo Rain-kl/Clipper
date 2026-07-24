@@ -209,7 +209,7 @@ err = db.DB(ctx).Model(&model.Upload{}).
 
 ### 4. `w_uploads` 索引缺口 `✅ 已完成`
 
-**涉及文件**：`internal/db/migrator/goose/postgres/202606090001_initial_schema.sql`
+**涉及文件**：`internal/infra/persistence/migrator/goose/postgres/202606090001_initial_schema.sql`
 
 **当前索引**：`user_id`, `file_path`, `hash`, `type`
 
@@ -341,7 +341,7 @@ if (loading || !user) {
 | 17 | ~~Users 表每行嵌套 3 个 `TooltipProvider`~~ ✅ | `admin/users/page.tsx` | 表格外层单一 Provider |
 | 18 | ~~缩略图用原生 `<img>` 无 lazy loading~~ ✅ | `file-list.tsx`, `file-manager.tsx` | `loading="lazy"` + `decoding="async"` |
 | 19 | ~~`@/lib/services` barrel 导入~~ ✅ | 全前端消费侧 | 改为 `@/lib/services/<module>` 直接导入 |
-| 20 | SQLite 模式无连接池调优 | `internal/db/postgres.go` | 默认 SQLite 写锁瓶颈 |
+| 20 | SQLite 模式无连接池调优 | `internal/infra/persistence/postgres.go` | 默认 SQLite 写锁瓶颈 |
 | 21 | Session Redis 仅用第一个地址 | `internal/router/router.go` | Sentinel/Cluster 场景不一致 |
 
 ---
@@ -397,11 +397,11 @@ if (loading || !user) {
 |---|------|------|
 | 1 | 系统配置两层缓存 RAM → DB | `pkg/cache/store`, `system_config_cache.go`, `GetByKey` |
 | 2 | 系统配置统一刷新 + 多节点 pub/sub 预热广播 | `InvalidateSystemConfigCache`, `InvalidateAllSystemConfigCaches` |
-| 3 | Storage Backend 单例 + 5s TTL + pub/sub 失效 | `internal/storage/storage.go` — `Active()` |
+| 3 | Storage Backend 单例 + 5s TTL + pub/sub 失效 | `internal/infra/objectstore/storage.go` — `Active()` |
 | 4 | 推送事件/渠道 24h Redis 缓存 + GORM hook 失效 | `internal/model/push_event.go`, `push_channel.go` |
 | 5 | 风控日志异步批写 ClickHouse（1 万缓冲 + 1000 条/1s + 429 背压） | `internal/apps/risk_control/` |
 | 6 | HTTP 连接池统一（`httppool` + OTel） | `pkg/httppool/` |
-| 7 | DB/Redis 连接池显式配置 | `config.yaml`, `internal/db/` |
+| 7 | DB/Redis 连接池显式配置 | `config.yaml`, `internal/infra/persistence/` |
 | 8 | 游标分批处理（`id > ? LIMIT n`） | `cleanup.go`, image warmup |
 | 9 | 存储迁移并发上限 `errgroup.SetLimit(10)` | `storage_migration_task.go` |
 | 10 | 邮件/推送走 Asynq，不在 HTTP 路径同步发送 | `user/logics.go`, `push/events.go` |
@@ -410,7 +410,7 @@ if (loading || !user) {
 | 13 | 前端 API 请求去重（`pendingRequests` Map） | `frontend/lib/services/core/api-client.ts` |
 | 14 | React Query 全局 30s `staleTime` | `frontend/components/providers/query-provider.tsx` |
 | 15 | React Compiler 已启用 | `frontend/next.config.ts` |
-| 16 | 读副本支持（`dbresolver`） | `internal/db/postgres.go` |
+| 16 | 读副本支持（`dbresolver`） | `internal/infra/persistence/postgres.go` |
 | 17 | 任务执行日志 Redis 缓冲 + 批量回写 | `internal/model/task_execution.go` |
 | 18 | 公共配置列表 Redis 缓存 + 写后失效 | `ListVisibleSystemConfigs`, `InvalidateVisibleSystemConfigsCache` |
 | 19 | 上传文件统计增量表 `w_upload_stats` | `stats_counter.go`, 上传/删除 hook |
@@ -493,7 +493,7 @@ P1
 | 参数失效 API | `InvalidateSystemConfigCache` | ✅ 清 RAM + Redis field |
 | CAPTCHA 快照 | `internal/apps/cap/runtime_settings.go` | ✅ `CurrentSettings` + pub/sub |
 | 批量下载 | `internal/apps/upload/routers.go` | 同步 ZIP |
-| 上传索引 | `internal/db/migrator/goose/*202606170001*.sql` | ✅ 复合索引已加 |
+| 上传索引 | `internal/infra/persistence/migrator/goose/*202606170001*.sql` | ✅ 复合索引已加 |
 | 认证 gate | `frontend/app/(main)/layout.tsx` | ✅ 即时渲染 + `useAuthRedirect` |
 | 页面鉴权 | `frontend/components/auth/require-auth.tsx` | ✅ 子页面按需拦截 |
 | 用户上下文 | `frontend/contexts/user-context.tsx` | ✅ 登录/注册页跳过 fetch |

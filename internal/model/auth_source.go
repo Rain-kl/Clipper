@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Rain-kl/Wavelet/internal/db"
+	"github.com/Rain-kl/Wavelet/internal/infra/persistence"
 	"gorm.io/gorm"
 )
 

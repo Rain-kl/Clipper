@@ -1,6 +1,6 @@
 ---
 name: "clickhouse-batchwriter"
-description: "Wavelet 项目专用：当新增或修改 ClickHouse 批量写入、接入 internal/db/batchwriter、将业务域异步 flush 到分析表、迁移 risk_control/节点访问日志/可观测时序写入、或评估 async_insert 与背压策略时必须使用。本技能指导分层职责、各域独立 Writer 实例、repository 批量 API 与禁止写法。"
+description: "Wavelet 项目专用：当新增或修改 ClickHouse 批量写入、接入 internal/infra/persistence/batchwriter、将业务域异步 flush 到分析表、迁移 risk_control/节点访问日志/可观测时序写入、或评估 async_insert 与背压策略时必须使用。本技能指导分层职责、各域独立 Writer 实例、repository 批量 API 与禁止写法。"
 ---
 
 # ClickHouse 批量写入开发
@@ -13,13 +13,13 @@ DDL 与表结构变更见 `database-migration` 技能；本技能只覆盖**运�
 
 | 层级 | 路径 | 职责 |
 | :--- | :--- | :--- |
-| 连接 | `internal/db/clickhouse.go` | `ChConn`（原生批量写）、`ChDB`（GORM 查询）；禁止在业务包直接 `clickhouse.Open` |
-| 批量框架 | `internal/db/batchwriter/` | 泛型队列 + 按条数/时间 flush + 非阻塞入队 + 优雅停机；**各业务域独立实例** |
+| 连接 | `internal/infra/persistence/clickhouse.go` | `ChConn`（原生批量写）、`ChDB`（GORM 查询）；禁止在业务包直接 `clickhouse.Open` |
+| 批量框架 | `internal/infra/persistence/batchwriter/` | 泛型队列 + 按条数/时间 flush + 非阻塞入队 + 优雅停机；**各业务域独立实例** |
 | Model | `internal/model/analytics/` | 列定义、`TableName()`、`BatchInsertSQL()`（及可选 `InsertColumns()`） |
 | Repository | `internal/repository/analytics/` | `BatchInsert*` / `BatchInsertNodeAccessLogs` 等；`PrepareBatch` + 多行 `Append` + 一次 `Send` |
 | Apps | `internal/apps/<domain>/` | 采集、入队、背压；`FlushFunc` 只调 repository，不写 SQL、不 `PrepareBatch` |
-| 装配 | `internal/bootstrap/bootstrap.go` | 进程启动时调用 `Writer.Start`；初始化时需调用 `lifecycle.OnShutdown` 挂载停机钩子 |
-| 生命周期 | `internal/lifecycle/lifecycle.go` | 统一协调全局并发优雅停机，业务包无需在 `bootstrap.go` 中硬编码 `Stop` 逻辑 |
+| 装配 | `internal/platform/bootstrap/bootstrap.go` | 进程启动时调用 `Writer.Start`；初始化时需调用 `lifecycle.OnShutdown` 挂载停机钩子 |
+| 生命周期 | `internal/platform/lifecycle/lifecycle.go` | 统一协调全局并发优雅停机，业务包无需在 `bootstrap.go` 中硬编码 `Stop` 逻辑 |
 
 **禁止**在 Handler / middleware 内直接 `db.ChConn.PrepareBatch`；**禁止**在 repository 内启动 goroutine 或维护全局 channel（队列生命周期由 apps + bootstrap 或专用 writer 包负责）。
 
@@ -68,7 +68,7 @@ writer.Stop(stopCtx)      // close 队列 + drain + 最终 flush
 ## 新增 ClickHouse 写入工作流
 
 1. **Model**：在 `internal/model/analytics/` 定义 struct 与 `BatchInsertSQL()`（列顺序与 goose DDL 一致）。
-2. **Goose DDL**：在 `internal/db/migrator/goose/clickhouse/` 新增迁移（见 `database-migration`）。
+2. **Goose DDL**：在 `internal/infra/persistence/migrator/goose/clickhouse/` 新增迁移（见 `database-migration`）。
 3. **Repository**：实现 `BatchInsertX(ctx, []analyticsmodel.X) error`：
     - `len(items)==0` 直接返回
     - `db.ChConn == nil` 返回明确错误
@@ -78,7 +78,7 @@ writer.Stop(stopCtx)      // close 队列 + drain + 最终 flush
     - 业务路径 `TryEnqueue`；HTTP 背压用 `IsFull()`
 5. **测试**：
     - repository：mock `ChConn` 验证 `BatchInsertSQL` 与 append 列数
-    - batchwriter：`go test ./internal/db/batchwriter`
+    - batchwriter：`go test ./internal/infra/persistence/batchwriter`
 6. 运行 `make code-check`；有 API 变更时 `make swagger`。
 
 ## 背压与丢弃策略
@@ -110,7 +110,7 @@ var globalChan chan any
 
 ## async_insert（补充，非主方案）
 
-可在 `internal/db/clickhouse.go` 的 `Settings` 增加服务端异步写入作为第二层防护：
+可在 `internal/infra/persistence/clickhouse.go` 的 `Settings` 增加服务端异步写入作为第二层防护：
 
 ```go
 "async_insert": 1,
@@ -122,7 +122,7 @@ var globalChan chan any
 ## Bootstrap 装配示例
 
 ```go
-// internal/bootstrap/bootstrap.go（示意）
+// internal/platform/bootstrap/bootstrap.go（示意）
 var userAccessLogWriter *batchwriter.Writer[*analytics.UserAccessLog]
 
 func RegisterAPI(ctx context.Context) {
@@ -141,7 +141,7 @@ func RegisterAPI(ctx context.Context) {
 ## 验证清单
 
 ```bash
-go test ./internal/db/batchwriter
+go test ./internal/infra/persistence/batchwriter
 go test ./internal/repository/analytics
 make code-check
 ```
@@ -153,11 +153,11 @@ make code-check
 
 ## 相关文件速查
 
-- 框架：`internal/db/batchwriter/{config,writer,errs}.go`
-- 连接：`internal/db/clickhouse.go`
+- 框架：`internal/infra/persistence/batchwriter/{config,writer,errs}.go`
+- 连接：`internal/infra/persistence/clickhouse.go`
 - 审计写入：`internal/apps/risk_control/logics.go`
 - OpenFlare 写入胶水：`internal/apps/openflare/chwriter/writer.go`
 - 节点访问日志 repository：`internal/repository/analytics/node_access_log_writer.go`
 - 可观测 repository：`internal/repository/analytics/node_observability_writer.go`
-- 生命周期管理器：`internal/lifecycle/lifecycle.go`
-- Bootstrap：`internal/bootstrap/bootstrap.go`
+- 生命周期管理器：`internal/platform/lifecycle/lifecycle.go`
+- Bootstrap：`internal/platform/bootstrap/bootstrap.go`
