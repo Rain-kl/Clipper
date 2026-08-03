@@ -4,8 +4,8 @@ services:
       context: .
       dockerfile: docker/Dockerfile
       args:
-        VERSION: v0.9.9
-#    image: ghcr.io/rain-kl/wavelet:latest
+        VERSION: canary
+    image: ghcr.io/rain-kl/wavelet:canary
     restart: unless-stopped
     env_file: .env
     environment:
@@ -16,7 +16,7 @@ services:
     ports:
       - "${APP_PORT:-8000}:8000"
     volumes:
-      - ./uploads:/app/uploads
+      - ./data/uploads:/app/uploads
       - ./data/sqlite:/app/data
     depends_on:
       postgres:
@@ -51,8 +51,6 @@ services:
     command: ["valkey-server", "--appendonly", "yes"]
     ports:
       - "${REDIS_PORT:-6379}:6379"
-    volumes:
-      - ./data/valkey:/data
     healthcheck:
       test: ["CMD", "valkey-cli", "ping"]
       interval: 10s
