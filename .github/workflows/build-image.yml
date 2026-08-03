@@ -9,6 +9,12 @@ on:
         type: string
   push:
     tags: ["v*"]
+    branches: ["canary"]
+
+# One active run per ref (e.g. canary); newer runs cancel older in-progress builds.
+concurrency:
+  group: build-image-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -52,7 +58,9 @@ jobs:
 
           OWNER="${GITHUB_REPOSITORY_OWNER,,}"
 
-          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+          if [[ "${GITHUB_REF}" == refs/heads/canary ]]; then
+            VERSION="canary"
+          elif [[ "${GITHUB_REF}" == refs/tags/* ]]; then
             VERSION="${GITHUB_REF_NAME}"
           elif [[ -n "$INPUT_VERSION" ]]; then
             VERSION="$INPUT_VERSION"
@@ -135,7 +143,9 @@ jobs:
 
           OWNER="${GITHUB_REPOSITORY_OWNER,,}"
 
-          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+          if [[ "${GITHUB_REF}" == refs/heads/canary ]]; then
+            VERSION="canary"
+          elif [[ "${GITHUB_REF}" == refs/tags/* ]]; then
             VERSION="${GITHUB_REF_NAME}"
           elif [[ -n "$INPUT_VERSION" ]]; then
             VERSION="$INPUT_VERSION"
@@ -181,16 +191,23 @@ jobs:
             exit 1
           fi
 
-          if [[ "${VERSION}" =~ (alpha|beta|rc) ]]; then
-            FLOATING_TAG="beta"
+          # canary builds only publish the movable :canary tag (not latest/beta)
+          if [[ "${VERSION}" == "canary" ]]; then
+            docker buildx imagetools create \
+              -t "${IMAGE}:canary" \
+              "${references[@]}"
           else
-            FLOATING_TAG="latest"
-          fi
+            if [[ "${VERSION}" =~ (alpha|beta|rc) ]]; then
+              FLOATING_TAG="beta"
+            else
+              FLOATING_TAG="latest"
+            fi
 
-          docker buildx imagetools create \
-            -t "${IMAGE}:${VERSION}" \
-            -t "${IMAGE}:${FLOATING_TAG}" \
-            "${references[@]}"
+            docker buildx imagetools create \
+              -t "${IMAGE}:${VERSION}" \
+              -t "${IMAGE}:${FLOATING_TAG}" \
+              "${references[@]}"
+          fi
         env:
           IMAGE: ${{ env.IMAGE }}
 
