@@ -12,7 +12,7 @@
 - 新增功能时考虑向后兼容性和 API 稳定性
 - 遵循项目的 Apache2.0 许可证要求
 - 遵循语义化版本控制规范
-- 新增异步任务时使用项目技能 `.agent/new-async-task/SKILL.md`
+- 新增异步任务时使用项目技能 `.agents/new-async-task/SKILL.md`
 
 ## 后端规范
 
