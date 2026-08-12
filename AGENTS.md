@@ -1,6 +1,68 @@
-# AGENTS.md — Wavelet AI 助手工作操作手册
+# AGENTS.md
 
-本文件面向 AI 开发助手，定义其职责与操作规范。
+Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-specific instructions as needed.
+
+**Tradeoff:** These guidelines bias toward caution over speed. For trivial tasks, use judgment.
+
+## 1. Think Before Coding
+
+**Don't assume. Don't hide confusion. Surface tradeoffs.**
+
+Before implementing:
+- State your assumptions explicitly. If uncertain, ask.
+- If multiple interpretations exist, present them - don't pick silently.
+- If a simpler approach exists, say so. Push back when warranted.
+- If something is unclear, stop. Name what's confusing. Ask.
+
+## 2. Simplicity First
+
+**Minimum code that solves the problem. Nothing speculative.**
+
+- No features beyond what was asked.
+- No abstractions for single-use code.
+- No "flexibility" or "configurability" that wasn't requested.
+- No error handling for impossible scenarios.
+- If you write 200 lines and it could be 50, rewrite it.
+
+Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
+
+## 3. Surgical Changes
+
+**Touch only what you must. Clean up only your own mess.**
+
+When editing existing code:
+- Don't "improve" adjacent code, comments, or formatting.
+- Don't refactor things that aren't broken.
+- Match existing style, even if you'd do it differently.
+- If you notice unrelated dead code, mention it - don't delete it.
+
+When your changes create orphans:
+- Remove imports/variables/functions that YOUR changes made unused.
+- Don't remove pre-existing dead code unless asked.
+
+The test: Every changed line should trace directly to the user's request.
+
+## 4. Goal-Driven Execution
+
+**Define success criteria. Loop until verified.**
+
+Transform tasks into verifiable goals:
+- "Add validation" → "Write tests for invalid inputs, then make them pass"
+- "Fix the bug" → "Write a test that reproduces it, then make it pass"
+- "Refactor X" → "Ensure tests pass before and after"
+
+For multi-step tasks, state a brief plan:
+```
+1. [Step] → verify: [check]
+2. [Step] → verify: [check]
+3. [Step] → verify: [check]
+```
+
+Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
+
+---
+
+**These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
 
 ## Git 提交规范
 
@@ -38,63 +100,6 @@
 ### 技术栈
 - **后端**：Go 1.25+、Gin、GORM、PostgreSQL、ClickHouse、Redis、Asynq、Cobra、Viper、Swaggo、OpenTelemetry、Zap、AWS SDK v2。
 - **前端**：Next.js (App Router)、TypeScript、Tailwind CSS、pnpm、shadcn/ui。
-
-### 顶层目录
-- `main.go`：程序入口，委派给 `internal/cmd`。
-- `config.example.yaml` / `config.yaml`：配置文件模板与本地配置。
-- `docker/`：容器化部署 Dockerfile。
-- `docs/`：自动生成的 Swagger 文档（请勿手动编辑）。
-- `frontend/`：Next.js 前端应用。
-- `internal/`：后端核心私有代码。
-- `pkg/`：公共通用 Go 工具库（不包含具体业务）。
-- `scripts/`：本地开发与 CI 脚本。
-- `support-files/`：部署与 SQL/环境辅助文件。
-- `bin/` / `data/` / `uploads/`：编译二进制产物、本地数据文件与上传存储目录。
-
-### 后端目录 (`internal/`)
-- `internal/cmd/`：Cobra CLI 命令入口（API/Worker/Scheduler）。
-- `internal/platform/`：进程与跨模块装配。
-  - `bootstrap/`：应用装配根，集中注册 Task、推送订阅、域事件监听器及进程级初始化。
-  - `lifecycle/`：进程 shutdown hook。
-- `internal/infra/`：接入外部世界与 Wavelet 运行时配置的实现（非业务用例）。
-  - `config/`：Viper 启动配置加载与映射结构体。
-  - `persistence/`：PostgreSQL/Redis/ClickHouse 连接池、goose 迁移（`migrator/goose/`）、batchwriter、idgen（Go 包名仍为 `db`）。
-  - `objectstore/`：对象存储多后端适配（Local/S3/R2/OSS/WebDAV；原 `internal/storage`）。
-  - `diskcache/`：读 system_config 的磁盘缓存包装（引擎在 `pkg/cache/disk`）。
-  - `task/`：Asynq 运行时、worker/scheduler、任务元数据。
-- `internal/shared/`：跨层无 IO 约定（`response` envelope、通用错误文案等）。
-- `internal/router/`：全局唯一 HTTP 路由注册点。
-- `internal/apps/`：按功能（Feature-based）划分模块的 Handler 与业务逻辑（管理端位于 `admin/`）。
-- `internal/apps/upload/`：文件上传服务、访问控制与 WebP 压缩。
-- `internal/model/`：GORM 数据模型定义与模型层方法。
-- `internal/repository/`：数据访问（过渡期包级函数；后续接口化）。
-- `internal/util/`：纯底层无框架依赖工具函数。
-- `internal/listener/`：域事件分发层（解耦业务域与运维/推送模块；过渡）。
-- `internal/testhelper/`：后端测试共享 Helper。
-- `internal/buildinfo/`：编译与构建元数据。
-
-新增技术能力默认放进 `infra/` 或 `platform/` 子树，禁止再在 `internal/` 顶层平铺杂散包。
-
-### 公共底层包 (`pkg/`)
-- `pkg/cache/disk/`：纯底层磁盘缓存引擎。
-- `pkg/cap/`：通用验证码库。
-- `pkg/httppool/`：带 OTel 链路追踪的共享 HTTP 客户端连接池。
-- `pkg/logger/`：Zap / OTel 结构化日志工具。
-- `pkg/push/`：推送渠道 SDK 集成（Lark / Telegram / Email）。
-- `pkg/mail/`：邮件发送客户端。
-- `pkg/trace/`：OpenTelemetry 链路配置。
-- `pkg/util/`：无副作用系统工具（Crypto / Password / UUID 等）。
-
-### 前端目录 (`frontend/`)
-- `frontend/app/`：Next.js App Router 路由与页面。
-- `frontend/components/ui/`：shadcn/ui 基础通用组件。
-- `frontend/components/common/`：跨页面的业务通用组件。
-- `frontend/components/layout/`：Header / Sidebar / Footer 页面框架组件。
-- `frontend/components/<feature>/`：特定业务域的 UI 组件（如 `auth/`、`home/`）。
-- `frontend/lib/services/`：基于 `BaseService` 继承的类型化前端 API 服务。
-- `frontend/i18n/`：前端国际化配置（locale 解析、cookie、request config）。
-- `frontend/messages/`：i18n 文案目录（`zh-CN.json` / `en.json`）。
-- `frontend/contexts/` / `hooks/` / `lib/` / `types/` / `public/`：全局状态、Hook、客户端工具、TS 类型定义与静态资源。
 
 ## 后端开发规范
 
