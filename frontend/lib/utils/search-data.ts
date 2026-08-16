@@ -47,12 +47,12 @@ export interface SearchItem {
 export const searchData: SearchItem[] = [
   // ==================== 首页 ====================
   {
-    id: 'home',
-    title: '首页',
-    description: '返回首页控制台',
-    url: '/home',
+    id: 'clip',
+    title: 'Clip',
+    description: '捕获文本、图片与文件',
+    url: '/',
     category: 'page',
-    keywords: ['home', '主页', '首页', 'dashboard'],
+    keywords: ['clip', 'home', '主页', '首页', '捕获', 'capture'],
   },
 
   // ==================== 文档库 ====================

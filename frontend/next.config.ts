@@ -8,6 +8,9 @@ const isExport = process.env.NEXT_STANDALONE_EXPORT === 'true';
 const nextConfig: NextConfig = {
   reactCompiler: true,
   experimental: {},
+  async redirects() {
+    return [{ source: '/home', destination: '/', permanent: false }];
+  },
   ...(isExport
     ? { output: 'export' }
     : {

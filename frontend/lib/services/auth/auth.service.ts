@@ -65,7 +65,7 @@ export class AuthService extends BaseService {
    * if (state && code) {
    *   await AuthService.handleCallback({ state, code });
    *   // 登录成功，跳转到首页
-   *   router.push('/home');
+   *   router.push('/');
    * }
    * ```
    */

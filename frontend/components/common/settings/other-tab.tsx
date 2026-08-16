@@ -7,9 +7,9 @@ import {
   Code,
   CreditCard,
   Database,
+  ClipboardPaste,
   FileText,
   FolderOpen,
-  Home,
   Info,
   Layers,
   LayoutList,
@@ -50,10 +50,10 @@ const MENU_GROUPS: MenuGroup[] = [
     name: '基础菜单',
     items: [
       {
-        path: '/home',
-        label: '首页',
-        description: '系统控制台/个人首页',
-        icon: Home,
+        path: '/',
+        label: 'Clip',
+        description: '捕获文本、图片与文件',
+        icon: ClipboardPaste,
       },
       {
         path: '/files',

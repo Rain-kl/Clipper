@@ -25,9 +25,7 @@ export function SiteTitleUpdater() {
       suffix = ` - ${t('register')}`;
     } else if (pathname.startsWith('/admin')) {
       suffix = ` - ${t('admin')}`;
-    } else if (pathname === '/home') {
-      suffix = ` - ${t('dashboard')}`;
-    } else if (pathname === '/') {
+    } else if (pathname === '/' || pathname === '/clip') {
       suffix = '';
     }
 

@@ -55,7 +55,6 @@ import {
   FileText,
   FolderOpen,
   History,
-  Home,
   Layers,
   Library,
   Lock,
@@ -79,12 +78,11 @@ type NavItem = {
 };
 
 const navMainItems: NavItem[] = [
-  { titleKey: 'clip', url: '/clip', icon: ClipboardPaste },
+  { titleKey: 'clip', url: '/', icon: ClipboardPaste },
   { titleKey: 'review', url: '/review', icon: History },
   { titleKey: 'search', url: '/search', icon: Search },
   { titleKey: 'library', url: '/library', icon: Library },
   { titleKey: 'vault', url: '/vault', icon: Lock },
-  { titleKey: 'home', url: '/home', icon: Home },
   { titleKey: 'myFiles', url: '/files', icon: FolderOpen },
 ];
 
