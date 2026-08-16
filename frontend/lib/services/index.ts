@@ -24,6 +24,10 @@ import { AuthService } from './auth';
 import { ConfigService } from './config';
 import { DbManageService } from './db-manage';
 import { ItemService } from './item';
+import {
+  AdminMessageGatewayService,
+  UserMessageGatewayService,
+} from './message-gateway';
 import { PushService } from './push';
 import { AdminUploadService, UploadService } from './upload';
 import { UserService } from './user';
@@ -45,6 +49,8 @@ const services = {
   dbManage: DbManageService,
   push: PushService,
   item: ItemService,
+  adminMessageGateway: AdminMessageGatewayService,
+  userMessageGateway: UserMessageGatewayService,
 } as const;
 
 export default services;
@@ -126,6 +132,7 @@ export type {
   CreateUserRequest,
   UpdateUserRequest,
   SystemStatus,
+  LogDatabaseStatus,
   AppUpdateStatus,
   Schedule,
   CreateScheduleRequest,
@@ -168,6 +175,19 @@ export type {
 } from './db-manage';
 
 export { PushService } from './push';
+export {
+  AdminMessageGatewayService,
+  UserMessageGatewayService,
+} from './message-gateway';
+export type {
+  MessageChannel,
+  MessageChannelDefinition,
+  CreateMessageChannelRequest,
+  UpdateMessageChannelRequest,
+  PublicMessageChannel,
+  MessageBinding,
+  BindMessageChannelRequest,
+} from './message-gateway';
 export type {
   PushEvent,
   PushHistory,

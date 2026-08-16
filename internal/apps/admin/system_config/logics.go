@@ -17,7 +17,14 @@ import (
 	"gorm.io/gorm"
 )
 
+func isProtectedConfigKey(key string) bool {
+	return key == model.ConfigKeyLogDatabase || key == model.ConfigKeyLogDBMigration
+}
+
 func createSystemConfig(ctx context.Context, req CreateSystemConfigRequest) error {
+	if isProtectedConfigKey(req.Key) {
+		return errors.New(protectedConfigKeyMessage)
+	}
 	exists, err := repository.SystemConfigExists(ctx, req.Key)
 	if err != nil {
 		return err
@@ -53,6 +60,9 @@ func getSystemConfig(ctx context.Context, key string) (model.SystemConfig, error
 }
 
 func updateSystemConfig(ctx context.Context, key string, req UpdateSystemConfigRequest) error {
+	if isProtectedConfigKey(key) {
+		return errors.New(protectedConfigKeyMessage)
+	}
 	config, err := repository.GetAdminSystemConfigByKey(ctx, key)
 	if err != nil {
 		return err
@@ -116,13 +126,12 @@ func resolveStorageMigrationTasksOnDirectDriverUpdate(
 		return
 	}
 
-	if err := tx.Model(&model.TaskExecution{}).
-		Where("task_type = ? AND status = ?", "storage:migrate", model.TaskExecutionStatusFailed).
-		Updates(map[string]any{
-			"status":      model.TaskExecutionStatusSucceeded,
-			"result":      "存储配置直接更新，故障迁移任务自动标记为已解决",
-			"finished_at": time.Now(),
-		}).Error; err != nil {
+	if err := repository.MarkFailedTaskExecutionsSucceededTx(
+		tx,
+		"storage:migrate",
+		"存储配置直接更新，故障迁移任务自动标记为已解决",
+		time.Now(),
+	); err != nil {
 		logger.ErrorF(ctx, "自动更新迁移任务状态失败: %v", err)
 	}
 }

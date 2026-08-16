@@ -11,5 +11,6 @@ const (
 	ConfigKeyRequired                    = "配置键不能为空"
 	ConfigValueRequired                  = "配置值不能为空"
 	ConfigKeyExists                      = "配置键已存在"
+	protectedConfigKeyMessage            = "该配置项由系统任务管理，禁止手动修改"
 	StorageDriverSwitchRequiresMigration = "存在存量文件，请通过存储迁移任务切换存储引擎"
 )

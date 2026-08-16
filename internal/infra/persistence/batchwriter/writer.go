@@ -9,22 +9,34 @@ package batchwriter
 import (
 	"context"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
 // FlushFunc persists a batch of queued items. It is invoked from the worker goroutine.
 type FlushFunc[T any] func(ctx context.Context, items []T) error
 
-// FlushErrorHandler is called when FlushFunc returns an error. The batch is discarded
-// after the handler returns; the worker continues processing.
-type FlushErrorHandler func(ctx context.Context, batchSize int, err error)
+// FlushErrorHandler is called when FlushFunc returns an error after optional retries.
+// The batch is discarded after the handler returns; the worker continues processing.
+// Handlers receive the failed items so callers can release dedup keys or re-queue.
+type FlushErrorHandler[T any] func(ctx context.Context, items []T, err error)
+
+// Stats is a point-in-time snapshot of Writer queue and failure counters.
+type Stats struct {
+	Name        string
+	Depth       int
+	Cap         int
+	Drops       int64
+	FlushErrors int64
+	Running     bool
+}
 
 // Writer buffers items and flushes them by size or interval.
 type Writer[T any] struct {
 	cfg   Config
 	flush FlushFunc[T]
 
-	onFlushError FlushErrorHandler
+	onFlushError FlushErrorHandler[T]
 	onDrop       func(T)
 
 	startOnce sync.Once
@@ -34,13 +46,16 @@ type Writer[T any] struct {
 	ch        chan T
 	workerCtx context.Context
 	done      chan struct{}
+
+	drops       atomic.Int64
+	flushErrors atomic.Int64
 }
 
 // Option configures optional Writer callbacks.
 type Option[T any] func(*Writer[T])
 
 // WithFlushErrorHandler registers a callback for flush failures.
-func WithFlushErrorHandler[T any](handler FlushErrorHandler) Option[T] {
+func WithFlushErrorHandler[T any](handler FlushErrorHandler[T]) Option[T] {
 	return func(w *Writer[T]) {
 		w.onFlushError = handler
 	}
@@ -168,22 +183,37 @@ func (w *Writer[T]) Cap() int {
 	return w.cfg.QueueSize
 }
 
+// Stats returns a point-in-time snapshot of queue depth and failure counters.
+func (w *Writer[T]) Stats() Stats {
+	return Stats{
+		Name:        w.cfg.Name,
+		Depth:       w.Len(),
+		Cap:         w.Cap(),
+		Drops:       w.drops.Load(),
+		FlushErrors: w.flushErrors.Load(),
+		Running:     w.Running(),
+	}
+}
+
 func (w *Writer[T]) run() {
 	ticker := time.NewTicker(w.cfg.FlushInterval)
 	defer ticker.Stop()
 
 	batch := make([]T, 0, w.cfg.MaxBatchSize)
+	var batchStartedAt time.Time
 	flush := func() {
 		if len(batch) == 0 {
 			return
 		}
 		items := append([]T(nil), batch...)
 		if err := w.flush(w.workerCtx, items); err != nil {
+			w.flushErrors.Add(1)
 			if w.onFlushError != nil {
-				w.onFlushError(w.workerCtx, len(items), err)
+				w.onFlushError(w.workerCtx, items, err)
 			}
 		}
 		batch = batch[:0]
+		batchStartedAt = time.Time{}
 	}
 
 	defer func() {
@@ -197,17 +227,36 @@ func (w *Writer[T]) run() {
 			if !ok {
 				return
 			}
+			if len(batch) == 0 {
+				batchStartedAt = time.Now()
+			}
 			batch = append(batch, item)
 			if len(batch) >= w.cfg.MaxBatchSize {
 				flush()
 			}
 		case <-ticker.C:
-			flush()
+			if w.shouldFlushOnInterval(len(batch), batchStartedAt, time.Now()) {
+				flush()
+			}
 		}
 	}
 }
 
+func (w *Writer[T]) shouldFlushOnInterval(batchLen int, batchStartedAt time.Time, now time.Time) bool {
+	if batchLen == 0 {
+		return false
+	}
+	if w.cfg.MinBatchSize == 0 || batchLen >= w.cfg.MinBatchSize {
+		return true
+	}
+	if w.cfg.MaxFlushWait <= 0 || batchStartedAt.IsZero() {
+		return false
+	}
+	return !now.Before(batchStartedAt.Add(w.cfg.MaxFlushWait))
+}
+
 func (w *Writer[T]) notifyDrop(item T) {
+	w.drops.Add(1)
 	if w.onDrop == nil {
 		return
 	}

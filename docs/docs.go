@@ -10,8 +10,8 @@ const docTemplate = `{
         "description": "{{escape .Description}}",
         "title": "{{.Title}}",
         "contact": {
-            "name": "Clipper",
-            "url": "https://github.com/Rain-kl/Clipper"
+            "name": "Wavelet",
+            "url": "https://github.com/Rain-kl/Wavelet"
         },
         "license": {
             "name": "Apache 2.0",
@@ -1024,7 +1024,7 @@ const docTemplate = `{
                         "SessionCookie": []
                     }
                 ],
-                "description": "分页并按照用户、接口路径、时间范围等维度检索 ClickHouse 用户访问日志列表（需要管理员权限，ClickHouse 未启用时报错）",
+                "description": "分页并按照用户、接口路径、时间范围等维度检索用户访问日志列表（需要管理员权限）",
                 "produces": [
                     "application/json"
                 ],
@@ -1092,7 +1092,7 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "ClickHouse 未启用或参数错误",
+                        "description": "参数错误",
                         "schema": {
                             "$ref": "#/definitions/response.Any"
                         }
@@ -1108,6 +1108,12 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/response.Any"
                         }
+                    },
+                    "500": {
+                        "description": "内部错误",
+                        "schema": {
+                            "$ref": "#/definitions/response.Any"
+                        }
                     }
                 }
             }
@@ -1119,7 +1125,7 @@ const docTemplate = `{
                         "SessionCookie": []
                     }
                 ],
-                "description": "聚合统计最近 7 天的每日访问趋势、浏览器分布以及前 10 名最活跃用户排行（需要管理员权限，ClickHouse 未启用时报错）",
+                "description": "聚合统计最近 7 天的每日访问趋势、浏览器分布以及前 10 名最活跃用户排行（需要管理员权限）",
                 "produces": [
                     "application/json"
                 ],
@@ -1146,12 +1152,6 @@ const docTemplate = `{
                             ]
                         }
                     },
-                    "400": {
-                        "description": "ClickHouse 未启用",
-                        "schema": {
-                            "$ref": "#/definitions/response.Any"
-                        }
-                    },
                     "401": {
                         "description": "未登录",
                         "schema": {
@@ -1160,6 +1160,12 @@ const docTemplate = `{
                     },
                     "403": {
                         "description": "无管理员权限",
+                        "schema": {
+                            "$ref": "#/definitions/response.Any"
+                        }
+                    },
+                    "500": {
+                        "description": "内部错误",
                         "schema": {
                             "$ref": "#/definitions/response.Any"
                         }
@@ -1175,6 +1181,295 @@ const docTemplate = `{
                 ],
                 "summary": "系统日志实时推送",
                 "responses": {}
+            }
+        },
+        "/api/v1/admin/message-gateway/channels": {
+            "get": {
+                "security": [
+                    {
+                        "SessionCookie": []
+                    }
+                ],
+                "description": "Returns all messaging channels; secrets are masked",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin-message-gateway"
+                ],
+                "summary": "List message gateway channels",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.Any"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/message_gateway.ChannelDTO"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "SessionCookie": []
+                    }
+                ],
+                "description": "Creates a Telegram or QQ channel with encrypted credentials",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin-message-gateway"
+                ],
+                "summary": "Create message gateway channel",
+                "parameters": [
+                    {
+                        "description": "create body",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/message_gateway.CreateChannelRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.Any"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/message_gateway.ChannelDTO"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.Any"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/admin/message-gateway/channels/definitions": {
+            "get": {
+                "security": [
+                    {
+                        "SessionCookie": []
+                    }
+                ],
+                "description": "Returns form field definitions for Telegram and QQ channels",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin-message-gateway"
+                ],
+                "summary": "List message gateway channel definitions",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.Any"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/message_gateway.Definition"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/admin/message-gateway/channels/{id}": {
+            "delete": {
+                "security": [
+                    {
+                        "SessionCookie": []
+                    }
+                ],
+                "description": "Deletes a channel and cascaded bindings and pairing codes",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin-message-gateway"
+                ],
+                "summary": "Delete message gateway channel",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "channel id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/response.Any"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/response.Any"
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "security": [
+                    {
+                        "SessionCookie": []
+                    }
+                ],
+                "description": "Updates a channel; empty secrets keep the current ciphertext",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin-message-gateway"
+                ],
+                "summary": "Update message gateway channel",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "channel id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "update body",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/message_gateway.UpdateChannelRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.Any"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/message_gateway.ChannelDTO"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.Any"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/response.Any"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/admin/message-gateway/channels/{id}/test": {
+            "post": {
+                "security": [
+                    {
+                        "SessionCookie": []
+                    }
+                ],
+                "description": "Probes stored credentials without returning secrets",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin-message-gateway"
+                ],
+                "summary": "Test message gateway channel",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "channel id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/response.Any"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.Any"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/response.Any"
+                        }
+                    }
+                }
             }
         },
         "/api/v1/admin/push/channels": {
@@ -1870,6 +2165,61 @@ const docTemplate = `{
                     },
                     "403": {
                         "description": "无管理员权限",
+                        "schema": {
+                            "$ref": "#/definitions/response.Any"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/admin/status/log-database": {
+            "get": {
+                "security": [
+                    {
+                        "SessionCookie": []
+                    }
+                ],
+                "description": "返回当前日志主库、迁移状态、各库保留天数与合法迁移目标，需要管理员权限",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin"
+                ],
+                "summary": "获取日志数据库状态",
+                "responses": {
+                    "200": {
+                        "description": "获取成功",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.Any"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/status.LogDatabaseStatus"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "未登录",
+                        "schema": {
+                            "$ref": "#/definitions/response.Any"
+                        }
+                    },
+                    "403": {
+                        "description": "无管理员权限",
+                        "schema": {
+                            "$ref": "#/definitions/response.Any"
+                        }
+                    },
+                    "500": {
+                        "description": "内部错误",
                         "schema": {
                             "$ref": "#/definitions/response.Any"
                         }
@@ -4224,74 +4574,24 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/items": {
+        "/api/v1/message-gateway/bindings": {
             "get": {
                 "security": [
                     {
                         "SessionCookie": []
                     }
                 ],
-                "description": "按生命周期、重要度、关键词等过滤当前用户的捕获条目",
+                "description": "Returns the current user's bound messaging channels",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "item"
+                    "message-gateway"
                 ],
-                "summary": "分页列表条目",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "页码（默认 1）",
-                        "name": "page",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "每页数量（默认 20，最大 100）",
-                        "name": "page_size",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "标题/正文关键词",
-                        "name": "q",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "生命周期过滤 pending|active|archived|trash",
-                        "name": "lifecycle",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "重要度过滤 none|fragment|note|vault",
-                        "name": "importance",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "内容类型 text|image|file",
-                        "name": "content_type",
-                        "in": "query"
-                    },
-                    {
-                        "type": "boolean",
-                        "description": "未指定 lifecycle 时是否包含已归档",
-                        "name": "include_archived",
-                        "in": "query"
-                    },
-                    {
-                        "type": "boolean",
-                        "description": "未指定 lifecycle 时是否包含回收站",
-                        "name": "include_trash",
-                        "in": "query"
-                    }
-                ],
+                "summary": "List message gateway bindings",
                 "responses": {
                     "200": {
-                        "description": "查询成功",
+                        "description": "OK",
                         "schema": {
                             "allOf": [
                                 {
@@ -4301,27 +4601,18 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/item.ListItemsResult"
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/message_gateway.BindingDTO"
+                                            }
                                         }
                                     }
                                 }
                             ]
                         }
                     },
-                    "400": {
-                        "description": "参数错误",
-                        "schema": {
-                            "$ref": "#/definitions/response.Any"
-                        }
-                    },
                     "401": {
-                        "description": "未登录",
-                        "schema": {
-                            "$ref": "#/definitions/response.Any"
-                        }
-                    },
-                    "500": {
-                        "description": "内部错误",
+                        "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/response.Any"
                         }
@@ -4334,7 +4625,7 @@ const docTemplate = `{
                         "SessionCookie": []
                     }
                 ],
-                "description": "创建一条 pending 捕获条目，可附带文本与已有上传附件 ID",
+                "description": "Binds the current user to a platform identity using a one-time pairing code",
                 "consumes": [
                     "application/json"
                 ],
@@ -4342,23 +4633,23 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "item"
+                    "message-gateway"
                 ],
-                "summary": "创建捕获条目",
+                "summary": "Bind a messaging channel",
                 "parameters": [
                     {
-                        "description": "创建请求",
+                        "description": "bind body",
                         "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/item.createItemRequest"
+                            "$ref": "#/definitions/message_gateway.BindRequest"
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "创建成功",
+                        "description": "OK",
                         "schema": {
                             "allOf": [
                                 {
@@ -4368,7 +4659,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/item.ItemDTO"
+                                            "$ref": "#/definitions/message_gateway.BindingDTO"
                                         }
                                     }
                                 }
@@ -4376,19 +4667,13 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "参数错误或内容为空",
+                        "description": "Bad Request",
                         "schema": {
                             "$ref": "#/definitions/response.Any"
                         }
                     },
-                    "401": {
-                        "description": "未登录",
-                        "schema": {
-                            "$ref": "#/definitions/response.Any"
-                        }
-                    },
-                    "500": {
-                        "description": "内部错误",
+                    "409": {
+                        "description": "Conflict",
                         "schema": {
                             "$ref": "#/definitions/response.Any"
                         }
@@ -4396,293 +4681,70 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/items/stats": {
-            "get": {
-                "security": [
-                    {
-                        "SessionCookie": []
-                    }
-                ],
-                "description": "返回各生命周期与 vault 角标数量",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "item"
-                ],
-                "summary": "条目统计",
-                "responses": {
-                    "200": {
-                        "description": "查询成功",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/response.Any"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/item.ItemStats"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    "401": {
-                        "description": "未登录",
-                        "schema": {
-                            "$ref": "#/definitions/response.Any"
-                        }
-                    },
-                    "500": {
-                        "description": "内部错误",
-                        "schema": {
-                            "$ref": "#/definitions/response.Any"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/items/timeline": {
-            "get": {
-                "security": [
-                    {
-                        "SessionCookie": []
-                    }
-                ],
-                "description": "按 UTC 自然日分组返回非回收站条目；可展开归档项",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "item"
-                ],
-                "summary": "回顾时间线",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "回溯天数（默认 90）",
-                        "name": "days",
-                        "in": "query"
-                    },
-                    {
-                        "type": "boolean",
-                        "description": "是否展开归档条目",
-                        "name": "expand_archived",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "仅展开指定日期 YYYY-MM-DD 的归档",
-                        "name": "day",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "查询成功",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/response.Any"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/item.TimelineResult"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    "401": {
-                        "description": "未登录",
-                        "schema": {
-                            "$ref": "#/definitions/response.Any"
-                        }
-                    },
-                    "500": {
-                        "description": "内部错误",
-                        "schema": {
-                            "$ref": "#/definitions/response.Any"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/items/{id}": {
-            "get": {
-                "security": [
-                    {
-                        "SessionCookie": []
-                    }
-                ],
-                "description": "返回当前用户拥有的单条捕获及其附件",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "item"
-                ],
-                "summary": "获取条目详情",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "条目 ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "查询成功",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/response.Any"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/item.ItemDTO"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    "400": {
-                        "description": "参数错误",
-                        "schema": {
-                            "$ref": "#/definitions/response.Any"
-                        }
-                    },
-                    "401": {
-                        "description": "未登录",
-                        "schema": {
-                            "$ref": "#/definitions/response.Any"
-                        }
-                    },
-                    "404": {
-                        "description": "记录不存在",
-                        "schema": {
-                            "$ref": "#/definitions/response.Any"
-                        }
-                    },
-                    "500": {
-                        "description": "内部错误",
-                        "schema": {
-                            "$ref": "#/definitions/response.Any"
-                        }
-                    }
-                }
-            },
+        "/api/v1/message-gateway/bindings/{id}": {
             "delete": {
                 "security": [
                     {
                         "SessionCookie": []
                     }
                 ],
-                "description": "默认移入回收站；force=1 时硬删除并清理附件",
+                "description": "Removes a binding owned by the current user",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "item"
+                    "message-gateway"
                 ],
-                "summary": "删除条目",
+                "summary": "Unbind a messaging channel",
                 "parameters": [
                     {
-                        "type": "string",
-                        "description": "条目 ID",
+                        "type": "integer",
+                        "description": "binding id",
                         "name": "id",
                         "in": "path",
                         "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "为 1 时硬删除",
-                        "name": "force",
-                        "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "删除成功",
+                        "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/response.Any"
                         }
                     },
-                    "400": {
-                        "description": "参数错误或非法状态变更",
-                        "schema": {
-                            "$ref": "#/definitions/response.Any"
-                        }
-                    },
-                    "401": {
-                        "description": "未登录",
+                    "403": {
+                        "description": "Forbidden",
                         "schema": {
                             "$ref": "#/definitions/response.Any"
                         }
                     },
                     "404": {
-                        "description": "记录不存在",
-                        "schema": {
-                            "$ref": "#/definitions/response.Any"
-                        }
-                    },
-                    "500": {
-                        "description": "内部错误",
+                        "description": "Not Found",
                         "schema": {
                             "$ref": "#/definitions/response.Any"
                         }
                     }
                 }
-            },
-            "patch": {
+            }
+        },
+        "/api/v1/message-gateway/channels": {
+            "get": {
                 "security": [
                     {
                         "SessionCookie": []
                     }
                 ],
-                "description": "更新标题/正文，或执行生命周期与重要度状态迁移",
-                "consumes": [
-                    "application/json"
-                ],
+                "description": "Returns enabled system bots the current user can pair with",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "item"
+                    "message-gateway"
                 ],
-                "summary": "更新条目",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "条目 ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "更新请求",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/item.patchItemRequest"
-                        }
-                    }
-                ],
+                "summary": "List enabled messaging channels",
                 "responses": {
                     "200": {
-                        "description": "更新成功",
+                        "description": "OK",
                         "schema": {
                             "allOf": [
                                 {
@@ -4692,33 +4754,18 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/item.ItemDTO"
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/message_gateway.PublicChannelDTO"
+                                            }
                                         }
                                     }
                                 }
                             ]
                         }
                     },
-                    "400": {
-                        "description": "参数错误或非法状态变更",
-                        "schema": {
-                            "$ref": "#/definitions/response.Any"
-                        }
-                    },
                     "401": {
-                        "description": "未登录",
-                        "schema": {
-                            "$ref": "#/definitions/response.Any"
-                        }
-                    },
-                    "404": {
-                        "description": "记录不存在",
-                        "schema": {
-                            "$ref": "#/definitions/response.Any"
-                        }
-                    },
-                    "500": {
-                        "description": "内部错误",
+                        "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/response.Any"
                         }
@@ -6433,182 +6480,6 @@ const docTemplate = `{
                 }
             }
         },
-        "item.AttachmentDTO": {
-            "type": "object",
-            "properties": {
-                "file_name": {
-                    "type": "string"
-                },
-                "file_size": {
-                    "type": "integer"
-                },
-                "id": {
-                    "type": "string",
-                    "example": "0"
-                },
-                "mime_type": {
-                    "type": "string"
-                },
-                "sort": {
-                    "type": "integer"
-                },
-                "upload_id": {
-                    "type": "string",
-                    "example": "0"
-                }
-            }
-        },
-        "item.ItemDTO": {
-            "type": "object",
-            "properties": {
-                "archived_at": {
-                    "type": "string"
-                },
-                "attachments": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/item.AttachmentDTO"
-                    }
-                },
-                "body": {
-                    "type": "string"
-                },
-                "content_type": {
-                    "$ref": "#/definitions/model.ItemContentType"
-                },
-                "created_at": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string",
-                    "example": "0"
-                },
-                "importance": {
-                    "$ref": "#/definitions/model.ItemImportance"
-                },
-                "lifecycle": {
-                    "$ref": "#/definitions/model.ItemLifecycle"
-                },
-                "source": {
-                    "type": "string"
-                },
-                "title": {
-                    "type": "string"
-                },
-                "trashed_at": {
-                    "type": "string"
-                },
-                "updated_at": {
-                    "type": "string"
-                },
-                "user_id": {
-                    "type": "string",
-                    "example": "0"
-                }
-            }
-        },
-        "item.ItemStats": {
-            "type": "object",
-            "properties": {
-                "active": {
-                    "type": "integer"
-                },
-                "archived": {
-                    "type": "integer"
-                },
-                "pending": {
-                    "type": "integer"
-                },
-                "trash": {
-                    "type": "integer"
-                },
-                "vault": {
-                    "type": "integer"
-                }
-            }
-        },
-        "item.ListItemsResult": {
-            "type": "object",
-            "properties": {
-                "results": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/item.ItemDTO"
-                    }
-                },
-                "total": {
-                    "type": "integer"
-                }
-            }
-        },
-        "item.TimelineDay": {
-            "type": "object",
-            "properties": {
-                "archived_count": {
-                    "type": "integer"
-                },
-                "archived_items": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/item.ItemDTO"
-                    }
-                },
-                "date": {
-                    "type": "string"
-                },
-                "items": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/item.ItemDTO"
-                    }
-                }
-            }
-        },
-        "item.TimelineResult": {
-            "type": "object",
-            "properties": {
-                "days": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/item.TimelineDay"
-                    }
-                }
-            }
-        },
-        "item.createItemRequest": {
-            "type": "object",
-            "properties": {
-                "body": {
-                    "type": "string"
-                },
-                "title": {
-                    "type": "string"
-                },
-                "upload_ids": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                }
-            }
-        },
-        "item.patchItemRequest": {
-            "type": "object",
-            "properties": {
-                "body": {
-                    "type": "string"
-                },
-                "importance": {
-                    "type": "string"
-                },
-                "lifecycle": {
-                    "type": "string"
-                },
-                "title": {
-                    "type": "string"
-                }
-            }
-        },
         "logger.LogEntry": {
             "type": "object",
             "properties": {
@@ -6760,6 +6631,195 @@ const docTemplate = `{
                 }
             }
         },
+        "message_gateway.BindRequest": {
+            "type": "object",
+            "properties": {
+                "channel_id": {
+                    "type": "string"
+                },
+                "code": {
+                    "type": "string"
+                }
+            }
+        },
+        "message_gateway.BindingDTO": {
+            "type": "object",
+            "properties": {
+                "channel_id": {
+                    "type": "string",
+                    "example": "0"
+                },
+                "channel_name": {
+                    "type": "string"
+                },
+                "channel_type": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string",
+                    "example": "0"
+                },
+                "platform_user_id": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "string",
+                    "example": "0"
+                }
+            }
+        },
+        "message_gateway.ChannelDTO": {
+            "type": "object",
+            "properties": {
+                "app_id": {
+                    "type": "string"
+                },
+                "app_secret": {
+                    "type": "string"
+                },
+                "base_url": {
+                    "type": "string"
+                },
+                "bot_token": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "enabled": {
+                    "type": "boolean"
+                },
+                "id": {
+                    "type": "string",
+                    "example": "0"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "owner_scope": {
+                    "type": "string"
+                },
+                "portal_host": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "message_gateway.CreateChannelRequest": {
+            "type": "object",
+            "properties": {
+                "app_id": {
+                    "type": "string"
+                },
+                "app_secret": {
+                    "type": "string"
+                },
+                "base_url": {
+                    "type": "string"
+                },
+                "bot_token": {
+                    "type": "string"
+                },
+                "enabled": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "portal_host": {
+                    "type": "string"
+                },
+                "sandbox": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "message_gateway.Definition": {
+            "type": "object",
+            "properties": {
+                "fields": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/message_gateway.Field"
+                    }
+                },
+                "name": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "message_gateway.Field": {
+            "type": "object",
+            "properties": {
+                "key": {
+                    "type": "string"
+                },
+                "required": {
+                    "type": "boolean"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "message_gateway.PublicChannelDTO": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string",
+                    "example": "0"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "message_gateway.UpdateChannelRequest": {
+            "type": "object",
+            "properties": {
+                "app_id": {
+                    "type": "string"
+                },
+                "app_secret": {
+                    "type": "string"
+                },
+                "base_url": {
+                    "type": "string"
+                },
+                "bot_token": {
+                    "type": "string"
+                },
+                "enabled": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "portal_host": {
+                    "type": "string"
+                },
+                "sandbox": {
+                    "type": "string"
+                }
+            }
+        },
         "model.AccessToken": {
             "type": "object",
             "properties": {
@@ -6855,49 +6915,6 @@ const docTemplate = `{
                     "type": "integer"
                 }
             }
-        },
-        "model.ItemContentType": {
-            "type": "string",
-            "enum": [
-                "text",
-                "image",
-                "file"
-            ],
-            "x-enum-varnames": [
-                "ItemContentTypeText",
-                "ItemContentTypeImage",
-                "ItemContentTypeFile"
-            ]
-        },
-        "model.ItemImportance": {
-            "type": "string",
-            "enum": [
-                "none",
-                "fragment",
-                "note",
-                "vault"
-            ],
-            "x-enum-varnames": [
-                "ItemImportanceNone",
-                "ItemImportanceFragment",
-                "ItemImportanceNote",
-                "ItemImportanceVault"
-            ]
-        },
-        "model.ItemLifecycle": {
-            "type": "string",
-            "enum": [
-                "pending",
-                "active",
-                "archived",
-                "trash"
-            ],
-            "x-enum-varnames": [
-                "ItemLifecyclePending",
-                "ItemLifecycleActive",
-                "ItemLifecycleArchived",
-                "ItemLifecycleTrash"
-            ]
         },
         "model.PushChannel": {
             "type": "object",
@@ -7720,6 +7737,29 @@ const docTemplate = `{
                 }
             }
         },
+        "status.LogDatabaseStatus": {
+            "type": "object",
+            "properties": {
+                "active_database": {
+                    "type": "string"
+                },
+                "available_targets": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "migration": {
+                    "type": "string"
+                },
+                "retention_days": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "integer"
+                    }
+                }
+            }
+        },
         "status.SystemStatusResponse": {
             "type": "object",
             "properties": {
@@ -8418,8 +8458,8 @@ var SwaggerInfo = &swag.Spec{
 	Host:             "",
 	BasePath:         "/",
 	Schemes:          []string{},
-	Title:            "Clipper API",
-	Description:      "Clipper 后端 API：捕获条目、用户认证、系统配置、任务调度与文件能力。",
+	Title:            "Wavelet API",
+	Description:      "Wavelet 平台后端 API，提供用户认证、系统配置、任务调度等通用功能。",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

@@ -23,6 +23,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import services from '@/lib/services';
 import type { Template } from '@/lib/services/admin/types';
 import { toast } from 'sonner';
@@ -35,6 +45,7 @@ export function TemplatesManager() {
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(
     null,
   );
+  const [deleteTarget, setDeleteTarget] = useState<Template | null>(null);
 
   // Form states
   const [key, setKey] = useState('');
@@ -95,6 +106,7 @@ export function TemplatesManager() {
       await services.adminTemplate.deleteTemplate(key);
     },
     onSuccess: async () => {
+      setDeleteTarget(null);
       await queryClient.invalidateQueries({ queryKey: ['admin', 'templates'] });
       toast.success(t('templateDeleted'));
     },
@@ -225,15 +237,7 @@ export function TemplatesManager() {
                       disabled={
                         tmpl.is_system || deleteTemplateMutation.isPending
                       }
-                      onClick={() => {
-                        if (
-                          window.confirm(
-                            t('deleteTemplateConfirm', { name: tmpl.name }),
-                          )
-                        ) {
-                          deleteTemplateMutation.mutate(tmpl.key);
-                        }
-                      }}
+                      onClick={() => setDeleteTarget(tmpl)}
                     >
                       <Trash2 className='size-4' />
                     </Button>
@@ -401,6 +405,35 @@ export function TemplatesManager() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog
+        open={Boolean(deleteTarget)}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('deleteTemplateTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('deleteTemplateConfirm', { name: deleteTarget?.name ?? '' })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteTemplateMutation.isPending}>
+              {t('cancel')}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deleteTemplateMutation.isPending}
+              onClick={() =>
+                deleteTarget && deleteTemplateMutation.mutate(deleteTarget.key)
+              }
+            >
+              {deleteTemplateMutation.isPending
+                ? t('deleting')
+                : t('confirmDelete')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

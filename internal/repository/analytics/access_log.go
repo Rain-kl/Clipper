@@ -8,6 +8,8 @@ import (
 	"context"
 	"fmt"
 
+	"time"
+
 	"github.com/Rain-kl/Wavelet/internal/infra/persistence"
 	analyticsmodel "github.com/Rain-kl/Wavelet/internal/model/analytics"
 	"gorm.io/gorm"
@@ -67,6 +69,28 @@ func ListAccessLogs(ctx context.Context, filter AccessLogFilter, page, pageSize 
 	}
 
 	return logs, safeUint64Count(total), nil
+}
+
+// DeleteAllUserAccessLogs hard-deletes all user access logs via TRUNCATE.
+func DeleteAllUserAccessLogs(ctx context.Context) (int64, error) {
+	if db.ChConn == nil {
+		return 0, fmt.Errorf("clickhouse connection is not initialized")
+	}
+	if err := db.ChConn.Exec(ctx, "TRUNCATE TABLE "+analyticsmodel.UserAccessLog{}.TableName()); err != nil {
+		return 0, fmt.Errorf("truncate user access logs: %w", err)
+	}
+	return 0, nil
+}
+
+// DeleteUserAccessLogsBefore deletes user access logs older than cutoff.
+func DeleteUserAccessLogsBefore(ctx context.Context, cutoff time.Time) (int64, error) {
+	if db.ChConn == nil {
+		return 0, fmt.Errorf("clickhouse connection is not initialized")
+	}
+	if err := db.ChConn.Exec(ctx, "ALTER TABLE "+analyticsmodel.UserAccessLog{}.TableName()+" DELETE WHERE created_at < ?", cutoff); err != nil {
+		return 0, fmt.Errorf("delete expired user access logs: %w", err)
+	}
+	return 0, nil
 }
 
 func safeUint64Count(count int64) uint64 {

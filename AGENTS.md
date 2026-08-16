@@ -84,6 +84,7 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 | `new-async-task` | 添加或修改 Asynq 任务、定时任务、TaskHandler、任务元数据 |
 | `new-setting` | 添加或修改系统/业务/公开设置、`/admin/system` 参数或 `/admin/settings` 图形化设置 |
 | `database-migration` | 数据库表结构变更、goose SQL 迁移（PG/SQLite/ClickHouse）、seed 数据 |
+| `logstore` | 日志/分析用途表、`internal/repository/logstore`、切换日志主库、PG/SQLite 回落 |
 | `clickhouse-batchwriter` | ClickHouse 批量写入、`internal/infra/persistence/batchwriter` 接入、分析表异步 flush、背压与写入路径改造 |
 | `file-upload` | 业务上传文件、Worker 程序化摄取、`upload.Ingest` 策略选型、文件访问与 `w_uploads` / 统计排查 |
 | `cache-framework` | 新增或修改业务缓存（RAM/Redis/DB 三层读路径）、缓存失效、多节点 pub/sub 同步、评估高频读是否应接入缓存 |
@@ -102,11 +103,15 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 - 禁止在 `init()` 中注册跨模块集成（任务 Handler、推送事件、域事件监听器等），统一在 `internal/platform/bootstrap` 显式装配并在 `internal/cmd` 入口调用。
 - 核心业务模块（`oauth`、`user`）禁止直接 import `push` 或 `custom_events` 触发通知，须通过 `internal/listener` 发射域事件。
 - API 错误响应必须通过 `response.Abort*` 中断请求，由 `ErrorHandlerMiddleware` 统一写出 JSON 并记录 Trace；禁止在 Handler/中间件中直接 `c.JSON(status, response.Err(...))` 或 `200` 返回 `error_msg`。
+- **分层**：`apps → repository → model`，`repository → infra/persistence`；禁止 `model → repository`。
+  - `model`：实体、表名、配置 key、查询 DTO、无 IO 规则。禁止 `db.DB` / Redis / CH；禁止 `import repository`。GORM hook 仅可 mutate 自身字段，禁止在 hook 内再查 DB/缓存。
+  - `repository`：唯一持久化入口。apps/logics 禁止为业务 CRUD 直调 `db.DB`（管理端 SQL 控制台、infra 内部等例外保留）。禁止新增 `model.Get/List/Create/...` 类数据访问 API。
+- 日志/分析表（访问日志、审计流水、可观测时序）走 `internal/repository/logstore`，禁止 apps 直连 `repository/analytics` 或 `db.ChConn`/`db.ChDB`。判定与接入步骤见 `logstore` skill。
 
 ## 技术栈与项目目录结构
 
 ### 技术栈
-- **后端**：Go 1.25+、Gin、GORM、PostgreSQL、ClickHouse、Redis、Asynq、Cobra、Viper、Swaggo、OpenTelemetry、Zap、AWS SDK v2。
+- **后端**：Go 1.25+、Gin、GORM、PostgreSQL、可选 ClickHouse、Redis、Asynq、Cobra、Viper、Swaggo、OpenTelemetry、Zap、AWS SDK v2。
 - **前端**：Next.js (App Router)、TypeScript、Tailwind CSS、pnpm、shadcn/ui。
 
 ## 后端开发规范
@@ -120,6 +125,7 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 - **错误日志**：底层错误在 Handler/Logic 边界用 `pkg/logger` 打印日志，禁止使用 `_ = ...` 静默吞掉关键错误。
 
 ### 数据库操作
+- 平台域（user、auth_source、access_token、schedule、task_execution）的持久化必须走 `internal/repository`，禁止在 `internal/model` 中调用 `db.DB` / Redis。
 - 管理员代码推荐使用 `db.DB(ctx)`（`internal/infra/persistence`，包名 `db`）保证 Trace 链路透传。
 - 禁止在 Handler 写复杂 SQL；迁移文件位于 `internal/infra/persistence/migrator/goose/`（禁止 GORM AutoMigrate）。
 - 不创建物理外键（显式建索引）；Go 模型零值需与数据库默认值匹配。

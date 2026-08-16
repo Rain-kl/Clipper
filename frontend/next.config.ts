@@ -7,6 +7,8 @@ const isExport = process.env.NEXT_STANDALONE_EXPORT === 'true';
 
 const nextConfig: NextConfig = {
   reactCompiler: true,
+  // Prevent 308 redirects on /api/* trailing slashes; dev rewrites proxy legacy APIs as-is.
+  skipTrailingSlashRedirect: true,
   experimental: {},
   async redirects() {
     return [{ source: '/home', destination: '/', permanent: false }];

@@ -20,9 +20,10 @@ import (
 )
 
 const (
-	configTypeSystem = "system"
-	configValueTrue  = "true"
-	configValueFalse = "false"
+	configTypeSystem   = "system"
+	configTypeBusiness = "business"
+	configValueTrue    = "true"
+	configValueFalse   = "false"
 )
 
 // SetupTestEnvironment initializes an in-memory SQLite DB, seeds default configurations,
@@ -53,6 +54,9 @@ func SetupTestEnvironment(t *testing.T) (*gorm.DB, *miniredis.Miniredis, func())
 		&model.Template{},
 		&model.AccessToken{},
 		&model.Schedule{},
+		&model.MessageChannel{},
+		&model.MessageBinding{},
+		&model.MessagePairingCode{},
 		&model.Item{},
 		&model.ItemAttachment{},
 	)
@@ -138,7 +142,7 @@ func getSeedConfigsPart1() []model.SystemConfig {
 		{
 			Key:         model.ConfigKeyMaxAPIKeysPerUser,
 			Value:       "5",
-			Type:        "business",
+			Type:        configTypeBusiness,
 			Description: "限制每个普通用户可以创建的 API Key 最大数量",
 		},
 		{
@@ -283,6 +287,36 @@ func getSeedConfigsPart2() []model.SystemConfig {
 			Value:       `{"driver":"local","local":{"root":"."},"s3":{"region":"us-east-1"},"r2":{"region":"auto"},"minio":{"region":"us-east-1","path_style":true},"oss":{},"webdav":{}}`,
 			Type:        configTypeSystem,
 			Description: "文件存储驱动及连接配置（JSON）",
+		},
+		{
+			Key:         model.ConfigKeyLogDatabase,
+			Value:       "sqlite",
+			Type:        configTypeSystem,
+			Description: "当前日志主库",
+		},
+		{
+			Key:         model.ConfigKeyLogDBMigration,
+			Value:       "",
+			Type:        configTypeSystem,
+			Description: "日志库迁移冻结标记",
+		},
+		{
+			Key:         model.ConfigKeyLogRetentionDaysPostgres,
+			Value:       "30",
+			Type:        configTypeBusiness,
+			Description: "PostgreSQL 用户访问日志保留天数",
+		},
+		{
+			Key:         model.ConfigKeyLogRetentionDaysSQLite,
+			Value:       "30",
+			Type:        configTypeBusiness,
+			Description: "SQLite 用户访问日志保留天数",
+		},
+		{
+			Key:         model.ConfigKeyLogRetentionDaysClickHouse,
+			Value:       "30",
+			Type:        configTypeBusiness,
+			Description: "ClickHouse 用户访问日志保留天数",
 		},
 		{
 			Key:         model.ConfigKeyItemPendingArchiveAfterDays,

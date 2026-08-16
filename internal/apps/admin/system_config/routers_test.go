@@ -27,8 +27,8 @@ import (
 	"github.com/Rain-kl/Wavelet/internal/shared/response"
 )
 
-// 30 Wavelet framework keys + two item retention keys
-const expectedDefaultConfigsCount = 32
+// 35 Wavelet framework keys + two item retention keys
+const expectedDefaultConfigsCount = 37
 
 func setupTestRouter(authUser *model.User) *gin.Engine {
 	r := testhelper.NewTestGinEngine()
@@ -169,8 +169,15 @@ func TestListSystemConfigs(t *testing.T) {
 		var configs []model.SystemConfig
 		_ = json.Unmarshal(dataBytes, &configs)
 
-		if len(configs) != 1 || configs[0].Key != model.ConfigKeyMaxAPIKeysPerUser {
-			t.Errorf("expected 1 business config (max_api_keys_per_user), got %d: %v", len(configs), configs)
+		if len(configs) != 4 {
+			t.Errorf("expected 4 business configs, got %d: %v", len(configs), configs)
+		}
+		keys := make(map[string]struct{}, len(configs))
+		for _, cfg := range configs {
+			keys[cfg.Key] = struct{}{}
+		}
+		if _, ok := keys[model.ConfigKeyMaxAPIKeysPerUser]; !ok {
+			t.Errorf("missing business config %s", model.ConfigKeyMaxAPIKeysPerUser)
 		}
 	})
 }

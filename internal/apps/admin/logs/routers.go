@@ -14,10 +14,9 @@ import (
 	"time"
 
 	"github.com/Rain-kl/Wavelet/internal/apps/admin"
-	"github.com/Rain-kl/Wavelet/internal/infra/config"
-	"github.com/Rain-kl/Wavelet/internal/infra/persistence"
-	"github.com/Rain-kl/Wavelet/internal/model"
+	"github.com/Rain-kl/Wavelet/internal/repository"
 	analyticsrepo "github.com/Rain-kl/Wavelet/internal/repository/analytics"
+	"github.com/Rain-kl/Wavelet/internal/repository/logstore"
 	"github.com/Rain-kl/Wavelet/pkg/logger"
 	"github.com/gin-gonic/gin"
 
@@ -163,10 +162,7 @@ func buildAccessLogFilter(ctx context.Context, c *gin.Context) (analyticsrepo.Ac
 
 	username := c.Query("username")
 	if username != "" {
-		var userIDs []uint64
-		err := db.DB(ctx).Model(&model.User{}).
-			Where("username LIKE ?", "%"+username+"%").
-			Pluck("id", &userIDs).Error
+		userIDs, err := repository.ListUserIDsByUsernameContains(ctx, username)
 		if err != nil {
 			return filter, fmt.Errorf("查询用户信息失败: %w", err)
 		}
@@ -215,8 +211,7 @@ func enrichAccessLogsWithUsers(ctx context.Context, list []accessLogItem) {
 	}
 
 	userMap := make(map[uint64]struct{ Username, Nickname string })
-	var users []model.User
-	if err := db.DB(ctx).Where("id IN ?", userIDs).Find(&users).Error; err == nil {
+	if users, err := repository.ListUsersByIDs(ctx, userIDs); err == nil {
 		for _, u := range users {
 			userMap[u.ID] = struct{ Username, Nickname string }{Username: u.Username, Nickname: u.Nickname}
 		}
@@ -231,7 +226,7 @@ func enrichAccessLogsWithUsers(ctx context.Context, list []accessLogItem) {
 
 // GetAccessLogs 获取 ClickHouse 异步采集的访问日志
 // @Summary 获取用户访问日志
-// @Description 分页并按照用户、接口路径、时间范围等维度检索 ClickHouse 用户访问日志列表（需要管理员权限，ClickHouse 未启用时报错）
+// @Description 分页并按照用户、接口路径、时间范围等维度检索用户访问日志列表（需要管理员权限）
 // @Tags admin
 // @Produce json
 // @Security SessionCookie
@@ -242,14 +237,16 @@ func enrichAccessLogsWithUsers(ctx context.Context, list []accessLogItem) {
 // @Param start_time query string false "起始时间（RFC3339 或 YYYY-MM-DD HH:MM:SS）"
 // @Param end_time query string false "结束时间（RFC3339 或 YYYY-MM-DD HH:MM:SS）"
 // @Success 200 {object} response.Any{data=logs.accessLogsResponse} "访问日志列表"
-// @Failure 400 {object} response.Any "ClickHouse 未启用或参数错误"
+// @Failure 400 {object} response.Any "参数错误"
 // @Failure 401 {object} response.Any "未登录"
 // @Failure 403 {object} response.Any "无管理员权限"
+// @Failure 500 {object} response.Any "内部错误"
 // @Router /api/v1/admin/logs/access [get]
 func GetAccessLogs(c *gin.Context) {
 	ctx := c.Request.Context()
-	if !config.Config.ClickHouse.Enabled || db.ChDB(ctx) == nil {
-		response.AbortWithError(c, http.StatusBadRequest, "ClickHouse 存储服务未启用，无法检索访问日志")
+	store, err := logstore.Active(ctx)
+	if err != nil {
+		response.AbortInternal(c, "日志存储初始化失败")
 		return
 	}
 
@@ -275,7 +272,7 @@ func GetAccessLogs(c *gin.Context) {
 		return
 	}
 
-	logs, total, err := analyticsrepo.ListAccessLogs(ctx, filter, page, pageSize)
+	logs, total, err := store.UserAccessLogs.List(ctx, filter, page, pageSize)
 	if err != nil {
 		response.AbortWithError(c, http.StatusInternalServerError, err.Error())
 		return
@@ -337,25 +334,26 @@ type logsAnalyticsResponse struct {
 
 // GetLogsAnalytics 获取 ClickHouse 访问日志图表聚合指标
 // @Summary 获取访问日志分析数据
-// @Description 聚合统计最近 7 天的每日访问趋势、浏览器分布以及前 10 名最活跃用户排行（需要管理员权限，ClickHouse 未启用时报错）
+// @Description 聚合统计最近 7 天的每日访问趋势、浏览器分布以及前 10 名最活跃用户排行（需要管理员权限）
 // @Tags admin
 // @Produce json
 // @Security SessionCookie
 // @Success 200 {object} response.Any{data=logs.logsAnalyticsResponse} "分析统计数据"
-// @Failure 400 {object} response.Any "ClickHouse 未启用"
+// @Failure 500 {object} response.Any "内部错误"
 // @Failure 401 {object} response.Any "未登录"
 // @Failure 403 {object} response.Any "无管理员权限"
 // @Router /api/v1/admin/logs/analytics [get]
 func GetLogsAnalytics(c *gin.Context) {
 	ctx := c.Request.Context()
-	if !config.Config.ClickHouse.Enabled || db.ChDB(ctx) == nil {
-		response.AbortWithError(c, http.StatusBadRequest, "ClickHouse 存储服务未启用，无法获取分析数据")
+	store, err := logstore.Active(ctx)
+	if err != nil {
+		response.AbortInternal(c, "日志存储初始化失败")
 		return
 	}
 
 	startTime := time.Now().AddDate(0, 0, -(analyticsDays - 1)).Truncate(hoursInDay * time.Hour)
 
-	trendPoints, err := analyticsrepo.GetDailyTrend(ctx, analyticsDays)
+	trendPoints, err := store.UserAccessLogs.GetDailyTrend(ctx, analyticsDays)
 	if err != nil {
 		response.AbortWithError(c, http.StatusInternalServerError, "查询访问趋势失败: "+err.Error())
 		return
@@ -368,7 +366,7 @@ func GetLogsAnalytics(c *gin.Context) {
 		}
 	}
 
-	browserPoints, err := analyticsrepo.GetBrowserDistribution(ctx, startTime)
+	browserPoints, err := store.UserAccessLogs.GetBrowserDistribution(ctx, startTime)
 	if err != nil {
 		response.AbortWithError(c, http.StatusInternalServerError, "查询浏览器分布失败: "+err.Error())
 		return
@@ -381,7 +379,7 @@ func GetLogsAnalytics(c *gin.Context) {
 		}
 	}
 
-	topUserPoints, err := analyticsrepo.GetTopActiveUsers(ctx, startTime, topActiveLimit)
+	topUserPoints, err := store.UserAccessLogs.GetTopActiveUsers(ctx, startTime, topActiveLimit)
 	if err != nil {
 		response.AbortWithError(c, http.StatusInternalServerError, "查询活跃用户失败: "+err.Error())
 		return
@@ -402,8 +400,8 @@ func GetLogsAnalytics(c *gin.Context) {
 			Username string
 			Nickname string
 		})
-		var users []model.User
-		if errProfile := db.DB(ctx).Where("id IN ?", userIDs).Find(&users).Error; errProfile == nil {
+		users, errProfile := repository.ListUsersByIDs(ctx, userIDs)
+		if errProfile == nil {
 			for _, u := range users {
 				userProfileMap[u.ID] = struct {
 					Username string

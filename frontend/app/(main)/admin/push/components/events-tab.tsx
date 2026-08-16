@@ -44,6 +44,16 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -74,6 +84,9 @@ import { PushService } from '@/lib/services/push';
 export function EventsTab() {
   const t = useTranslations('admin.push.events');
   const queryClient = useQueryClient();
+  const [deleteTarget, setDeleteTarget] = React.useState<PushEvent | null>(
+    null,
+  );
 
   // --- 获取所有自定义消息通道 ---
   const channelsQuery = useQuery({
@@ -149,6 +162,7 @@ export function EventsTab() {
   const deleteEventMutation = useMutation({
     mutationFn: (id: number) => PushService.deleteEvent(id),
     onSuccess: () => {
+      setDeleteTarget(null);
       toast.success(t('configDeleteSuccess'));
       queryClient.invalidateQueries({ queryKey: ['admin', 'push-events'] });
     },
@@ -455,11 +469,7 @@ export function EventsTab() {
                               size='icon'
                               className='h-6 w-6 text-muted-foreground hover:text-destructive hover:bg-destructive/10'
                               disabled={deleteEventMutation.isPending}
-                              onClick={() => {
-                                if (confirm(t('deleteEventConfirm'))) {
-                                  deleteEventMutation.mutate(event.id);
-                                }
-                              }}
+                              onClick={() => setDeleteTarget(event)}
                             >
                               <Trash2 className='size-3' />
                             </Button>
@@ -919,6 +929,35 @@ export function EventsTab() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog
+        open={Boolean(deleteTarget)}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('deleteEventTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('deleteEventConfirm')}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteEventMutation.isPending}>
+              {t('cancel')}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deleteEventMutation.isPending}
+              onClick={() =>
+                deleteTarget && deleteEventMutation.mutate(deleteTarget.id)
+              }
+            >
+              {deleteEventMutation.isPending
+                ? t('deleting')
+                : t('confirmDelete')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

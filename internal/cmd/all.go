@@ -6,9 +6,11 @@
 package cmd
 
 import (
+	"context"
 	"log"
 	"sync"
 
+	gwrunner "github.com/Rain-kl/Wavelet/internal/apps/message_gateway/runner"
 	"github.com/Rain-kl/Wavelet/internal/infra/task/scheduler"
 	"github.com/Rain-kl/Wavelet/internal/infra/task/worker"
 	"github.com/Rain-kl/Wavelet/internal/platform/bootstrap"
@@ -34,6 +36,12 @@ var allCmd = &cobra.Command{
 			router.Serve(func() {
 				printStartupBanner(startupState{mode: "API + Worker + Scheduler", relationalDB: latestMigrationState.relationalDB, clickHouseDB: latestMigrationState.clickHouseDB, listensForHTTP: true})
 			})
+		}()
+
+		go func() {
+			if err := gwrunner.Start(context.Background()); err != nil {
+				log.Printf("[All] message gateway stopped: %v", err)
+			}
 		}()
 
 		// 启动 Asynq Worker 任务处理服务

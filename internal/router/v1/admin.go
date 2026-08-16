@@ -44,6 +44,7 @@ func RegisterAdminRoutes(apiV1Router *gin.RouterGroup) {
 
 		// 6. Messaging & Push Notifications
 		registerAdminPushRoutes(adminRouter)
+		registerAdminMessageGatewayRoutes(adminRouter)
 	}
 }
 
@@ -51,6 +52,7 @@ func RegisterAdminRoutes(apiV1Router *gin.RouterGroup) {
 func registerAdminDiagnosticRoutes(adminRouter *gin.RouterGroup) {
 	// System status
 	adminRouter.GET("/status", admin_status.GetSystemStatus)
+	adminRouter.GET("/status/log-database", admin_status.GetLogDatabaseStatus)
 
 	// Database basic info & backup export
 	adminRouter.GET("/db-info", admin_status.GetDatabaseInfo)
