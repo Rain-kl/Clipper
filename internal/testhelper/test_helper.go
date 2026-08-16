@@ -53,6 +53,8 @@ func SetupTestEnvironment(t *testing.T) (*gorm.DB, *miniredis.Miniredis, func())
 		&model.Template{},
 		&model.AccessToken{},
 		&model.Schedule{},
+		&model.Item{},
+		&model.ItemAttachment{},
 	)
 	if err != nil {
 		t.Fatalf("failed to auto migrate tables: %v", err)
@@ -281,6 +283,20 @@ func getSeedConfigsPart2() []model.SystemConfig {
 			Value:       `{"driver":"local","local":{"root":"."},"s3":{"region":"us-east-1"},"r2":{"region":"auto"},"minio":{"region":"us-east-1","path_style":true},"oss":{},"webdav":{}}`,
 			Type:        configTypeSystem,
 			Description: "文件存储驱动及连接配置（JSON）",
+		},
+		{
+			Key:         model.ConfigKeyItemPendingArchiveAfterDays,
+			Value:       "3",
+			Type:        configTypeSystem,
+			Visibility:  0,
+			Description: "pending archive days",
+		},
+		{
+			Key:         model.ConfigKeyItemTrashPurgeAfterDays,
+			Value:       "30",
+			Type:        configTypeSystem,
+			Visibility:  0,
+			Description: "trash purge days",
 		},
 	}
 }

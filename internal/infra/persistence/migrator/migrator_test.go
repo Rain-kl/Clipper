@@ -18,7 +18,8 @@ import (
 	"gorm.io/gorm"
 )
 
-const expectedMigratedSystemConfigCount = 30
+// 30 Wavelet framework keys + item_pending_archive_after_days + item_trash_purge_after_days
+const expectedMigratedSystemConfigCount = 32
 
 func TestMigrateInitializesSQLiteDatabase(t *testing.T) {
 	sqliteDB, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{

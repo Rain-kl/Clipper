@@ -37,6 +37,8 @@ const (
 	ConfigKeyLoginSessionTTLHours             = "login_session_ttl_hours"             // 登录会话过期时间 (小时，0表示浏览器关闭后自动退出登录，-1表示永不过期)
 	ConfigKeyUpdateUpstreamRepository         = "update_upstream_repository"          // GitHub Actions Release 上游仓库
 	ConfigKeyStorageConfig                    = "storage_config"                      // 文件存储配置 (JSON)
+	ConfigKeyItemPendingArchiveAfterDays      = "item_pending_archive_after_days"     // pending 超时归档天数
+	ConfigKeyItemTrashPurgeAfterDays          = "item_trash_purge_after_days"         // trash 硬删天数
 )
 
 const (
