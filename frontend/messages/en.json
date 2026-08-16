@@ -1900,6 +1900,7 @@
       "placeholder": "Paste or type anything… (images supported, ⌘/Ctrl+Enter to send)",
       "submit": "Send",
       "submitting": "Sending…",
+      "attach": "Attach",
       "needContent": "Enter text or add an attachment",
       "captured": "Captured",
       "submitFailed": "Submit failed"

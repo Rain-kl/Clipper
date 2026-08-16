@@ -1900,6 +1900,7 @@
       "placeholder": "粘贴或输入任何内容…（支持粘贴图片，⌘/Ctrl+Enter 发送）",
       "submit": "发送",
       "submitting": "发送中…",
+      "attach": "附件",
       "needContent": "请输入内容或添加附件",
       "captured": "已捕获",
       "submitFailed": "提交失败"
