@@ -14,6 +14,7 @@ import (
 
 	admin_push "github.com/Rain-kl/Wavelet/internal/apps/admin/push"
 	"github.com/Rain-kl/Wavelet/internal/apps/admin/push/custom_events"
+	"github.com/Rain-kl/Wavelet/internal/apps/item"
 	"github.com/Rain-kl/Wavelet/internal/apps/risk_control"
 	"github.com/Rain-kl/Wavelet/internal/infra/config"
 	taskhandlers "github.com/Rain-kl/Wavelet/internal/infra/task/handlers"
@@ -43,6 +44,7 @@ var (
 	registerPushDomainEventsOnce        sync.Once
 	registerTaskListenersOnce           sync.Once
 	registerMessageGatewayListenersOnce sync.Once
+	registerClipperInboundOnce          sync.Once
 	initRuntimeOnce                     sync.Once
 
 	cacheRegistries   = make(map[string]CacheRegistry)
@@ -135,11 +137,20 @@ func RegisterAPI() {
 	RegisterMessageGatewayListeners()
 }
 
+func registerClipperInbound() {
+	registerClipperInboundOnce.Do(func() {
+		listener.OnMessageGatewayInbound(func(ctx context.Context, event listener.MessageGatewayInbound) error {
+			return item.IngestInbound(ctx, event.Msg)
+		})
+	})
+}
+
 // RegisterWorker wires integrations required by the task worker process.
 func RegisterWorker() {
 	RegisterTasks()
 	RegisterTaskListeners()
 	RegisterMessageGatewayListeners()
+	registerClipperInbound()
 }
 
 // RegisterScheduler wires integrations required by the task scheduler process.
@@ -153,6 +164,7 @@ func RegisterAll() {
 	RegisterPushDomainEvents()
 	RegisterTaskListeners()
 	RegisterMessageGatewayListeners()
+	registerClipperInbound()
 }
 
 // Init runs shared runtime bootstrap exactly once per process.
