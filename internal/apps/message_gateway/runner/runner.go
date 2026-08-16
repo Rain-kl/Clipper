@@ -132,9 +132,7 @@ func (r *gateway) startLocked(ctx context.Context, row model.MessageChannel) err
 		LookupBinding: repository.GetBindingByChannelPlatform,
 		UpsertCode:    repository.UpsertPairingCode,
 		GenerateCode:  message_gateway.GenerateCode,
-		Emit: func(ctx context.Context, msg message_gateway.InboundMessage) error {
-			return listener.EmitMessageGatewayInbound(ctx, msg)
-		},
+		Emit: listener.EmitMessageGatewayInbound,
 		Send: func(ctx context.Context, to message_gateway.Recipient, msg message_gateway.OutboundMessage) error {
 			if live == nil {
 				return fmt.Errorf("qq/telegram channel not ready")

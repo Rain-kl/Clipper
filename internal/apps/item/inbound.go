@@ -10,6 +10,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -80,7 +81,7 @@ func ingestInboundAttachments(ctx context.Context, userID uint64, atts []message
 			logger.WarnF(ctx, "item inbound skip attachment: %s", att.Error)
 			continue
 		}
-		data, err := os.ReadFile(path)
+		data, err := os.ReadFile(filepath.Clean(path)) //nolint:gosec // adapter temp path
 		_ = os.Remove(path)
 		if err != nil {
 			logger.WarnF(ctx, "item inbound read attachment: %v", err)
@@ -131,7 +132,9 @@ func appendInbound(ctx context.Context, last *model.Item, userID uint64, text st
 			body = text
 		}
 	}
-	allUploads := append(existingUploads, uploads...)
+	allUploads := make([]model.Upload, 0, len(existingUploads)+len(uploads))
+	allUploads = append(allUploads, existingUploads...)
+	allUploads = append(allUploads, uploads...)
 	last.Body = body
 	last.ContentType = detectContentType(body, allUploads)
 	now := time.Now()
