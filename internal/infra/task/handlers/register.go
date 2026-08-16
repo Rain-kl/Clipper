@@ -7,6 +7,7 @@ package handlers
 
 import (
 	"github.com/Rain-kl/Wavelet/internal/apps/admin/push"
+	"github.com/Rain-kl/Wavelet/internal/apps/item"
 	"github.com/Rain-kl/Wavelet/internal/apps/upload"
 	"github.com/Rain-kl/Wavelet/internal/apps/user"
 	"github.com/Rain-kl/Wavelet/internal/infra/task"
@@ -35,4 +36,10 @@ func Register() {
 	// push
 	task.RegisterHandler(push.SendNotificationTask, &push.PushHandler{})
 	task.RegisterTaskMeta(push.SendNotificationMeta)
+
+	// item
+	task.RegisterHandler(item.ArchivePendingTask, &item.ArchivePendingHandler{})
+	task.RegisterTaskMeta(item.ArchivePendingMeta)
+	task.RegisterHandler(item.PurgeTrashTask, &item.PurgeTrashHandler{})
+	task.RegisterTaskMeta(item.PurgeTrashMeta)
 }
