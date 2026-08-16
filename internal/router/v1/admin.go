@@ -44,6 +44,7 @@ func RegisterAdminRoutes(apiV1Router *gin.RouterGroup) {
 
 		// 6. Messaging & Push Notifications
 		registerAdminPushRoutes(adminRouter)
+		registerAdminMessageGatewayRoutes(adminRouter)
 	}
 }
 

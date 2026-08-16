@@ -327,6 +327,94 @@ definitions:
       date:
         type: string
     type: object
+  message_gateway.ChannelDTO:
+    properties:
+      app_id:
+        type: string
+      app_secret:
+        type: string
+      base_url:
+        type: string
+      bot_token:
+        type: string
+      created_at:
+        type: string
+      enabled:
+        type: boolean
+      id:
+        example: "0"
+        type: string
+      name:
+        type: string
+      owner_scope:
+        type: string
+      portal_host:
+        type: string
+      type:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  message_gateway.CreateChannelRequest:
+    properties:
+      app_id:
+        type: string
+      app_secret:
+        type: string
+      base_url:
+        type: string
+      bot_token:
+        type: string
+      enabled:
+        type: boolean
+      name:
+        type: string
+      portal_host:
+        type: string
+      sandbox:
+        type: string
+      type:
+        type: string
+    type: object
+  message_gateway.Definition:
+    properties:
+      fields:
+        items:
+          $ref: '#/definitions/message_gateway.Field'
+        type: array
+      name:
+        type: string
+      type:
+        type: string
+    type: object
+  message_gateway.Field:
+    properties:
+      key:
+        type: string
+      required:
+        type: boolean
+      type:
+        type: string
+    type: object
+  message_gateway.UpdateChannelRequest:
+    properties:
+      app_id:
+        type: string
+      app_secret:
+        type: string
+      base_url:
+        type: string
+      bot_token:
+        type: string
+      enabled:
+        type: boolean
+      name:
+        type: string
+      portal_host:
+        type: string
+      sandbox:
+        type: string
+    type: object
   model.AccessToken:
     properties:
       created_at:
@@ -2139,6 +2227,177 @@ paths:
       summary: 系统日志实时推送
       tags:
       - admin
+  /api/v1/admin/message-gateway/channels:
+    get:
+      description: Returns all messaging channels; secrets are masked
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Any'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/message_gateway.ChannelDTO'
+                  type: array
+              type: object
+      security:
+      - SessionCookie: []
+      summary: List message gateway channels
+      tags:
+      - admin-message-gateway
+    post:
+      consumes:
+      - application/json
+      description: Creates a Telegram or QQ channel with encrypted credentials
+      parameters:
+      - description: create body
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/message_gateway.CreateChannelRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Any'
+            - properties:
+                data:
+                  $ref: '#/definitions/message_gateway.ChannelDTO'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Any'
+      security:
+      - SessionCookie: []
+      summary: Create message gateway channel
+      tags:
+      - admin-message-gateway
+  /api/v1/admin/message-gateway/channels/{id}:
+    delete:
+      description: Deletes a channel and cascaded bindings and pairing codes
+      parameters:
+      - description: channel id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.Any'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.Any'
+      security:
+      - SessionCookie: []
+      summary: Delete message gateway channel
+      tags:
+      - admin-message-gateway
+    patch:
+      consumes:
+      - application/json
+      description: Updates a channel; empty secrets keep the current ciphertext
+      parameters:
+      - description: channel id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: update body
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/message_gateway.UpdateChannelRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Any'
+            - properties:
+                data:
+                  $ref: '#/definitions/message_gateway.ChannelDTO'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Any'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.Any'
+      security:
+      - SessionCookie: []
+      summary: Update message gateway channel
+      tags:
+      - admin-message-gateway
+  /api/v1/admin/message-gateway/channels/{id}/test:
+    post:
+      description: Probes stored credentials without returning secrets
+      parameters:
+      - description: channel id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.Any'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Any'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.Any'
+      security:
+      - SessionCookie: []
+      summary: Test message gateway channel
+      tags:
+      - admin-message-gateway
+  /api/v1/admin/message-gateway/channels/definitions:
+    get:
+      description: Returns form field definitions for Telegram and QQ channels
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Any'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/message_gateway.Definition'
+                  type: array
+              type: object
+      security:
+      - SessionCookie: []
+      summary: List message gateway channel definitions
+      tags:
+      - admin-message-gateway
   /api/v1/admin/push/channels:
     get:
       description: 返回系统配置的所有消息通道列表，需要管理员权限
