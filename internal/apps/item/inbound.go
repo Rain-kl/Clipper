@@ -4,11 +4,16 @@
 package item
 
 import (
+	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
+	"os"
 	"strings"
 	"time"
 
+	"github.com/Rain-kl/Wavelet/internal/apps/upload"
 	"github.com/Rain-kl/Wavelet/internal/infra/persistence"
 	"github.com/Rain-kl/Wavelet/internal/infra/persistence/idgen"
 	"github.com/Rain-kl/Wavelet/internal/model"
@@ -68,10 +73,38 @@ func IngestInbound(ctx context.Context, msg message_gateway.InboundMessage) erro
 }
 
 func ingestInboundAttachments(ctx context.Context, userID uint64, atts []message_gateway.Attachment) ([]uint64, error) {
-	_ = ctx
-	_ = userID
-	_ = atts
-	return nil, nil
+	var ids []uint64
+	for _, att := range atts {
+		path := att.Path
+		if att.Error != "" || path == "" {
+			logger.WarnF(ctx, "item inbound skip attachment: %s", att.Error)
+			continue
+		}
+		data, err := os.ReadFile(path)
+		_ = os.Remove(path)
+		if err != nil {
+			logger.WarnF(ctx, "item inbound read attachment: %v", err)
+			continue
+		}
+		sum := sha256.Sum256(data)
+		res, err := upload.Ingest(ctx, upload.IngestRequest{
+			UserID:             userID,
+			Reader:             bytes.NewReader(data),
+			Size:               int64(len(data)),
+			FileName:           att.FileName,
+			MimeType:           att.MIME,
+			Hash:               hex.EncodeToString(sum[:]),
+			Type:               "clip",
+			Policy:             upload.PolicyResolveExisting,
+			SkipExtensionCheck: true,
+		})
+		if err != nil {
+			logger.WarnF(ctx, "item inbound ingest: %v", err)
+			continue
+		}
+		ids = append(ids, res.Upload.ID)
+	}
+	return ids, nil
 }
 
 func appendInbound(ctx context.Context, last *model.Item, userID uint64, text string, uploadIDs []uint64, msg message_gateway.InboundMessage) error {
