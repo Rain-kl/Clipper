@@ -60,7 +60,9 @@ export function ItemRow({ item, onChanged, className }: ItemRowProps) {
       toast.success(okMsg);
       onChanged?.();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : t('common.actionFailed'));
+      toast.error(
+        err instanceof Error ? err.message : t('common.actionFailed'),
+      );
     } finally {
       setBusy(false);
     }
@@ -90,8 +92,7 @@ export function ItemRow({ item, onChanged, className }: ItemRowProps) {
       t('common.restored'),
     );
 
-  const archive = () =>
-    patch({ lifecycle: 'archived' }, t('common.archived'));
+  const archive = () => patch({ lifecycle: 'archived' }, t('common.archived'));
 
   const showPendingActions =
     item.lifecycle === 'pending' || item.lifecycle === 'active';

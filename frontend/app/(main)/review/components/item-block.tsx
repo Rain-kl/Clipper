@@ -185,7 +185,9 @@ export function ItemBlock({ item, onChanged, muted = false }: ItemBlockProps) {
           {!item.body &&
           imageAttachments.length === 0 &&
           fileAttachments.length === 0 ? (
-            <p className='text-sm text-muted-foreground'>{t('common.noBody')}</p>
+            <p className='text-sm text-muted-foreground'>
+              {t('common.noBody')}
+            </p>
           ) : null}
         </div>
 
@@ -207,7 +209,9 @@ export function ItemBlock({ item, onChanged, muted = false }: ItemBlockProps) {
               title={t('common.trashAction')}
             >
               <Trash2 className='size-3.5' />
-              <span className='hidden sm:inline'>{t('common.trashAction')}</span>
+              <span className='hidden sm:inline'>
+                {t('common.trashAction')}
+              </span>
             </Button>
             <Button
               type='button'
@@ -219,7 +223,9 @@ export function ItemBlock({ item, onChanged, muted = false }: ItemBlockProps) {
               title={t('importance.fragment')}
             >
               <Scissors className='size-3.5' />
-              <span className='hidden sm:inline'>{t('importance.fragment')}</span>
+              <span className='hidden sm:inline'>
+                {t('importance.fragment')}
+              </span>
             </Button>
             <Button
               type='button'

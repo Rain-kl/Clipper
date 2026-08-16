@@ -104,7 +104,9 @@ function SearchView() {
       <div className='flex items-center justify-between gap-4'>
         <div className='flex items-center gap-2'>
           <Search className='size-5 text-primary' />
-          <h1 className='text-2xl font-semibold tracking-tight'>{t('title')}</h1>
+          <h1 className='text-2xl font-semibold tracking-tight'>
+            {t('title')}
+          </h1>
         </div>
         <Button
           type='button'

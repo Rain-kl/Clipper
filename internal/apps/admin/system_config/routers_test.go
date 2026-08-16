@@ -27,7 +27,8 @@ import (
 	"github.com/Rain-kl/Wavelet/internal/shared/response"
 )
 
-const expectedDefaultConfigsCount = 30
+// 30 Wavelet framework keys + two item retention keys
+const expectedDefaultConfigsCount = 32
 
 func setupTestRouter(authUser *model.User) *gin.Engine {
 	r := testhelper.NewTestGinEngine()
