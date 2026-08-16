@@ -19,6 +19,7 @@ import (
 	"github.com/Rain-kl/Wavelet/internal/infra/task"
 	"github.com/Rain-kl/Wavelet/internal/model"
 	"github.com/Rain-kl/Wavelet/internal/repository"
+	"github.com/Rain-kl/Wavelet/internal/repository/logstore"
 	"github.com/Rain-kl/Wavelet/pkg/logger"
 	"gorm.io/gorm"
 )
@@ -136,11 +137,23 @@ func (h *SystemCleanupHandler) Execute(ctx context.Context, _ []byte) (*task.Tas
 		)
 	}
 
-	msg := fmt.Sprintf("系统清理完成。成功清理未使用的上传文件 %d/%d 个；清理历史推送审计日志 %d 条；清理任务执行日志 %d 条。",
+	var logDeleted int64
+	logSummary, logErr := logstore.CleanupExpired(ctx)
+	if logErr != nil {
+		task.AppendLog(ctx, "清理过期用户访问日志失败: %v", logErr)
+		logger.ErrorF(ctx, "清理过期用户访问日志失败: %v", logErr)
+	} else {
+		logDeleted = logSummary.Deleted
+		task.AppendLog(ctx, "成功清理过期用户访问日志 %d 条（%s 保留 %d 天）",
+			logSummary.Deleted, logSummary.ActiveDatabase, logSummary.RetentionDays)
+	}
+
+	msg := fmt.Sprintf("系统清理完成。成功清理未使用的上传文件 %d/%d 个；清理历史推送审计日志 %d 条；清理任务执行日志 %d 条；清理过期访问日志 %d 条。",
 		totalDeleted,
 		totalProcessed,
 		pushHistoryCount,
 		taskLogStats.HighFrequencyDeleted+taskLogStats.LowFrequencyDeleted,
+		logDeleted,
 	)
 	task.AppendLog(ctx, "%s", msg)
 	return &task.TaskResult{Message: msg}, nil

@@ -37,6 +37,11 @@ const (
 	ConfigKeyLoginSessionTTLHours             = "login_session_ttl_hours"             // 登录会话过期时间 (小时，0表示浏览器关闭后自动退出登录，-1表示永不过期)
 	ConfigKeyUpdateUpstreamRepository         = "update_upstream_repository"          // GitHub Actions Release 上游仓库
 	ConfigKeyStorageConfig                    = "storage_config"                      // 文件存储配置 (JSON)
+	ConfigKeyLogDatabase                      = "log_database"                        // 当前日志主库（postgres/sqlite/clickhouse），受保护
+	ConfigKeyLogDBMigration                   = "log_db_migration"                    // 日志库迁移冻结标记（空/migrating），受保护
+	ConfigKeyLogRetentionDaysPostgres         = "log_retention_days_postgres"         // PostgreSQL 用户访问日志保留天数
+	ConfigKeyLogRetentionDaysSQLite           = "log_retention_days_sqlite"           // SQLite 用户访问日志保留天数
+	ConfigKeyLogRetentionDaysClickHouse       = "log_retention_days_clickhouse"       // ClickHouse 用户访问日志保留天数
 )
 
 const (

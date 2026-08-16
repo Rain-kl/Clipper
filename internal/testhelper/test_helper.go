@@ -282,6 +282,36 @@ func getSeedConfigsPart2() []model.SystemConfig {
 			Type:        configTypeSystem,
 			Description: "文件存储驱动及连接配置（JSON）",
 		},
+		{
+			Key:         model.ConfigKeyLogDatabase,
+			Value:       "sqlite",
+			Type:        configTypeSystem,
+			Description: "当前日志主库",
+		},
+		{
+			Key:         model.ConfigKeyLogDBMigration,
+			Value:       "",
+			Type:        configTypeSystem,
+			Description: "日志库迁移冻结标记",
+		},
+		{
+			Key:         model.ConfigKeyLogRetentionDaysPostgres,
+			Value:       "30",
+			Type:        "business",
+			Description: "PostgreSQL 用户访问日志保留天数",
+		},
+		{
+			Key:         model.ConfigKeyLogRetentionDaysSQLite,
+			Value:       "30",
+			Type:        "business",
+			Description: "SQLite 用户访问日志保留天数",
+		},
+		{
+			Key:         model.ConfigKeyLogRetentionDaysClickHouse,
+			Value:       "30",
+			Type:        "business",
+			Description: "ClickHouse 用户访问日志保留天数",
+		},
 	}
 }
 

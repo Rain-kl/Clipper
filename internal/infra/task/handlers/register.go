@@ -6,6 +6,7 @@
 package handlers
 
 import (
+	"github.com/Rain-kl/Wavelet/internal/apps/admin/logs"
 	"github.com/Rain-kl/Wavelet/internal/apps/admin/push"
 	"github.com/Rain-kl/Wavelet/internal/apps/upload"
 	"github.com/Rain-kl/Wavelet/internal/apps/user"
@@ -35,4 +36,8 @@ func Register() {
 	// push
 	task.RegisterHandler(push.SendNotificationTask, &push.PushHandler{})
 	task.RegisterTaskMeta(push.SendNotificationMeta)
+
+	// logs
+	task.RegisterHandler(logs.LogDBSwitchTask, &logs.LogDBSwitchHandler{})
+	task.RegisterTaskMeta(logs.LogDBSwitchMeta)
 }

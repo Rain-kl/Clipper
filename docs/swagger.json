@@ -42,13 +42,25 @@
                     "200": {
                         "description": "成功返回 PoW 难题",
                         "schema": {
-                            "$ref": "#/definitions/cap.ChallengeResponse"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.Any"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/github_com_Rain-kl_Wavelet_internal_apps_cap.ChallengeResponse"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "500": {
                         "description": "内部服务错误",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Rain-kl_Wavelet_internal_apps_cap.RedeemResponse"
+                            "$ref": "#/definitions/response.Any"
                         }
                     }
                 }
@@ -82,19 +94,31 @@
                     "200": {
                         "description": "核销成功，返回 X-Cap-Token",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Rain-kl_Wavelet_internal_apps_cap.RedeemResponse"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.Any"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/github_com_Rain-kl_Wavelet_internal_apps_cap.RedeemResponse"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "400": {
                         "description": "参数错误或核销失败",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Rain-kl_Wavelet_internal_apps_cap.RedeemResponse"
+                            "$ref": "#/definitions/response.Any"
                         }
                     },
                     "500": {
                         "description": "内部服务错误",
                         "schema": {
-                            "$ref": "#/definitions/github_com_Rain-kl_Wavelet_internal_apps_cap.RedeemResponse"
+                            "$ref": "#/definitions/response.Any"
                         }
                     }
                 }
@@ -993,7 +1017,7 @@
                         "SessionCookie": []
                     }
                 ],
-                "description": "分页并按照用户、接口路径、时间范围等维度检索 ClickHouse 用户访问日志列表（需要管理员权限，ClickHouse 未启用时报错）",
+                "description": "分页并按照用户、接口路径、时间范围等维度检索用户访问日志列表（需要管理员权限）",
                 "produces": [
                     "application/json"
                 ],
@@ -1061,7 +1085,7 @@
                         }
                     },
                     "400": {
-                        "description": "ClickHouse 未启用或参数错误",
+                        "description": "参数错误",
                         "schema": {
                             "$ref": "#/definitions/response.Any"
                         }
@@ -1077,6 +1101,12 @@
                         "schema": {
                             "$ref": "#/definitions/response.Any"
                         }
+                    },
+                    "500": {
+                        "description": "内部错误",
+                        "schema": {
+                            "$ref": "#/definitions/response.Any"
+                        }
                     }
                 }
             }
@@ -1088,7 +1118,7 @@
                         "SessionCookie": []
                     }
                 ],
-                "description": "聚合统计最近 7 天的每日访问趋势、浏览器分布以及前 10 名最活跃用户排行（需要管理员权限，ClickHouse 未启用时报错）",
+                "description": "聚合统计最近 7 天的每日访问趋势、浏览器分布以及前 10 名最活跃用户排行（需要管理员权限）",
                 "produces": [
                     "application/json"
                 ],
@@ -1115,12 +1145,6 @@
                             ]
                         }
                     },
-                    "400": {
-                        "description": "ClickHouse 未启用",
-                        "schema": {
-                            "$ref": "#/definitions/response.Any"
-                        }
-                    },
                     "401": {
                         "description": "未登录",
                         "schema": {
@@ -1129,6 +1153,12 @@
                     },
                     "403": {
                         "description": "无管理员权限",
+                        "schema": {
+                            "$ref": "#/definitions/response.Any"
+                        }
+                    },
+                    "500": {
+                        "description": "内部错误",
                         "schema": {
                             "$ref": "#/definitions/response.Any"
                         }
@@ -1839,6 +1869,61 @@
                     },
                     "403": {
                         "description": "无管理员权限",
+                        "schema": {
+                            "$ref": "#/definitions/response.Any"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/admin/status/log-database": {
+            "get": {
+                "security": [
+                    {
+                        "SessionCookie": []
+                    }
+                ],
+                "description": "返回当前日志主库、迁移状态、各库保留天数与合法迁移目标，需要管理员权限",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin"
+                ],
+                "summary": "获取日志数据库状态",
+                "responses": {
+                    "200": {
+                        "description": "获取成功",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.Any"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/status.LogDatabaseStatus"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "未登录",
+                        "schema": {
+                            "$ref": "#/definitions/response.Any"
+                        }
+                    },
+                    "403": {
+                        "description": "无管理员权限",
+                        "schema": {
+                            "$ref": "#/definitions/response.Any"
+                        }
+                    },
+                    "500": {
+                        "description": "内部错误",
                         "schema": {
                             "$ref": "#/definitions/response.Any"
                         }
@@ -3667,6 +3752,11 @@
                 "summary": "获取用户列表",
                 "parameters": [
                     {
+                        "type": "string",
+                        "name": "email",
+                        "in": "query"
+                    },
+                    {
                         "minimum": 1,
                         "type": "integer",
                         "name": "page",
@@ -3884,6 +3974,92 @@
                     }
                 }
             },
+            "put": {
+                "security": [
+                    {
+                        "SessionCookie": []
+                    }
+                ],
+                "description": "更新指定用户的昵称、邮箱、管理员权限，并可选重置密码，需要管理员权限",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin"
+                ],
+                "summary": "更新用户信息",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "用户 ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "更新参数",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/user.updateUserRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "更新成功",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.Any"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "参数错误",
+                        "schema": {
+                            "$ref": "#/definitions/response.Any"
+                        }
+                    },
+                    "401": {
+                        "description": "未登录",
+                        "schema": {
+                            "$ref": "#/definitions/response.Any"
+                        }
+                    },
+                    "403": {
+                        "description": "无管理员权限或尝试修改自身权限",
+                        "schema": {
+                            "$ref": "#/definitions/response.Any"
+                        }
+                    },
+                    "404": {
+                        "description": "用户不存在",
+                        "schema": {
+                            "$ref": "#/definitions/response.Any"
+                        }
+                    },
+                    "500": {
+                        "description": "内部错误",
+                        "schema": {
+                            "$ref": "#/definitions/response.Any"
+                        }
+                    }
+                }
+            },
             "delete": {
                 "security": [
                     {
@@ -4072,7 +4248,7 @@
         },
         "/api/v1/custom/hello": {
             "get": {
-                "description": "A sample business API for customization",
+                "description": "Scaffold demo API; product APIs use semantic paths under apps/\u003cdomain\u003e",
                 "produces": [
                     "application/json"
                 ],
@@ -5524,32 +5700,6 @@
                 }
             }
         },
-        "cap.ChallengeResponse": {
-            "type": "object",
-            "properties": {
-                "challenge": {
-                    "type": "object",
-                    "properties": {
-                        "c": {
-                            "type": "integer"
-                        },
-                        "d": {
-                            "type": "integer"
-                        },
-                        "s": {
-                            "type": "integer"
-                        }
-                    }
-                },
-                "expires": {
-                    "description": "ms timestamp",
-                    "type": "integer"
-                },
-                "token": {
-                    "type": "string"
-                }
-            }
-        },
         "cap.challengeRequest": {
             "type": "object",
             "properties": {
@@ -5661,6 +5811,32 @@
                 },
                 "ttl_minutes": {
                     "type": "integer"
+                }
+            }
+        },
+        "github_com_Rain-kl_Wavelet_internal_apps_cap.ChallengeResponse": {
+            "type": "object",
+            "properties": {
+                "challenge": {
+                    "type": "object",
+                    "properties": {
+                        "c": {
+                            "type": "integer"
+                        },
+                        "d": {
+                            "type": "integer"
+                        },
+                        "s": {
+                            "type": "integer"
+                        }
+                    }
+                },
+                "expires": {
+                    "description": "ms timestamp",
+                    "type": "integer"
+                },
+                "token": {
+                    "type": "string"
                 }
             }
         },
@@ -6877,6 +7053,29 @@
                 }
             }
         },
+        "status.LogDatabaseStatus": {
+            "type": "object",
+            "properties": {
+                "active_database": {
+                    "type": "string"
+                },
+                "available_targets": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "migration": {
+                    "type": "string"
+                },
+                "retention_days": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "integer"
+                    }
+                }
+            }
+        },
         "status.SystemStatusResponse": {
             "type": "object",
             "properties": {
@@ -7473,6 +7672,30 @@
                 },
                 "website": {
                     "type": "string"
+                }
+            }
+        },
+        "user.updateUserRequest": {
+            "type": "object",
+            "required": [
+                "email"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string",
+                    "maxLength": 255
+                },
+                "is_admin": {
+                    "type": "boolean"
+                },
+                "nickname": {
+                    "type": "string",
+                    "maxLength": 64
+                },
+                "password": {
+                    "type": "string",
+                    "maxLength": 64,
+                    "minLength": 8
                 }
             }
         },

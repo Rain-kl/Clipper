@@ -17,7 +17,14 @@ import (
 	"gorm.io/gorm"
 )
 
+func isProtectedConfigKey(key string) bool {
+	return key == model.ConfigKeyLogDatabase || key == model.ConfigKeyLogDBMigration
+}
+
 func createSystemConfig(ctx context.Context, req CreateSystemConfigRequest) error {
+	if isProtectedConfigKey(req.Key) {
+		return errors.New(protectedConfigKeyMessage)
+	}
 	exists, err := repository.SystemConfigExists(ctx, req.Key)
 	if err != nil {
 		return err
@@ -53,6 +60,9 @@ func getSystemConfig(ctx context.Context, key string) (model.SystemConfig, error
 }
 
 func updateSystemConfig(ctx context.Context, key string, req UpdateSystemConfigRequest) error {
+	if isProtectedConfigKey(key) {
+		return errors.New(protectedConfigKeyMessage)
+	}
 	config, err := repository.GetAdminSystemConfigByKey(ctx, key)
 	if err != nil {
 		return err

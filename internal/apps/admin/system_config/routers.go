@@ -64,6 +64,10 @@ func CreateSystemConfig(c *gin.Context) {
 		response.AbortBadRequest(c, err.Error())
 		return
 	}
+	if isProtectedConfigKey(req.Key) {
+		response.AbortBadRequest(c, protectedConfigKeyMessage)
+		return
+	}
 
 	if err := createSystemConfig(c.Request.Context(), req); err != nil {
 		if err.Error() == ConfigKeyExists {
@@ -156,6 +160,10 @@ func UpdateSystemConfig(c *gin.Context) {
 	}
 
 	key := c.Param("key")
+	if isProtectedConfigKey(key) {
+		response.AbortBadRequest(c, protectedConfigKeyMessage)
+		return
+	}
 	if err := updateSystemConfig(c.Request.Context(), key, req); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			response.AbortNotFound(c, SystemConfigNotFound)

@@ -134,7 +134,7 @@ func TestSystemCleanupHandler_Execute(t *testing.T) {
 	// 验证结果
 	require.NoError(t, err)
 	require.NotNil(t, result)
-	assert.Contains(t, result.Message, "系统清理完成。成功清理未使用的上传文件 2/2 个；清理历史推送审计日志 1 条；清理任务执行日志 1 条。")
+	assert.Contains(t, result.Message, "系统清理完成。成功清理未使用的上传文件 2/2 个；清理历史推送审计日志 1 条；清理任务执行日志 1 条；清理过期访问日志 0 条。")
 
 	// 验证数据库状态：pending 且超过1小时的应被标记为 deleted
 	var pendingCount int64
@@ -189,7 +189,7 @@ func TestSystemCleanupHandler_ExecuteNoFiles(t *testing.T) {
 
 	require.NoError(t, err)
 	require.NotNil(t, result)
-	assert.Contains(t, result.Message, "系统清理完成。成功清理未使用的上传文件 0/0 个；清理历史推送审计日志 0 条；清理任务执行日志 0 条。")
+	assert.Contains(t, result.Message, "系统清理完成。成功清理未使用的上传文件 0/0 个；清理历史推送审计日志 0 条；清理任务执行日志 0 条；清理过期访问日志 0 条。")
 }
 
 func TestSystemCleanupHandler_ImplementsTaskHandler(t *testing.T) {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -20,12 +20,24 @@ import {
 import {
   Calendar as CalendarIcon,
   Clock,
+  Database,
   Info,
   Layers,
   Play,
 } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
-import type { DispatchTaskRequest, TaskMeta } from '@/lib/services/admin';
+import type {
+  DispatchTaskRequest,
+  LogDatabaseStatus,
+  TaskMeta,
+} from '@/lib/services/admin';
 import services from '@/lib/services';
 import { buildTaskPayload } from '@/lib/task-param-utils';
 import { ErrorInline } from '@/components/layout/error';
@@ -69,6 +81,18 @@ const TASK_CONFIGS: Record<
     gradient:
       'from-rose-500/10 via-rose-500/5 to-transparent border-rose-200/50 dark:border-rose-800/50 hover:border-rose-400 dark:hover:border-rose-500',
   },
+  logs_db_switch: {
+    icon: Database,
+    color: 'text-teal-600 dark:text-teal-400',
+    gradient:
+      'from-teal-500/10 via-teal-500/5 to-transparent border-teal-200/50 dark:border-teal-800/50 hover:border-teal-400 dark:hover:border-teal-500',
+  },
+};
+
+const LOG_DATABASE_LABELS: Record<string, string> = {
+  postgres: 'PostgreSQL（主库）',
+  sqlite: 'SQLite（主库）',
+  clickhouse: 'ClickHouse',
 };
 
 const DEFAULT_TASK_CONFIG = {
@@ -196,9 +220,37 @@ export function TaskManager() {
     }
   }, [t]);
 
+  const [logDbStatus, setLogDbStatus] = useState<LogDatabaseStatus | null>(
+    null,
+  );
+
+  const fetchLogDbStatus = useCallback(async () => {
+    try {
+      const data = await services.adminStatus.getLogDatabaseStatus();
+      setLogDbStatus(data);
+    } catch {
+      setLogDbStatus(null);
+    }
+  }, []);
+
   useEffect(() => {
     fetchTaskTypes();
-  }, [fetchTaskTypes]);
+    fetchLogDbStatus();
+  }, [fetchTaskTypes, fetchLogDbStatus]);
+
+  const availableLogDbTargets = useMemo(
+    () => logDbStatus?.available_targets ?? [],
+    [logDbStatus],
+  );
+
+  const retentionSummary = useMemo(() => {
+    const days = logDbStatus?.retention_days ?? {};
+    const parts: string[] = [];
+    if (days.postgres != null) parts.push(`PG ${days.postgres}`);
+    if (days.sqlite != null) parts.push(`SQLite ${days.sqlite}`);
+    if (days.clickhouse != null) parts.push(`CH ${days.clickhouse}`);
+    return parts.join(' / ');
+  }, [logDbStatus]);
 
   useEffect(() => {
     if (selectedTaskType) {
@@ -353,6 +405,45 @@ export function TaskManager() {
                       </div>
                     </div>
 
+                    {task.type === 'logs_db_switch' && logDbStatus && (
+                      <div className='pt-3 mt-3 border-t border-border/50 space-y-1.5'>
+                        <div className='flex items-center justify-between gap-2'>
+                          <span className='text-[10px] text-muted-foreground shrink-0'>
+                            日志主库
+                          </span>
+                          <span className='text-[10px] font-mono text-foreground truncate'>
+                            {LOG_DATABASE_LABELS[logDbStatus.active_database] ||
+                              logDbStatus.active_database}
+                          </span>
+                        </div>
+                        <div className='flex items-center justify-between gap-2'>
+                          <span className='text-[10px] text-muted-foreground shrink-0'>
+                            保留天数
+                          </span>
+                          <span className='text-[10px] font-mono text-muted-foreground truncate'>
+                            {retentionSummary || '-'}
+                          </span>
+                        </div>
+                        <div className='flex items-center justify-between gap-2'>
+                          <span className='text-[10px] text-muted-foreground shrink-0'>
+                            迁移状态
+                          </span>
+                          <Badge
+                            variant={
+                              logDbStatus.migration === 'migrating'
+                                ? 'default'
+                                : 'outline'
+                            }
+                            className='text-[10px] h-5 px-1.5'
+                          >
+                            {logDbStatus.migration === 'migrating'
+                              ? '迁移中'
+                              : '空闲'}
+                          </Badge>
+                        </div>
+                      </div>
+                    )}
+
                     <div className='pt-4 mt-1'>
                       <Button
                         className='w-full h-7 text-xs'
@@ -485,6 +576,34 @@ export function TaskManager() {
                               : t('paramOff')}
                           </span>
                         </div>
+                      ) : param.name === 'target' &&
+                        getSelectedTaskMeta()?.type === 'logs_db_switch' &&
+                        availableLogDbTargets.length > 0 ? (
+                        <Select
+                          value={paramValues[param.name] || ''}
+                          onValueChange={(value) =>
+                            setParamValues((prev) => ({
+                              ...prev,
+                              [param.name]: value,
+                            }))
+                          }
+                          disabled={dispatching}
+                        >
+                          <SelectTrigger
+                            id={`param-${param.name}`}
+                            className='w-full text-xs'
+                            size='sm'
+                          >
+                            <SelectValue placeholder='选择目标日志库...' />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {availableLogDbTargets.map((target) => (
+                              <SelectItem key={target} value={target}>
+                                {LOG_DATABASE_LABELS[target] || target}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       ) : (
                         <Input
                           id={`param-${param.name}`}

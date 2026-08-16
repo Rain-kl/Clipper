@@ -7,11 +7,12 @@ import (
 	"context"
 	"sync"
 
-	"github.com/Rain-kl/Wavelet/internal/infra/config"
+	"time"
+
 	"github.com/Rain-kl/Wavelet/internal/infra/persistence/batchwriter"
 	"github.com/Rain-kl/Wavelet/internal/model/analytics"
 	"github.com/Rain-kl/Wavelet/internal/platform/lifecycle"
-	analyticsrepo "github.com/Rain-kl/Wavelet/internal/repository/analytics"
+	"github.com/Rain-kl/Wavelet/internal/repository/logstore"
 	"github.com/Rain-kl/Wavelet/pkg/logger"
 )
 
@@ -20,12 +21,8 @@ var (
 	logWriter   *batchwriter.Writer[*analytics.UserAccessLog]
 )
 
-// InitLogWriter initializes the ClickHouse access-log batch writer.
+// InitLogWriter initializes the access-log batch writer for the active log database.
 func InitLogWriter(ctx context.Context) {
-	if !config.Config.ClickHouse.Enabled {
-		return
-	}
-
 	logWriterMu.Lock()
 	defer logWriterMu.Unlock()
 	if logWriter != nil {
@@ -41,7 +38,11 @@ func InitLogWriter(ctx context.Context) {
 			}
 			rows = append(rows, *item)
 		}
-		return analyticsrepo.BatchInsert(ctx, rows)
+		store, err := logstore.Active(ctx)
+		if err != nil {
+			return err
+		}
+		return store.UserAccessLogs.BatchInsert(ctx, rows)
 	},
 		batchwriter.WithDropHandler[*analytics.UserAccessLog](func(item *analytics.UserAccessLog) {
 			path := ""
@@ -51,7 +52,7 @@ func InitLogWriter(ctx context.Context) {
 			logger.WarnF(context.Background(), "[RiskControl] Log queue full, dropping log item for path: %s", path)
 		}),
 		batchwriter.WithFlushErrorHandler[*analytics.UserAccessLog](func(ctx context.Context, items []*analytics.UserAccessLog, err error) {
-			logger.ErrorF(ctx, "[RiskControl] Send ClickHouse batch failed (batch=%d): %v", len(items), err)
+			logger.ErrorF(ctx, "[RiskControl] flush access-log batch failed (batch=%d): %v", len(items), err)
 		}),
 	)
 	if err != nil {
@@ -108,4 +109,37 @@ func currentLogWriter() *batchwriter.Writer[*analytics.UserAccessLog] {
 	logWriterMu.RLock()
 	defer logWriterMu.RUnlock()
 	return logWriter
+}
+
+const drainPollInterval = 50 * time.Millisecond
+
+// Drain waits until the in-memory access-log queue has been empty for one flush interval.
+func Drain(ctx context.Context) error {
+	writer := currentLogWriter()
+	if writer == nil {
+		return nil
+	}
+	quietPeriod := batchwriter.DefaultConfig().FlushInterval
+	if quietPeriod <= 0 {
+		quietPeriod = time.Second
+	}
+	ticker := time.NewTicker(drainPollInterval)
+	defer ticker.Stop()
+	var quietSince time.Time
+	for {
+		if writer.Len() == 0 {
+			if quietSince.IsZero() {
+				quietSince = time.Now()
+			} else if time.Since(quietSince) >= quietPeriod {
+				return nil
+			}
+		} else {
+			quietSince = time.Time{}
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-ticker.C:
+		}
+	}
 }
