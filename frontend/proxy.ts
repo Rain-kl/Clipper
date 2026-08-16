@@ -1,6 +1,8 @@
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
+import { resolveSessionCookieName } from '@/lib/session-cookie';
+
 /**
  * Next.js 16 代理层
  *
@@ -77,8 +79,7 @@ if (typeof setInterval !== 'undefined') {
 
 export function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
-  const sessionCookieName =
-    process.env.WAVELET_SESSION_COOKIE_NAME || 'wavelet_session_id';
+  const sessionCookieName = resolveSessionCookieName();
   const sessionCookie = request.cookies.get(sessionCookieName);
 
   /* API 请求：速率限制后放行 */
@@ -108,7 +109,6 @@ export function proxy(request: NextRequest) {
 
   /* 页面请求：公共路由放行 */
   const publicRoutes = [
-    '/',
     '/login',
     '/register',
     '/callback',
