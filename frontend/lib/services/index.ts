@@ -23,6 +23,7 @@ import {
 import { AuthService } from './auth';
 import { ConfigService } from './config';
 import { DbManageService } from './db-manage';
+import { ItemService } from './item';
 import { PushService } from './push';
 import { AdminUploadService, UploadService } from './upload';
 import { UserService } from './user';
@@ -43,6 +44,7 @@ const services = {
   adminUpload: AdminUploadService,
   dbManage: DbManageService,
   push: PushService,
+  item: ItemService,
 } as const;
 
 export default services;
@@ -175,3 +177,18 @@ export type {
   UpdatePushEventRequest,
   TestPushRequest,
 } from './push';
+
+export { ItemService } from './item';
+export type {
+  ItemContentType,
+  ItemLifecycle,
+  ItemImportance,
+  ItemAttachment,
+  Item,
+  ListItemsParams,
+  ListItemsResult,
+  TimelineDay,
+  TimelineResult,
+  CreateItemPayload,
+  PatchItemPayload,
+} from './item';
