@@ -104,7 +104,7 @@ func RegisterPushDomainEvents() {
 // RegisterMessageGatewayListeners registers the default log-only inbound handler.
 func RegisterMessageGatewayListeners() {
 	registerMessageGatewayListenersOnce.Do(func() {
-		listener.OnMessageGatewayInbound(func(ctx context.Context, event listener.MessageGatewayInbound) {
+		listener.OnMessageGatewayInbound(func(ctx context.Context, event listener.MessageGatewayInbound) error {
 			userID := uint64(0)
 			if event.Msg.BindingUserID != nil {
 				userID = *event.Msg.BindingUserID
@@ -116,6 +116,7 @@ func RegisterMessageGatewayListeners() {
 				userID,
 				event.Msg.PlatformUserID,
 			)
+			return nil
 		})
 	})
 }

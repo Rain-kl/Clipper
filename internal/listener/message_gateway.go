@@ -18,7 +18,7 @@ type MessageGatewayInbound struct {
 }
 
 // MessageGatewayInboundHandler handles inbound messaging events.
-type MessageGatewayInboundHandler func(ctx context.Context, event MessageGatewayInbound)
+type MessageGatewayInboundHandler func(ctx context.Context, event MessageGatewayInbound) error
 
 var messageGatewayInboundHandlers []MessageGatewayInboundHandler
 
@@ -28,12 +28,15 @@ func OnMessageGatewayInbound(handler MessageGatewayInboundHandler) {
 }
 
 // EmitMessageGatewayInbound dispatches a bound inbound message.
-func EmitMessageGatewayInbound(ctx context.Context, msg message_gateway.InboundMessage) {
+func EmitMessageGatewayInbound(ctx context.Context, msg message_gateway.InboundMessage) error {
 	if msg.BindingUserID == nil {
-		return
+		return nil
 	}
 	event := MessageGatewayInbound{Msg: msg}
 	for _, handler := range messageGatewayInboundHandlers {
-		handler(ctx, event)
+		if err := handler(ctx, event); err != nil {
+			return err
+		}
 	}
+	return nil
 }

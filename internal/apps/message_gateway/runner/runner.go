@@ -133,8 +133,7 @@ func (r *gateway) startLocked(ctx context.Context, row model.MessageChannel) err
 		UpsertCode:    repository.UpsertPairingCode,
 		GenerateCode:  message_gateway.GenerateCode,
 		Emit: func(ctx context.Context, msg message_gateway.InboundMessage) error {
-			listener.EmitMessageGatewayInbound(ctx, msg)
-			return nil
+			return listener.EmitMessageGatewayInbound(ctx, msg)
 		},
 		Send: func(ctx context.Context, to message_gateway.Recipient, msg message_gateway.OutboundMessage) error {
 			if live == nil {
