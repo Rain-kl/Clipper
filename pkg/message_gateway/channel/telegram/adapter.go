@@ -1,6 +1,7 @@
 // Copyright 2026 Arctel.net
 // SPDX-License-Identifier: Apache-2.0
 
+// Package telegram implements the Telegram private-chat adapter.
 package telegram
 
 import (
@@ -53,15 +54,15 @@ func (a *Adapter) Connect(ctx context.Context) error {
 	}
 	a.bot = bot
 	bot.Handle(tele.OnText, func(c tele.Context) error {
-		a.handleTeleMessage(c.Message())
+		a.handleTeleMessage(ctx, c.Message())
 		return nil
 	})
 	bot.Handle(tele.OnPhoto, func(c tele.Context) error {
-		a.handleTeleMessage(c.Message())
+		a.handleTeleMessage(ctx, c.Message())
 		return nil
 	})
 	bot.Handle(tele.OnDocument, func(c tele.Context) error {
-		a.handleTeleMessage(c.Message())
+		a.handleTeleMessage(ctx, c.Message())
 		return nil
 	})
 	go bot.Start()
@@ -73,7 +74,7 @@ func (a *Adapter) Connect(ctx context.Context) error {
 }
 
 // Disconnect stops the bot.
-func (a *Adapter) Disconnect(ctx context.Context) error {
+func (a *Adapter) Disconnect(_ context.Context) error {
 	if a.bot != nil {
 		a.bot.Stop()
 	}
@@ -81,7 +82,7 @@ func (a *Adapter) Disconnect(ctx context.Context) error {
 }
 
 // Send replies to a private chat.
-func (a *Adapter) Send(ctx context.Context, to message_gateway.Recipient, msg message_gateway.OutboundMessage) error {
+func (a *Adapter) Send(_ context.Context, to message_gateway.Recipient, msg message_gateway.OutboundMessage) error {
 	if a.bot == nil {
 		return fmt.Errorf("telegram: not connected")
 	}
@@ -93,7 +94,7 @@ func (a *Adapter) Send(ctx context.Context, to message_gateway.Recipient, msg me
 	return err
 }
 
-func (a *Adapter) handleTeleMessage(m *tele.Message) {
+func (a *Adapter) handleTeleMessage(ctx context.Context, m *tele.Message) {
 	if m == nil || m.Chat == nil || m.Chat.Type != tele.ChatPrivate {
 		return
 	}
@@ -114,7 +115,7 @@ func (a *Adapter) handleTeleMessage(m *tele.Message) {
 	if a.bot != nil {
 		msg.Attachments = a.downloadMedia(m)
 	}
-	_ = a.onInbound(context.Background(), msg)
+	_ = a.onInbound(ctx, msg)
 }
 
 func (a *Adapter) downloadMedia(m *tele.Message) []message_gateway.Attachment {

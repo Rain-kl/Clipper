@@ -74,7 +74,6 @@ type gateway struct {
 	node    string
 	mu      sync.Mutex
 	running map[uint64]*runningChannel
-	seen    map[uint64]time.Time
 }
 
 func (r *gateway) sync(ctx context.Context) error {

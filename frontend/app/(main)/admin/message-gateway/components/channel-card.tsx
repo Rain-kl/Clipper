@@ -39,8 +39,7 @@ export function ChannelCard({
 }: ChannelCardProps) {
   const t = useTranslations('admin.messageGateway');
   const [confirmOpen, setConfirmOpen] = React.useState(false);
-  const typeLabel =
-    channel.type === 'qq' ? t('typeQQ') : t('typeTelegram');
+  const typeLabel = channel.type === 'qq' ? t('typeQQ') : t('typeTelegram');
 
   return (
     <div className='rounded-xl border bg-card p-4 space-y-4'>

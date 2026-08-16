@@ -1,6 +1,7 @@
 // Copyright 2026 Arctel.net
 // SPDX-License-Identifier: Apache-2.0
 
+// Package qq implements the official QQ Bot C2C adapter.
 package qq
 
 import (
@@ -69,10 +70,11 @@ func (a *Adapter) Connect(ctx context.Context) error {
 	}
 
 	var api openapi.OpenAPI
+	const apiTimeout = 5 * time.Second
 	if strings.EqualFold(strings.TrimSpace(a.cfg.Extra["sandbox"]), "true") {
-		api = botgo.NewSandboxOpenAPI(credentials.AppID, tokSrc).WithTimeout(5 * time.Second)
+		api = botgo.NewSandboxOpenAPI(credentials.AppID, tokSrc).WithTimeout(apiTimeout)
 	} else {
-		api = botgo.NewOpenAPI(credentials.AppID, tokSrc).WithTimeout(5 * time.Second)
+		api = botgo.NewOpenAPI(credentials.AppID, tokSrc).WithTimeout(apiTimeout)
 	}
 
 	wsAP, err := api.WS(ctx, nil, "")
@@ -92,7 +94,7 @@ func (a *Adapter) Connect(ctx context.Context) error {
 			text = data.Content
 			id = data.ID
 		}
-		a.handleEvent(qqEvent{Kind: "c2c", UserID: authorID, Text: text, MessageID: id})
+		a.handleEvent(runCtx, qqEvent{Kind: "c2c", UserID: authorID, Text: text, MessageID: id})
 		return nil
 	}))
 
@@ -112,7 +114,7 @@ func (a *Adapter) Connect(ctx context.Context) error {
 }
 
 // Disconnect stops token refresh and drops further inbound events.
-func (a *Adapter) Disconnect(ctx context.Context) error {
+func (a *Adapter) Disconnect(_ context.Context) error {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	a.disconnected = true
@@ -138,7 +140,7 @@ func (a *Adapter) Send(ctx context.Context, to message_gateway.Recipient, msg me
 	return err
 }
 
-func (a *Adapter) handleEvent(ev qqEvent) {
+func (a *Adapter) handleEvent(ctx context.Context, ev qqEvent) {
 	if ev.Kind != "c2c" {
 		return
 	}
@@ -148,7 +150,7 @@ func (a *Adapter) handleEvent(ev qqEvent) {
 	if disconnected || a.onInbound == nil {
 		return
 	}
-	_ = a.onInbound(context.Background(), message_gateway.InboundMessage{
+	_ = a.onInbound(ctx, message_gateway.InboundMessage{
 		ChannelID:      a.cfg.ID,
 		ChannelType:    message_gateway.ChannelTypeQQ,
 		PlatformUserID: ev.UserID,

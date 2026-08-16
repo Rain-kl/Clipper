@@ -85,7 +85,11 @@ const adminItems: NavItem[] = [
   { titleKey: 'storage', url: '/admin/files', icon: FolderOpen },
   { titleKey: 'database', url: '/admin/database', icon: Database },
   { titleKey: 'push', url: '/admin/push', icon: Bell },
-  { titleKey: 'messageGateway', url: '/admin/message-gateway', icon: MessagesSquare },
+  {
+    titleKey: 'messageGateway',
+    url: '/admin/message-gateway',
+    icon: MessagesSquare,
+  },
   { titleKey: 'logs', url: '/admin/logs', icon: Terminal },
   { titleKey: 'system', url: '/admin/system', icon: ShieldCheck },
   { titleKey: 'adminSettings', url: '/admin/settings', icon: Settings },

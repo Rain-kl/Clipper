@@ -119,7 +119,9 @@ export default function MessageGatewayAdminPage() {
               key={ch.id}
               channel={ch}
               toggling={toggleMutation.isPending}
-              deleting={deleteMutation.isPending && deleteMutation.variables === ch.id}
+              deleting={
+                deleteMutation.isPending && deleteMutation.variables === ch.id
+              }
               onToggle={(enabled) =>
                 toggleMutation.mutate({ id: ch.id, enabled })
               }

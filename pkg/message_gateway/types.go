@@ -1,6 +1,7 @@
 // Copyright 2026 Arctel.net
 // SPDX-License-Identifier: Apache-2.0
 
+// Package message_gateway defines channel adapters, pairing codes, and inbound types.
 package message_gateway
 
 // ChannelTypeTelegram is the Telegram private-chat adapter type.

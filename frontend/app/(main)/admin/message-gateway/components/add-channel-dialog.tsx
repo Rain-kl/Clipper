@@ -24,7 +24,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { TelegramForm, type TelegramFormValue } from '../channels/telegram/form';
+import {
+  TelegramForm,
+  type TelegramFormValue,
+} from '../channels/telegram/form';
 import { QQForm, type QQFormValue } from '../channels/qq/form';
 import type { CreateMessageChannelRequest } from '@/lib/services/message-gateway';
 
@@ -66,7 +69,9 @@ export function AddChannelDialog({
   const canSubmit =
     name.trim() !== '' &&
     ((type === 'telegram' && telegram.bot_token.trim() !== '') ||
-      (type === 'qq' && qq.app_id.trim() !== '' && qq.app_secret.trim() !== ''));
+      (type === 'qq' &&
+        qq.app_id.trim() !== '' &&
+        qq.app_secret.trim() !== ''));
 
   const handleSubmit = () => {
     if (!canSubmit || !type) return;

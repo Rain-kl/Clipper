@@ -17,7 +17,7 @@ func TestHandleUpdate_DropsGroups(t *testing.T) {
 		got++
 		return nil
 	}}
-	a.handleTeleMessage(&tele.Message{
+	a.handleTeleMessage(context.Background(), &tele.Message{
 		ID:     1,
 		Text:   "hi",
 		Chat:   &tele.Chat{ID: -100, Type: tele.ChatGroup},
@@ -37,7 +37,7 @@ func TestHandleUpdate_PrivateText(t *testing.T) {
 			return nil
 		},
 	}
-	a.handleTeleMessage(&tele.Message{
+	a.handleTeleMessage(context.Background(), &tele.Message{
 		ID:     9,
 		Text:   "hi",
 		Chat:   &tele.Chat{ID: 42, Type: tele.ChatPrivate},

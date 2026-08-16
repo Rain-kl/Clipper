@@ -15,9 +15,9 @@ import (
 	admin_push "github.com/Rain-kl/Wavelet/internal/apps/admin/push"
 	"github.com/Rain-kl/Wavelet/internal/apps/admin/push/custom_events"
 	"github.com/Rain-kl/Wavelet/internal/apps/risk_control"
-	"github.com/Rain-kl/Wavelet/internal/listener"
 	"github.com/Rain-kl/Wavelet/internal/infra/config"
 	taskhandlers "github.com/Rain-kl/Wavelet/internal/infra/task/handlers"
+	"github.com/Rain-kl/Wavelet/internal/listener"
 	"github.com/Rain-kl/Wavelet/internal/model"
 	"github.com/Rain-kl/Wavelet/internal/platform/lifecycle"
 	"github.com/Rain-kl/Wavelet/internal/repository"
@@ -39,11 +39,11 @@ type CacheRegistry struct {
 }
 
 var (
-	registerTasksOnce                  sync.Once
-	registerPushDomainEventsOnce       sync.Once
-	registerTaskListenersOnce          sync.Once
+	registerTasksOnce                   sync.Once
+	registerPushDomainEventsOnce        sync.Once
+	registerTaskListenersOnce           sync.Once
 	registerMessageGatewayListenersOnce sync.Once
-	initRuntimeOnce                    sync.Once
+	initRuntimeOnce                     sync.Once
 
 	cacheRegistries   = make(map[string]CacheRegistry)
 	cacheRegistriesMu sync.RWMutex

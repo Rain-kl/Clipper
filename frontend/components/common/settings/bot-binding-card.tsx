@@ -51,7 +51,9 @@ export function BotBindingCard() {
       UserMessageGatewayService.bind({ channel_id: channelId, code }),
     onSuccess: () => {
       toast.success(t('bindSuccess'));
-      queryClient.invalidateQueries({ queryKey: ['message-gateway', 'bindings'] });
+      queryClient.invalidateQueries({
+        queryKey: ['message-gateway', 'bindings'],
+      });
       setOpen(false);
       setChannelId('');
       setCode('');
@@ -65,7 +67,9 @@ export function BotBindingCard() {
     mutationFn: (id: string) => UserMessageGatewayService.unbind(id),
     onSuccess: () => {
       toast.success(t('unbindSuccess'));
-      queryClient.invalidateQueries({ queryKey: ['message-gateway', 'bindings'] });
+      queryClient.invalidateQueries({
+        queryKey: ['message-gateway', 'bindings'],
+      });
     },
     onError: (err: unknown) => {
       toast.error(t('unbindFailed') + ': ' + (err as Error).message);
@@ -82,8 +86,12 @@ export function BotBindingCard() {
           <Bot className='size-4' />
         </div>
         <div>
-          <h2 className='text-base font-semibold tracking-tight'>{t('title')}</h2>
-          <p className='text-[11px] text-muted-foreground'>{t('description')}</p>
+          <h2 className='text-base font-semibold tracking-tight'>
+            {t('title')}
+          </h2>
+          <p className='text-[11px] text-muted-foreground'>
+            {t('description')}
+          </p>
         </div>
       </div>
 
@@ -165,7 +173,9 @@ export function BotBindingCard() {
               </Select>
               {!channelsQuery.isPending &&
               (channelsQuery.data ?? []).length === 0 ? (
-                <p className='text-xs text-muted-foreground'>{t('noChannels')}</p>
+                <p className='text-xs text-muted-foreground'>
+                  {t('noChannels')}
+                </p>
               ) : null}
             </div>
             <div className='space-y-2'>

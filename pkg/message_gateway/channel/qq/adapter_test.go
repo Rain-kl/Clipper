@@ -16,7 +16,7 @@ func TestHandleEvent_DropsNonC2C(t *testing.T) {
 		got++
 		return nil
 	}}
-	a.handleEvent(qqEvent{Kind: "group", UserID: "u1", Text: "hi"})
+	a.handleEvent(context.Background(), qqEvent{Kind: "group", UserID: "u1", Text: "hi"})
 	if got != 0 {
 		t.Fatal("non-C2C must be ignored")
 	}
@@ -28,7 +28,7 @@ func TestHandleEvent_C2CText(t *testing.T) {
 		got = msg
 		return nil
 	}}
-	a.handleEvent(qqEvent{Kind: "c2c", UserID: "openid-1", Text: "hello", MessageID: "m1"})
+	a.handleEvent(context.Background(), qqEvent{Kind: "c2c", UserID: "openid-1", Text: "hello", MessageID: "m1"})
 	if got.Text != "hello" || got.PlatformUserID != "openid-1" || got.ChannelID != 3 {
 		t.Fatalf("%+v", got)
 	}

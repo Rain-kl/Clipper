@@ -20,9 +20,10 @@ import (
 )
 
 const (
-	configTypeSystem = "system"
-	configValueTrue  = "true"
-	configValueFalse = "false"
+	configTypeSystem   = "system"
+	configTypeBusiness = "business"
+	configValueTrue    = "true"
+	configValueFalse   = "false"
 )
 
 // SetupTestEnvironment initializes an in-memory SQLite DB, seeds default configurations,
@@ -139,7 +140,7 @@ func getSeedConfigsPart1() []model.SystemConfig {
 		{
 			Key:         model.ConfigKeyMaxAPIKeysPerUser,
 			Value:       "5",
-			Type:        "business",
+			Type:        configTypeBusiness,
 			Description: "限制每个普通用户可以创建的 API Key 最大数量",
 		},
 		{
@@ -300,19 +301,19 @@ func getSeedConfigsPart2() []model.SystemConfig {
 		{
 			Key:         model.ConfigKeyLogRetentionDaysPostgres,
 			Value:       "30",
-			Type:        "business",
+			Type:        configTypeBusiness,
 			Description: "PostgreSQL 用户访问日志保留天数",
 		},
 		{
 			Key:         model.ConfigKeyLogRetentionDaysSQLite,
 			Value:       "30",
-			Type:        "business",
+			Type:        configTypeBusiness,
 			Description: "SQLite 用户访问日志保留天数",
 		},
 		{
 			Key:         model.ConfigKeyLogRetentionDaysClickHouse,
 			Value:       "30",
-			Type:        "business",
+			Type:        configTypeBusiness,
 			Description: "ClickHouse 用户访问日志保留天数",
 		},
 	}
