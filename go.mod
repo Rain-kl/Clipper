@@ -35,6 +35,7 @@ require (
 	github.com/swaggo/files v1.0.1
 	github.com/swaggo/gin-swagger v1.6.1
 	github.com/swaggo/swag v1.16.6
+	github.com/tencent-connect/botgo v0.2.1
 	github.com/uptrace/opentelemetry-go-extra/otelzap v0.3.2
 	go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin v0.70.0
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.70.0
@@ -49,6 +50,7 @@ require (
 	golang.org/x/oauth2 v0.36.0
 	golang.org/x/sync v0.22.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
+	gopkg.in/telebot.v4 v4.0.0-beta.10
 	gorm.io/driver/clickhouse v0.7.0
 	gorm.io/driver/postgres v1.6.2
 	gorm.io/driver/sqlite v1.6.0
@@ -107,6 +109,7 @@ require (
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/go-playground/validator/v10 v10.30.3 // indirect
+	github.com/go-resty/resty/v2 v2.6.0 // indirect
 	github.com/go-sql-driver/mysql v1.10.0 // indirect
 	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect
 	github.com/goccy/go-json v0.10.6 // indirect
@@ -150,6 +153,9 @@ require (
 	github.com/spf13/cast v1.10.0 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
+	github.com/tidwall/gjson v1.9.3 // indirect
+	github.com/tidwall/match v1.1.1 // indirect
+	github.com/tidwall/pretty v1.2.0 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.3.1 // indirect
 	github.com/uptrace/opentelemetry-go-extra/otelutil v0.3.2 // indirect
@@ -173,7 +179,6 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260803160001-6ac0973c030d // indirect
 	google.golang.org/grpc v1.83.0 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
-	gopkg.in/telebot.v4 v4.0.0-beta.10 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	gorm.io/driver/mysql v1.6.0 // indirect
 	modernc.org/libc v1.74.3 // indirect
