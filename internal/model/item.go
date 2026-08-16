@@ -40,6 +40,12 @@ const (
 // ItemSourceWeb is the default capture source for web UI.
 const ItemSourceWeb = "web"
 
+// ItemSourceTelegram is a clip captured from a bound Telegram DM.
+const ItemSourceTelegram = "telegram"
+
+// ItemSourceQQ is a clip captured from a bound QQ C2C message.
+const ItemSourceQQ = "qq"
+
 // Item is one capture unit owned by a user.
 type Item struct {
 	ID          uint64          `json:"id,string" gorm:"primaryKey"`
