@@ -47,15 +47,20 @@ import {
   ArrowUpRight,
   Bell,
   ChevronDown,
+  ClipboardPaste,
   Code,
   CreditCard,
   Database,
   FileQuestionMark,
   FileText,
   FolderOpen,
+  History,
   Home,
   Layers,
+  Library,
+  Lock,
   LogOut,
+  Search,
   Settings,
   ShieldCheck,
   Terminal,
@@ -74,6 +79,11 @@ type NavItem = {
 };
 
 const navMainItems: NavItem[] = [
+  { titleKey: 'clip', url: '/clip', icon: ClipboardPaste },
+  { titleKey: 'review', url: '/review', icon: History },
+  { titleKey: 'search', url: '/search', icon: Search },
+  { titleKey: 'library', url: '/library', icon: Library },
+  { titleKey: 'vault', url: '/vault', icon: Lock },
   { titleKey: 'home', url: '/home', icon: Home },
   { titleKey: 'myFiles', url: '/files', icon: FolderOpen },
 ];
