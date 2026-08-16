@@ -15,6 +15,7 @@ import (
 	admin_push "github.com/Rain-kl/Wavelet/internal/apps/admin/push"
 	"github.com/Rain-kl/Wavelet/internal/apps/admin/push/custom_events"
 	"github.com/Rain-kl/Wavelet/internal/apps/risk_control"
+	"github.com/Rain-kl/Wavelet/internal/listener"
 	"github.com/Rain-kl/Wavelet/internal/infra/config"
 	taskhandlers "github.com/Rain-kl/Wavelet/internal/infra/task/handlers"
 	"github.com/Rain-kl/Wavelet/internal/model"
@@ -38,10 +39,11 @@ type CacheRegistry struct {
 }
 
 var (
-	registerTasksOnce            sync.Once
-	registerPushDomainEventsOnce sync.Once
-	registerTaskListenersOnce    sync.Once
-	initRuntimeOnce              sync.Once
+	registerTasksOnce                  sync.Once
+	registerPushDomainEventsOnce       sync.Once
+	registerTaskListenersOnce          sync.Once
+	registerMessageGatewayListenersOnce sync.Once
+	initRuntimeOnce                    sync.Once
 
 	cacheRegistries   = make(map[string]CacheRegistry)
 	cacheRegistriesMu sync.RWMutex
@@ -99,6 +101,25 @@ func RegisterPushDomainEvents() {
 	})
 }
 
+// RegisterMessageGatewayListeners registers the default log-only inbound handler.
+func RegisterMessageGatewayListeners() {
+	registerMessageGatewayListenersOnce.Do(func() {
+		listener.OnMessageGatewayInbound(func(ctx context.Context, event listener.MessageGatewayInbound) {
+			userID := uint64(0)
+			if event.Msg.BindingUserID != nil {
+				userID = *event.Msg.BindingUserID
+			}
+			logger.InfoF(ctx, "[%s] channel=%d type=%s user=%d platform_user=%s",
+				listener.EventMessageGatewayInbound,
+				event.Msg.ChannelID,
+				event.Msg.ChannelType,
+				userID,
+				event.Msg.PlatformUserID,
+			)
+		})
+	})
+}
+
 // RegisterTaskListeners wires operational listeners to task framework hooks.
 func RegisterTaskListeners() {
 	registerTaskListenersOnce.Do(func() {
@@ -110,12 +131,14 @@ func RegisterTaskListeners() {
 func RegisterAPI() {
 	RegisterTasks()
 	RegisterPushDomainEvents()
+	RegisterMessageGatewayListeners()
 }
 
 // RegisterWorker wires integrations required by the task worker process.
 func RegisterWorker() {
 	RegisterTasks()
 	RegisterTaskListeners()
+	RegisterMessageGatewayListeners()
 }
 
 // RegisterScheduler wires integrations required by the task scheduler process.
@@ -128,6 +151,7 @@ func RegisterAll() {
 	RegisterTasks()
 	RegisterPushDomainEvents()
 	RegisterTaskListeners()
+	RegisterMessageGatewayListeners()
 }
 
 // Init runs shared runtime bootstrap exactly once per process.
