@@ -23,7 +23,10 @@ import {
 import { AuthService } from './auth';
 import { ConfigService } from './config';
 import { DbManageService } from './db-manage';
-import { AdminMessageGatewayService } from './message-gateway';
+import {
+  AdminMessageGatewayService,
+  UserMessageGatewayService,
+} from './message-gateway';
 import { PushService } from './push';
 import { AdminUploadService, UploadService } from './upload';
 import { UserService } from './user';
@@ -45,6 +48,7 @@ const services = {
   dbManage: DbManageService,
   push: PushService,
   adminMessageGateway: AdminMessageGatewayService,
+  userMessageGateway: UserMessageGatewayService,
 } as const;
 
 export default services;
@@ -169,7 +173,10 @@ export type {
 } from './db-manage';
 
 export { PushService } from './push';
-export { AdminMessageGatewayService } from './message-gateway';
+export {
+  AdminMessageGatewayService,
+  UserMessageGatewayService,
+} from './message-gateway';
 export type {
   MessageChannel,
   MessageChannelDefinition,

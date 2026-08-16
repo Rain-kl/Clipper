@@ -65,6 +65,7 @@ import {
 } from '@/components/ui/image-crop';
 import { toast } from 'sonner';
 import { useTranslations } from 'next-intl';
+import { BotBindingCard } from '@/components/common/settings/bot-binding-card';
 
 export function ProfileMain() {
   const { user, loading, refetch } = useUser();
@@ -651,6 +652,7 @@ export function ProfileMain() {
             </div>
           </div>
         </div>
+        <BotBindingCard />
       </div>
 
       {/* 编辑资料 Dialog */}
