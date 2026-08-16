@@ -42,7 +42,7 @@ func TestFormatStartupBanner(t *testing.T) {
 	})
 
 	for _, want := range []string{
-		"Wavelet v3.2.1",
+		"Clipper v3.2.1",
 		"Environment: production",
 		"Build time:  2026-07-13T08:00:00Z",
 		"Database:    PostgreSQL (version 202607150003, upgraded)",

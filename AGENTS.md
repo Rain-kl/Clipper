@@ -1,3 +1,11 @@
+# AGENTS.md — Clipper AI 助手工作操作手册
+
+本文件面向 AI 开发助手，定义其职责与操作规范。
+
+**产品：** Clipper（跨设备捕获与分级留存）。业务表前缀 `c_*`，框架表前缀 `w_*`。
+**Go module：** `github.com/Rain-kl/Wavelet`
+**仓库：** https://github.com/Rain-kl/Clipper
+
 # AGENTS.md
 
 Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-specific instructions as needed.
