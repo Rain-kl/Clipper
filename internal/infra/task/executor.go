@@ -13,6 +13,7 @@ import (
 
 	"github.com/Rain-kl/Wavelet/internal/infra/persistence/idgen"
 	"github.com/Rain-kl/Wavelet/internal/model"
+	"github.com/Rain-kl/Wavelet/internal/repository"
 	"github.com/Rain-kl/Wavelet/pkg/logger"
 	otel_trace "github.com/Rain-kl/Wavelet/pkg/trace"
 	"github.com/hibiken/asynq"
@@ -110,7 +111,7 @@ func AppendLog(ctx context.Context, format string, args ...interface{}) {
 	}
 
 	logLine := fmt.Sprintf(format, args...)
-	if err := model.AppendTaskExecutionLog(ctx, taskID, logLine); err != nil {
+	if err := repository.AppendTaskExecutionLog(ctx, taskID, logLine); err != nil {
 		logger.ErrorF(ctx, "[TaskExecutor] 追加任务日志失败 taskID=%s: %v", taskID, err)
 	}
 }
@@ -138,7 +139,7 @@ func DispatchTask(ctx context.Context, taskType string, payload []byte, triggere
 		TriggeredBy: triggeredBy,
 	}
 
-	if err := model.CreateTaskExecution(ctx, execution); err != nil {
+	if err := repository.CreateTaskExecution(ctx, execution); err != nil {
 		return "", fmt.Errorf(errCreateTaskExecutionFailed, err)
 	}
 
@@ -156,11 +157,11 @@ func DispatchTask(ctx context.Context, taskType string, payload []byte, triggere
 		now := time.Now()
 		execution.StartedAt = &now
 		execution.FinishedAt = &now
-		_ = model.UpdateTaskExecution(ctx, execution)
+		_ = repository.UpdateTaskExecution(ctx, execution)
 		return "", fmt.Errorf(errTaskEnqueueFailed, err)
 	}
 
-	if err := model.AppendTaskExecutionLog(ctx, taskID, fmt.Sprintf("[系统] 任务已成功入队，等待调度执行 (队列: %s, 最大重试次数: %d)", meta.Queue, meta.MaxRetry)); err != nil {
+	if err := repository.AppendTaskExecutionLog(ctx, taskID, fmt.Sprintf("[系统] 任务已成功入队，等待调度执行 (队列: %s, 最大重试次数: %d)", meta.Queue, meta.MaxRetry)); err != nil {
 		logger.ErrorF(ctx, "[TaskExecutor] 追加入队日志失败 taskID=%s: %v", taskID, err)
 	}
 
@@ -169,7 +170,7 @@ func DispatchTask(ctx context.Context, taskType string, payload []byte, triggere
 
 // RetryTask 重试失败的任务
 func RetryTask(ctx context.Context, id uint64) (string, error) {
-	execution, err := model.GetTaskExecutionByID(ctx, id)
+	execution, err := repository.GetTaskExecutionByID(ctx, id)
 	if err != nil {
 		return "", fmt.Errorf(errTaskExecutionNotFound, err)
 	}
@@ -198,7 +199,7 @@ func RetryTask(ctx context.Context, id uint64) (string, error) {
 		TriggeredBy: "retry",
 	}
 
-	if err := model.CreateTaskExecution(ctx, newExecution); err != nil {
+	if err := repository.CreateTaskExecution(ctx, newExecution); err != nil {
 		return "", fmt.Errorf(errCreateRetryExecutionFailed, err)
 	}
 
@@ -221,11 +222,11 @@ func RetryTask(ctx context.Context, id uint64) (string, error) {
 		now := time.Now()
 		newExecution.StartedAt = &now
 		newExecution.FinishedAt = &now
-		_ = model.UpdateTaskExecution(ctx, newExecution)
+		_ = repository.UpdateTaskExecution(ctx, newExecution)
 		return "", fmt.Errorf(errRetryTaskEnqueueFailed, err)
 	}
 
-	if err := model.AppendTaskExecutionLog(ctx, newTaskID, fmt.Sprintf("[系统] 手动触发重试，已重新创建任务并入队 (原任务ID: %s, 重试次数: %d/%d)", execution.TaskID, execution.RetryCount+1, execution.MaxRetry)); err != nil {
+	if err := repository.AppendTaskExecutionLog(ctx, newTaskID, fmt.Sprintf("[系统] 手动触发重试，已重新创建任务并入队 (原任务ID: %s, 重试次数: %d/%d)", execution.TaskID, execution.RetryCount+1, execution.MaxRetry)); err != nil {
 		logger.ErrorF(ctx, "[TaskExecutor] 追加重试日志失败 taskID=%s: %v", newTaskID, err)
 	}
 
@@ -350,7 +351,7 @@ func updateExecutionOnStart(ctx context.Context, execution *model.TaskExecution,
 		dirty = true
 	}
 	if dirty {
-		if updateErr := model.UpdateTaskExecution(ctx, execution); updateErr != nil {
+		if updateErr := repository.UpdateTaskExecution(ctx, execution); updateErr != nil {
 			logger.ErrorF(ctx, "[TaskExecutor] 更新执行状态失败 taskID=%s: %v", execution.TaskID, updateErr)
 		}
 	}
@@ -358,7 +359,7 @@ func updateExecutionOnStart(ctx context.Context, execution *model.TaskExecution,
 
 // getOrCreateTaskExecution 获取已有的任务执行记录，如果不存在则针对已知任务类型动态创建记录
 func getOrCreateTaskExecution(ctx context.Context, taskID string, t *asynq.Task, payload []byte, now time.Time) (*model.TaskExecution, error) {
-	execution, err := model.GetTaskExecutionByTaskID(ctx, taskID)
+	execution, err := repository.GetTaskExecutionByTaskID(ctx, taskID)
 	if err == nil {
 		return execution, nil
 	}
@@ -381,7 +382,7 @@ func getOrCreateTaskExecution(ctx context.Context, taskID string, t *asynq.Task,
 		StartedAt:   &now,
 	}
 
-	if createErr := model.CreateTaskExecution(ctx, execution); createErr != nil {
+	if createErr := repository.CreateTaskExecution(ctx, execution); createErr != nil {
 		logger.ErrorF(ctx, "[TaskExecutor] 动态创建执行记录失败 taskID=%s: %v", taskID, createErr)
 		return nil, createErr
 	}
@@ -404,11 +405,11 @@ func completeTaskExecution(ctx context.Context, execution *model.TaskExecution, 
 		handleSuccessfulTask(ctx, execution, t, duration, result)
 	}
 
-	if err := model.UpdateTaskExecution(ctx, execution); err != nil {
+	if err := repository.UpdateTaskExecution(ctx, execution); err != nil {
 		logger.ErrorF(ctx, "[TaskExecutor] 更新执行记录失败 taskID=%s: %v", execution.TaskID, err)
 	}
 	if shouldFlushTaskExecutionLog(ctx, execErr) {
-		if err := model.FlushTaskExecutionLog(ctx, execution.TaskID); err != nil {
+		if err := repository.FlushTaskExecutionLog(ctx, execution.TaskID); err != nil {
 			logger.ErrorF(ctx, "[TaskExecutor] 持久化任务日志失败 taskID=%s: %v", execution.TaskID, err)
 		}
 	}
@@ -428,7 +429,7 @@ func notifyTaskCompleted(ctx context.Context, execution *model.TaskExecution, re
 }
 
 func shouldFlushTaskExecutionLog(ctx context.Context, execErr error) bool {
-	if execErr == nil {
+	if isTerminalTaskExecutionError(execErr) {
 		return true
 	}
 
@@ -438,6 +439,10 @@ func shouldFlushTaskExecutionLog(ctx context.Context, execErr error) bool {
 		return true
 	}
 	return retryCount >= maxRetry
+}
+
+func isTerminalTaskExecutionError(execErr error) bool {
+	return execErr == nil || errors.Is(execErr, asynq.SkipRetry)
 }
 
 func handleFailedTask(ctx context.Context, execution *model.TaskExecution, t *asynq.Task, duration time.Duration, execErr error, span trace.Span) {

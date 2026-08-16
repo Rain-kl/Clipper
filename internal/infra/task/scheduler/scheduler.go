@@ -12,8 +12,8 @@ import (
 	"time"
 
 	"github.com/Rain-kl/Wavelet/internal/infra/task"
-	"github.com/Rain-kl/Wavelet/internal/model"
 	"github.com/Rain-kl/Wavelet/internal/platform/bootstrap"
+	"github.com/Rain-kl/Wavelet/internal/repository"
 	"github.com/Rain-kl/Wavelet/pkg/logger"
 
 	"github.com/hibiken/asynq"
@@ -84,7 +84,7 @@ func ReloadScheduler() error {
 	}
 
 	// 2. 从数据库载入启用的定时任务配置
-	schedules, err := model.ListActiveSchedules(context.Background())
+	schedules, err := repository.ListActiveSchedules(context.Background())
 	if err != nil {
 		return fmt.Errorf("load schedules from db failed: %w", err)
 	}

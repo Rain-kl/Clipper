@@ -50,8 +50,8 @@ func InitLogWriter(ctx context.Context) {
 			}
 			logger.WarnF(context.Background(), "[RiskControl] Log queue full, dropping log item for path: %s", path)
 		}),
-		batchwriter.WithFlushErrorHandler[*analytics.UserAccessLog](func(ctx context.Context, batchSize int, err error) {
-			logger.ErrorF(ctx, "[RiskControl] Send ClickHouse batch failed (batch=%d): %v", batchSize, err)
+		batchwriter.WithFlushErrorHandler[*analytics.UserAccessLog](func(ctx context.Context, items []*analytics.UserAccessLog, err error) {
+			logger.ErrorF(ctx, "[RiskControl] Send ClickHouse batch failed (batch=%d): %v", len(items), err)
 		}),
 	)
 	if err != nil {

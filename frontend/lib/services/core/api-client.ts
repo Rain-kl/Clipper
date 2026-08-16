@@ -5,7 +5,7 @@ import axios, {
   InternalAxiosRequestConfig,
 } from 'axios';
 import { toast } from 'sonner';
-import { apiConfig } from './config';
+import { apiConfig, getApiBaseUrl } from './config';
 import {
   ApiErrorBase,
   ForbiddenError,
@@ -26,10 +26,27 @@ const apiClient = axios.create({
   baseURL: apiConfig.baseURL,
   timeout: apiConfig.timeout,
   withCredentials: apiConfig.withCredentials,
+  // Fail fast on slash redirect loops between Next dev proxy and Gin legacy routes.
+  maxRedirects: 5,
+  // Gin QueryArray("hosts") expects hosts=a&hosts=b, not hosts[]=a.
+  paramsSerializer: {
+    indexes: null,
+  },
   headers: {
     'Content-Type': 'application/json',
   },
 });
+
+/** Normalize legacy /api/* paths: strip trailing slash to avoid 308/301 loops in dev proxy. */
+function normalizeApiPath(url?: string): string | undefined {
+  if (!url || !url.startsWith('/api/')) {
+    return url;
+  }
+  if (url.length > 5 && url.endsWith('/')) {
+    return url.replace(/\/+$/, '');
+  }
+  return url;
+}
 
 /**
  * 请求取消令牌存储
@@ -73,6 +90,12 @@ function getRequestKey(config: {
  */
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
+    // Browser must use same-origin relative URLs so Session Cookie hits Next rewrite.
+    if (typeof window !== 'undefined') {
+      config.baseURL = getApiBaseUrl();
+    }
+    config.url = normalizeApiPath(config.url);
+
     const requestKey = getRequestKey(config);
     const source = axios.CancelToken.source();
     config.cancelToken = source.token;

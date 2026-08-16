@@ -24,6 +24,7 @@ import (
 	"github.com/Rain-kl/Wavelet/internal/infra/persistence"
 	"github.com/Rain-kl/Wavelet/internal/infra/task"
 	"github.com/Rain-kl/Wavelet/internal/model"
+	"github.com/Rain-kl/Wavelet/internal/repository"
 	"github.com/Rain-kl/Wavelet/internal/testhelper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -123,7 +124,7 @@ func TestSystemCleanupHandler_Execute(t *testing.T) {
 		UpdatedAt:   now.AddDate(0, 0, -31),
 		TriggeredBy: "system",
 	}
-	err = model.CreateTaskExecution(ctx, oldTaskLog)
+	err = repository.CreateTaskExecution(ctx, oldTaskLog)
 	require.NoError(t, err)
 
 	// 执行 handler

@@ -20,6 +20,7 @@ import (
 	"github.com/Rain-kl/Wavelet/internal/infra/task"
 	"github.com/Rain-kl/Wavelet/internal/model"
 	"github.com/Rain-kl/Wavelet/internal/platform/bootstrap"
+	"github.com/Rain-kl/Wavelet/internal/repository"
 	"github.com/Rain-kl/Wavelet/internal/testhelper"
 	"github.com/gin-gonic/gin"
 	"github.com/hibiken/asynq"
@@ -234,7 +235,7 @@ func TestListTaskExecutions(t *testing.T) {
 		{TaskID: "exec_003", TaskType: "system:cleanup", TaskName: "系统垃圾清理", Status: model.TaskExecutionStatusPending, TriggeredBy: "manual", Retryable: true, MaxRetry: 3},
 	}
 	for _, r := range records {
-		err := model.CreateTaskExecution(ctx, r)
+		err := repository.CreateTaskExecution(ctx, r)
 		require.NoError(t, err)
 	}
 
@@ -345,7 +346,7 @@ func TestGetTaskExecution(t *testing.T) {
 		MaxRetry:    3,
 		TriggeredBy: "manual",
 	}
-	err := model.CreateTaskExecution(ctx, execution)
+	err := repository.CreateTaskExecution(ctx, execution)
 	require.NoError(t, err)
 
 	t.Run("get existing execution", func(t *testing.T) {
@@ -410,7 +411,7 @@ func TestRetryTask(t *testing.T) {
 			StartedAt:    &now,
 			FinishedAt:   &now,
 		}
-		err := model.CreateTaskExecution(ctx, execution)
+		err := repository.CreateTaskExecution(ctx, execution)
 		require.NoError(t, err)
 
 		url := fmt.Sprintf("/api/v1/admin/tasks/executions/%d/retry", execution.ID)
@@ -430,7 +431,7 @@ func TestRetryTask(t *testing.T) {
 		assert.True(t, ok)
 		assert.NotEmpty(t, newTaskID)
 
-		newExecution, err := model.GetTaskExecutionByTaskID(ctx, newTaskID)
+		newExecution, err := repository.GetTaskExecutionByTaskID(ctx, newTaskID)
 		require.NoError(t, err)
 		assert.Equal(t, 1, newExecution.RetryCount)
 		assert.Equal(t, "retry", newExecution.TriggeredBy)
@@ -446,7 +447,7 @@ func TestRetryTask(t *testing.T) {
 			MaxRetry:    3,
 			TriggeredBy: "manual",
 		}
-		err := model.CreateTaskExecution(ctx, execution)
+		err := repository.CreateTaskExecution(ctx, execution)
 		require.NoError(t, err)
 
 		url := fmt.Sprintf("/api/v1/admin/tasks/executions/%d/retry", execution.ID)
@@ -466,7 +467,7 @@ func TestRetryTask(t *testing.T) {
 			Retryable:   false,
 			TriggeredBy: "manual",
 		}
-		err := model.CreateTaskExecution(ctx, execution)
+		err := repository.CreateTaskExecution(ctx, execution)
 		require.NoError(t, err)
 
 		url := fmt.Sprintf("/api/v1/admin/tasks/executions/%d/retry", execution.ID)

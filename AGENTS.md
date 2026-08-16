@@ -94,6 +94,9 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 - 禁止在 `init()` 中注册跨模块集成（任务 Handler、推送事件、域事件监听器等），统一在 `internal/platform/bootstrap` 显式装配并在 `internal/cmd` 入口调用。
 - 核心业务模块（`oauth`、`user`）禁止直接 import `push` 或 `custom_events` 触发通知，须通过 `internal/listener` 发射域事件。
 - API 错误响应必须通过 `response.Abort*` 中断请求，由 `ErrorHandlerMiddleware` 统一写出 JSON 并记录 Trace；禁止在 Handler/中间件中直接 `c.JSON(status, response.Err(...))` 或 `200` 返回 `error_msg`。
+- **分层**：`apps → repository → model`，`repository → infra/persistence`；禁止 `model → repository`。
+  - `model`：实体、表名、配置 key、查询 DTO、无 IO 规则。禁止 `db.DB` / Redis / CH；禁止 `import repository`。GORM hook 仅可 mutate 自身字段，禁止在 hook 内再查 DB/缓存。
+  - `repository`：唯一持久化入口。apps/logics 禁止为业务 CRUD 直调 `db.DB`（管理端 SQL 控制台、infra 内部等例外保留）。禁止新增 `model.Get/List/Create/...` 类数据访问 API。
 
 ## 技术栈与项目目录结构
 
@@ -112,6 +115,7 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 - **错误日志**：底层错误在 Handler/Logic 边界用 `pkg/logger` 打印日志，禁止使用 `_ = ...` 静默吞掉关键错误。
 
 ### 数据库操作
+- 平台域（user、auth_source、access_token、schedule、task_execution）的持久化必须走 `internal/repository`，禁止在 `internal/model` 中调用 `db.DB` / Redis。
 - 管理员代码推荐使用 `db.DB(ctx)`（`internal/infra/persistence`，包名 `db`）保证 Trace 链路透传。
 - 禁止在 Handler 写复杂 SQL；迁移文件位于 `internal/infra/persistence/migrator/goose/`（禁止 GORM AutoMigrate）。
 - 不创建物理外键（显式建索引）；Go 模型零值需与数据库默认值匹配。

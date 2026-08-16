@@ -38,6 +38,16 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   Breadcrumb,
   BreadcrumbItem,
   BreadcrumbLink,
@@ -53,6 +63,8 @@ import { useLocale, useTranslations } from 'next-intl';
 import { formatDateTime } from '@/i18n/format';
 import type { AppLocale } from '@/i18n/config';
 
+type ConfirmTarget = { id: number; name: string };
+
 export function AccessTokenMain() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -67,6 +79,12 @@ export function AccessTokenMain() {
   const [copiedId, setCopiedId] = React.useState<number | null>(null);
   const [newCreatedToken, setNewCreatedToken] =
     React.useState<CreateTokenResponse | null>(null);
+  const [deleteTarget, setDeleteTarget] = React.useState<ConfirmTarget | null>(
+    null,
+  );
+  const [rotateTarget, setRotateTarget] = React.useState<ConfirmTarget | null>(
+    null,
+  );
 
   // 获取 Token 列表
   const accessTokensQuery = useQuery({
@@ -98,6 +116,7 @@ export function AccessTokenMain() {
   const deleteTokenMutation = useMutation({
     mutationFn: (id: number) => UserService.deleteAccessToken(id),
     onSuccess: () => {
+      setDeleteTarget(null);
       void queryClient.invalidateQueries({
         queryKey: ['user', 'access-tokens'],
       });
@@ -112,6 +131,7 @@ export function AccessTokenMain() {
   const rotateTokenMutation = useMutation({
     mutationFn: (id: number) => UserService.rotateAccessToken(id),
     onSuccess: (data) => {
+      setRotateTarget(null);
       setNewCreatedToken(data);
       setViewDialogOpen(true);
       void queryClient.invalidateQueries({
@@ -134,18 +154,6 @@ export function AccessTokenMain() {
       name: tokenName.trim(),
       isAdmin: tokenIsAdmin,
     });
-  };
-
-  const handleDeleteToken = (id: number, name: string) => {
-    if (window.confirm(ta('deleteConfirm', { name }))) {
-      deleteTokenMutation.mutate(id);
-    }
-  };
-
-  const handleRotateToken = (id: number, name: string) => {
-    if (window.confirm(ta('rotateConfirm', { name }))) {
-      rotateTokenMutation.mutate(id);
-    }
   };
 
   const handleCopyText = async (text: string, id: number) => {
@@ -297,7 +305,9 @@ export function AccessTokenMain() {
                       variant='outline'
                       size='sm'
                       className='text-xs border-dashed text-muted-foreground hover:text-primary hover:bg-primary/5 rounded-lg h-8 px-2.5'
-                      onClick={() => handleRotateToken(token.id, token.name)}
+                      onClick={() =>
+                        setRotateTarget({ id: token.id, name: token.name })
+                      }
                       disabled={rotateTokenMutation.isPending}
                     >
                       <RefreshCw
@@ -310,7 +320,9 @@ export function AccessTokenMain() {
                       variant='outline'
                       size='sm'
                       className='text-xs border-dashed text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 hover:border-rose-500/20 rounded-lg h-8 px-2.5'
-                      onClick={() => handleDeleteToken(token.id, token.name)}
+                      onClick={() =>
+                        setDeleteTarget({ id: token.id, name: token.name })
+                      }
                       disabled={deleteTokenMutation.isPending}
                     >
                       <Trash2 className='size-3.5 mr-1' />
@@ -482,6 +494,64 @@ export function AccessTokenMain() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog
+        open={Boolean(deleteTarget)}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{ta('deleteConfirmTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {ta('deleteConfirm', { name: deleteTarget?.name ?? '' })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteTokenMutation.isPending}>
+              {tCommon('cancel')}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deleteTokenMutation.isPending}
+              onClick={() =>
+                deleteTarget && deleteTokenMutation.mutate(deleteTarget.id)
+              }
+            >
+              {deleteTokenMutation.isPending
+                ? ta('revoking')
+                : ta('confirmRevoke')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={Boolean(rotateTarget)}
+        onOpenChange={(open) => !open && setRotateTarget(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{ta('rotateConfirmTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {ta('rotateConfirm', { name: rotateTarget?.name ?? '' })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={rotateTokenMutation.isPending}>
+              {tCommon('cancel')}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={rotateTokenMutation.isPending}
+              onClick={() =>
+                rotateTarget && rotateTokenMutation.mutate(rotateTarget.id)
+              }
+            >
+              {rotateTokenMutation.isPending
+                ? ta('rotating')
+                : ta('confirmRotate')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </motion.div>
   );
 }

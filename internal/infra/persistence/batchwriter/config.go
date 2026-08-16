@@ -11,6 +11,7 @@ import (
 const (
 	defaultQueueSize    = 10_000
 	defaultMaxBatchSize = 1_000
+	defaultMinBatchSize = 50
 	defaultFlushEvery   = time.Second
 )
 
@@ -25,8 +26,17 @@ type Config struct {
 	// MaxBatchSize triggers a flush when the in-memory batch reaches this count.
 	MaxBatchSize int
 
-	// FlushInterval triggers a time-based flush even when the batch is smaller.
+	// MinBatchSize is the minimum in-memory batch size for time-based flushes.
+	// Zero disables the threshold and preserves legacy interval flush behavior.
+	// When set, interval flushes below this size are skipped unless MaxFlushWait elapses.
+	MinBatchSize int
+
+	// FlushInterval is how often the worker checks whether a time-based flush should run.
 	FlushInterval time.Duration
+
+	// MaxFlushWait forces a flush of any non-empty batch once the oldest item has waited
+	// this long, even if MinBatchSize has not been reached. Zero disables the force path.
+	MaxFlushWait time.Duration
 }
 
 // DefaultConfig returns production-friendly defaults aligned with audit log batching.
@@ -34,6 +44,7 @@ func DefaultConfig() Config {
 	return Config{
 		QueueSize:     defaultQueueSize,
 		MaxBatchSize:  defaultMaxBatchSize,
+		MinBatchSize:  defaultMinBatchSize,
 		FlushInterval: defaultFlushEvery,
 	}
 }
@@ -45,8 +56,14 @@ func (c Config) validate() error {
 	if c.MaxBatchSize <= 0 {
 		return fmt.Errorf("batchwriter: max batch size must be positive")
 	}
+	if c.MinBatchSize < 0 {
+		return fmt.Errorf("batchwriter: min batch size must be non-negative")
+	}
 	if c.FlushInterval <= 0 {
 		return fmt.Errorf("batchwriter: flush interval must be positive")
+	}
+	if c.MaxFlushWait < 0 {
+		return fmt.Errorf("batchwriter: max flush wait must be non-negative")
 	}
 	return nil
 }

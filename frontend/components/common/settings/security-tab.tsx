@@ -40,6 +40,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { AuthSourceModal } from '@/components/common/settings/auth-source-modal';
 import services from '@/lib/services';
 import type { AuthSource, SystemConfig } from '@/lib/services/admin';
@@ -93,8 +103,10 @@ interface SecurityTabProps {
 export function SecurityTab({ configs, systemConfigsQuery }: SecurityTabProps) {
   const queryClient = useQueryClient();
   const t = useTranslations('settings.security');
+  const tCommon = useTranslations('common');
   const [authSourceModalOpen, setAuthSourceModalOpen] = useState(false);
   const [selectedSource, setSelectedSource] = useState<AuthSource | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<AuthSource | null>(null);
 
   const [capCount, setCapCount] = useState('');
   const [capDifficulty, setCapDifficulty] = useState('');
@@ -233,6 +245,7 @@ export function SecurityTab({ configs, systemConfigsQuery }: SecurityTabProps) {
       await services.adminAuthSource.deleteAuthSource(sourceId);
     },
     onSuccess: async () => {
+      setDeleteTarget(null);
       await queryClient.invalidateQueries({ queryKey: ['auth', 'sources'] });
       await queryClient.invalidateQueries({
         queryKey: ['auth', 'public-sources'],
@@ -490,17 +503,7 @@ export function SecurityTab({ configs, systemConfigsQuery }: SecurityTabProps) {
                       size='icon'
                       className='size-8 text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors'
                       disabled={deleteSourceMutation.isPending}
-                      onClick={() => {
-                        if (
-                          window.confirm(
-                            t('deleteAuthSourceConfirm', {
-                              name: source.display_name || source.name,
-                            }),
-                          )
-                        ) {
-                          deleteSourceMutation.mutate(source.id);
-                        }
-                      }}
+                      onClick={() => setDeleteTarget(source)}
                     >
                       <Trash2 className='size-4' />
                     </Button>
@@ -706,6 +709,37 @@ export function SecurityTab({ configs, systemConfigsQuery }: SecurityTabProps) {
           await authSourcesQuery.refetch();
         }}
       />
+
+      <AlertDialog
+        open={Boolean(deleteTarget)}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('deleteAuthSourceTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('deleteAuthSourceConfirm', {
+                name: deleteTarget?.display_name || deleteTarget?.name || '',
+              })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteSourceMutation.isPending}>
+              {tCommon('cancel')}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deleteSourceMutation.isPending}
+              onClick={() =>
+                deleteTarget && deleteSourceMutation.mutate(deleteTarget.id)
+              }
+            >
+              {deleteSourceMutation.isPending
+                ? t('deleting')
+                : t('confirmDelete')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
