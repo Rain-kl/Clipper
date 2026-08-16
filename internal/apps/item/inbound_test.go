@@ -192,6 +192,38 @@ func TestIngestInbound_ImageCaption(t *testing.T) {
 	}
 }
 
+func TestIngestInbound_PhotoFilenameSetsImageMeta(t *testing.T) {
+	restore, disable := setupInboundMockStorage(t)
+	defer restore()
+	defer disable()
+	_, _, cleanup := testhelper.SetupTestEnvironment(t)
+	defer cleanup()
+	dir := t.TempDir()
+	path := filepath.Join(dir, "photo.jpg")
+	if err := os.WriteFile(path, []byte("jpeg-bytes"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	msg := tgMsg(1001, "img2", "hi")
+	msg.Attachments = []message_gateway.Attachment{{Path: path, FileName: "photo.jpg"}}
+	if err := IngestInbound(context.Background(), msg); err != nil {
+		t.Fatalf("IngestInbound() error = %v", err)
+	}
+	list, err := ListItems(context.Background(), 1001, ListItemsQuery{Page: 1, PageSize: 10})
+	if err != nil || list.Total != 1 {
+		t.Fatalf("ListItems() total = %d err = %v, want 1", list.Total, err)
+	}
+	got, err := GetItem(context.Background(), 1001, list.Results[0].ID)
+	if err != nil {
+		t.Fatalf("GetItem() error = %v", err)
+	}
+	if len(got.Attachments) != 1 {
+		t.Fatalf("GetItem() attachments = %+v, want 1", got)
+	}
+	if got.Attachments[0].MimeType != "image/jpeg" {
+		t.Fatalf("GetItem() mime = %q, want image/jpeg", got.Attachments[0].MimeType)
+	}
+}
+
 func setupInboundMockStorage(t *testing.T) (restore func(), disable func()) {
 	t.Helper()
 	mockFiles := make(map[string][]byte)

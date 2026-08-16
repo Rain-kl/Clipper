@@ -121,9 +121,11 @@ func (a *Adapter) handleTeleMessage(ctx context.Context, m *tele.Message) {
 func (a *Adapter) downloadMedia(m *tele.Message) []message_gateway.Attachment {
 	var files []*tele.File
 	var names []string
+	var mimes []string
 	if m.Photo != nil {
 		files = append(files, m.Photo.MediaFile())
 		names = append(names, "photo.jpg")
+		mimes = append(mimes, "image/jpeg")
 	}
 	if m.Document != nil {
 		files = append(files, &m.Document.File)
@@ -132,6 +134,7 @@ func (a *Adapter) downloadMedia(m *tele.Message) []message_gateway.Attachment {
 			name = "file"
 		}
 		names = append(names, name)
+		mimes = append(mimes, m.Document.MIME)
 	}
 	if len(files) == 0 {
 		return nil
@@ -144,10 +147,10 @@ func (a *Adapter) downloadMedia(m *tele.Message) []message_gateway.Attachment {
 	for i, f := range files {
 		path := filepath.Join(dir, names[i])
 		if err := a.bot.Download(f, path); err != nil {
-			out = append(out, message_gateway.Attachment{FileName: names[i], Error: err.Error()})
+			out = append(out, message_gateway.Attachment{FileName: names[i], MIME: mimes[i], Error: err.Error()})
 			continue
 		}
-		out = append(out, message_gateway.Attachment{Path: path, FileName: names[i]})
+		out = append(out, message_gateway.Attachment{Path: path, FileName: names[i], MIME: mimes[i]})
 	}
 	return out
 }

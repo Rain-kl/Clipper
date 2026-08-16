@@ -9,6 +9,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"mime"
 	"os"
 	"path/filepath"
 	"strings"
@@ -88,12 +89,14 @@ func ingestInboundAttachments(ctx context.Context, userID uint64, atts []message
 			continue
 		}
 		sum := sha256.Sum256(data)
+		ext, mediaType := inboundFileMeta(att)
 		res, err := upload.Ingest(ctx, upload.IngestRequest{
 			UserID:             userID,
 			Reader:             bytes.NewReader(data),
 			Size:               int64(len(data)),
 			FileName:           att.FileName,
-			MimeType:           att.MIME,
+			MimeType:           mediaType,
+			Extension:          ext,
 			Hash:               hex.EncodeToString(sum[:]),
 			Type:               "clip",
 			Policy:             upload.PolicyResolveExisting,
@@ -106,6 +109,18 @@ func ingestInboundAttachments(ctx context.Context, userID uint64, atts []message
 		ids = append(ids, res.Upload.ID)
 	}
 	return ids, nil
+}
+
+func inboundFileMeta(att message_gateway.Attachment) (ext, mediaType string) {
+	ext = strings.ToLower(strings.TrimPrefix(filepath.Ext(att.FileName), "."))
+	if ext == "" {
+		ext = strings.ToLower(strings.TrimPrefix(filepath.Ext(att.Path), "."))
+	}
+	mediaType = strings.TrimSpace(att.MIME)
+	if mediaType == "" && ext != "" {
+		mediaType = mime.TypeByExtension("." + ext)
+	}
+	return ext, mediaType
 }
 
 func appendInbound(ctx context.Context, last *model.Item, userID uint64, text string, uploadIDs []uint64, msg message_gateway.InboundMessage) error {
