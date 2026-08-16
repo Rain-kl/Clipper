@@ -14,6 +14,11 @@
   },
   "layout": {
     "nav": {
+      "clip": "Clip",
+      "review": "回顾",
+      "search": "搜索",
+      "library": "记录",
+      "vault": "密码本",
       "home": "首页",
       "myFiles": "我的文件",
       "users": "用户管理",
@@ -1838,6 +1843,106 @@
       "register": "注册",
       "admin": "后台管理",
       "dashboard": "控制台"
+    }
+  },
+  "item": {
+    "lifecycle": {
+      "pending": "待分类",
+      "active": "活跃",
+      "archived": "归档",
+      "trash": "回收站"
+    },
+    "importance": {
+      "none": "未标记",
+      "fragment": "片段",
+      "note": "笔记",
+      "vault": "重要"
+    },
+    "contentType": {
+      "text": "文本",
+      "image": "图片",
+      "file": "文件"
+    },
+    "common": {
+      "refresh": "刷新",
+      "all": "全部",
+      "loading": "加载中…",
+      "total": "共 {count} 条",
+      "actionFailed": "操作失败",
+      "untitledFile": "未命名文件",
+      "removeAttachment": "移除附件",
+      "moreActions": "更多操作",
+      "imageAlt": "附件图片",
+      "fileFallback": "文件 {id}",
+      "noBody": "(无正文)",
+      "noContent": "（无内容）",
+      "image": "图片",
+      "classifiedAs": "已归类为{label}",
+      "markedAs": "已标记为{label}",
+      "trashed": "已移入垃圾箱",
+      "trashedBin": "已移入回收站",
+      "archived": "已归档",
+      "restored": "已恢复",
+      "deletedForever": "已永久删除",
+      "pendingBadge": "待处理",
+      "archivedBadge": "已归档",
+      "trashAction": "垃圾",
+      "reclassify": "重新分类",
+      "moveToTrash": "移入垃圾箱",
+      "moveToTrashBin": "移入回收站",
+      "restore": "恢复",
+      "deleteForever": "永久删除",
+      "emptyDefaultTitle": "暂无内容",
+      "emptyDefaultDescription": "试试调整筛选条件，或去 Clip 捕获一条"
+    },
+    "clip": {
+      "title": "Clip",
+      "placeholder": "粘贴或输入任何内容…（支持粘贴图片，⌘/Ctrl+Enter 发送）",
+      "submit": "发送",
+      "submitting": "发送中…",
+      "needContent": "请输入内容或添加附件",
+      "captured": "已捕获",
+      "submitFailed": "提交失败"
+    },
+    "review": {
+      "title": "回顾",
+      "loadFailed": "加载时间线失败",
+      "empty": "暂无条目。去 Clip 捕获第一条内容吧。",
+      "today": "今天",
+      "yesterday": "昨天",
+      "loadArchivedFailed": "加载归档失败",
+      "collapseArchived": "收起 {count} 条归档",
+      "expandArchived": "已折叠 {count} 条归档"
+    },
+    "search": {
+      "title": "搜索",
+      "loadFailed": "搜索失败",
+      "placeholder": "关键词（匹配正文）",
+      "submit": "搜索",
+      "lifecycle": "生命周期",
+      "importance": "重要性",
+      "type": "类型",
+      "includeArchived": "包含归档",
+      "includeTrash": "包含回收站",
+      "emptyTitle": "没有匹配结果",
+      "emptyDescription": "试试调整关键词或筛选条件"
+    },
+    "library": {
+      "title": "记录",
+      "loadFailed": "加载记录失败",
+      "contentType": "基础类型",
+      "lifecycle": "生命周期",
+      "importance": "重要性",
+      "emptyTitle": "暂无记录",
+      "emptyDescription": "选择筛选条件，或去 Clip 捕获内容"
+    },
+    "vault": {
+      "title": "密码本",
+      "loadFailed": "加载密码本失败",
+      "warning": "密码本内容未加密，请依赖账号安全。请勿在不安全环境中保存高敏感凭证。",
+      "total": "共 {count} 条重要内容",
+      "emptyTitle": "密码本为空",
+      "emptyDescription": "在回顾中将条目标记为「重要」后会显示在这里"
     }
   },
   "metadata": {

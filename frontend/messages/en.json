@@ -14,6 +14,11 @@
   },
   "layout": {
     "nav": {
+      "clip": "Clip",
+      "review": "Review",
+      "search": "Search",
+      "library": "Library",
+      "vault": "Vault",
       "home": "Home",
       "myFiles": "My Files",
       "users": "Users",
@@ -1838,6 +1843,106 @@
       "register": "Register",
       "admin": "Admin",
       "dashboard": "Dashboard"
+    }
+  },
+  "item": {
+    "lifecycle": {
+      "pending": "Pending",
+      "active": "Active",
+      "archived": "Archived",
+      "trash": "Trash"
+    },
+    "importance": {
+      "none": "Unmarked",
+      "fragment": "Snippet",
+      "note": "Note",
+      "vault": "Important"
+    },
+    "contentType": {
+      "text": "Text",
+      "image": "Image",
+      "file": "File"
+    },
+    "common": {
+      "refresh": "Refresh",
+      "all": "All",
+      "loading": "Loading…",
+      "total": "{count} items",
+      "actionFailed": "Action failed",
+      "untitledFile": "Untitled file",
+      "removeAttachment": "Remove attachment",
+      "moreActions": "More actions",
+      "imageAlt": "Attachment image",
+      "fileFallback": "File {id}",
+      "noBody": "(No body)",
+      "noContent": "(No content)",
+      "image": "Image",
+      "classifiedAs": "Classified as {label}",
+      "markedAs": "Marked as {label}",
+      "trashed": "Moved to trash",
+      "trashedBin": "Moved to trash",
+      "archived": "Archived",
+      "restored": "Restored",
+      "deletedForever": "Permanently deleted",
+      "pendingBadge": "Pending",
+      "archivedBadge": "Archived",
+      "trashAction": "Trash",
+      "reclassify": "Reclassify",
+      "moveToTrash": "Move to trash",
+      "moveToTrashBin": "Move to trash",
+      "restore": "Restore",
+      "deleteForever": "Delete forever",
+      "emptyDefaultTitle": "Nothing here",
+      "emptyDefaultDescription": "Adjust filters, or capture something in Clip"
+    },
+    "clip": {
+      "title": "Clip",
+      "placeholder": "Paste or type anything… (images supported, ⌘/Ctrl+Enter to send)",
+      "submit": "Send",
+      "submitting": "Sending…",
+      "needContent": "Enter text or add an attachment",
+      "captured": "Captured",
+      "submitFailed": "Submit failed"
+    },
+    "review": {
+      "title": "Review",
+      "loadFailed": "Failed to load timeline",
+      "empty": "No items yet. Capture the first one in Clip.",
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "loadArchivedFailed": "Failed to load archive",
+      "collapseArchived": "Hide {count} archived",
+      "expandArchived": "{count} archived folded"
+    },
+    "search": {
+      "title": "Search",
+      "loadFailed": "Search failed",
+      "placeholder": "Keyword (matches body)",
+      "submit": "Search",
+      "lifecycle": "Lifecycle",
+      "importance": "Importance",
+      "type": "Type",
+      "includeArchived": "Include archived",
+      "includeTrash": "Include trash",
+      "emptyTitle": "No matches",
+      "emptyDescription": "Try another keyword or filter"
+    },
+    "library": {
+      "title": "Library",
+      "loadFailed": "Failed to load library",
+      "contentType": "Type",
+      "lifecycle": "Lifecycle",
+      "importance": "Importance",
+      "emptyTitle": "No records",
+      "emptyDescription": "Pick a filter, or capture something in Clip"
+    },
+    "vault": {
+      "title": "Vault",
+      "loadFailed": "Failed to load vault",
+      "warning": "Vault items are not encrypted. Rely on account security. Do not store highly sensitive secrets on an untrusted device.",
+      "total": "{count} important items",
+      "emptyTitle": "Vault is empty",
+      "emptyDescription": "Mark an item as Important in Review to see it here"
     }
   },
   "metadata": {
